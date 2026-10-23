@@ -1,9 +1,10 @@
+import { databaseConfig } from "../lib/postgres";
 import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import { randomBytes, createHash } from "node:crypto";
 const db = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
+  adapter: new PrismaPg(databaseConfig()),
 });
 const token = randomBytes(24).toString("hex");
 await db.teacherInvite.create({

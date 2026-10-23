@@ -442,3 +442,11 @@ test("student submits through the interface and teacher grades the displayed rep
   );
   await teacherContext.close();
 });
+
+test("health endpoint verifies database and initialized templates", async ({
+  request,
+}) => {
+  const response = await request.get("/api/health");
+  expect(response.status()).toBe(200);
+  expect(await response.json()).toEqual({ status: "ok" });
+});

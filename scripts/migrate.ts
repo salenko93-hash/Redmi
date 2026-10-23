@@ -1,3 +1,4 @@
+import { databaseConfig } from "../lib/postgres";
 import "dotenv/config";
 import { Client } from "pg";
 import { createHash } from "node:crypto";
@@ -5,7 +6,7 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 // Transactional SQL migrations avoid the experimental WASM introspector's handling of PostgreSQL's `name` type.
 // Files are generated from schema.prisma; an applied migration is immutable and verified by SHA-256.
-const client = new Client({ connectionString: process.env.DATABASE_URL });
+const client = new Client(databaseConfig());
 await client.connect();
 try {
   await client.query("SELECT pg_advisory_lock(72819051)");
