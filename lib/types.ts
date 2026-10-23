@@ -1,3 +1,4 @@
+import type { SimulationRecord } from "./simulation";
 export type Formula = {
   op: "divide" | "multiply" | "subtract" | "sum" | "hydro";
   args: string[];
@@ -34,6 +35,7 @@ export type LabContent = {
   image?: string;
 };
 export type Answers = {
+  simulationRecords?: SimulationRecord[];
   prediction?: string;
   experiments?: Record<string, Record<string, string>[]>;
   questions?: string[];

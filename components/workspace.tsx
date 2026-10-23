@@ -18,6 +18,8 @@ import { emptyAnswers, fieldFeedback, progress } from "@/lib/physics";
 import { LabTools } from "./lab-tools";
 import { ExperimentGraph } from "./graph";
 import { ForceDiagram } from "./force-diagram";
+import { VirtualLab } from "./virtual-lab";
+import { simulationSetup, type SimulationRecord } from "@/lib/simulation";
 const steps = ["Підготовка", "Експеримент", "Запитання", "Висновок"];
 const conclusionLabels = [
   "Що досліджували та як?",
@@ -116,6 +118,29 @@ export function Workspace({
           ? "Є незбережені зміни"
           : "Немає з’єднання · збережено на пристрої",
       );
+  }
+  function recordSimulation(record: SimulationRecord) {
+    const e = content.experiments.find((e) => e.id === record.experimentId);
+    if (!e || readOnly || experimentMode !== "SIMULATION") return;
+    const current = latest.current;
+    const rows = e.rows.map((_, i) => ({
+      ...current.experiments?.[e.id]?.[i],
+    }));
+    // New readings invalidate previous calculations and material identification in this row.
+    rows[record.rowIndex] = { ...record.readings };
+    const simulationRecords = [
+      ...(current.simulationRecords ?? []).filter(
+        (r) =>
+          r.experimentId !== record.experimentId ||
+          r.rowIndex !== record.rowIndex,
+      ),
+      record,
+    ];
+    change({
+      ...current,
+      experiments: { ...current.experiments, [e.id]: rows },
+      simulationRecords,
+    });
   }
   const save = useCallback(
     async (submit = false): Promise<boolean> => {
@@ -441,6 +466,15 @@ export function Workspace({
                     <li key={i}>{x}</li>
                   ))}
                 </ol>
+                <VirtualLab
+                  number={number}
+                  experiment={e}
+                  allowTransfer={!readOnly && experimentMode === "SIMULATION"}
+                  onRecord={recordSimulation}
+                  lastRecord={answers.simulationRecords
+                    ?.filter((r) => r.experimentId === e.id)
+                    .at(-1)}
+                />
                 <div className="experiment-rows">
                   {e.rows.map((label, i) => (
                     <div className="experiment-row" key={i}>
@@ -448,6 +482,14 @@ export function Workspace({
                         <span>{i + 1}</span>
                         {label}
                       </h4>
+                      {answers.simulationRecords?.some(
+                        (r) => r.experimentId === e.id && r.rowIndex === i,
+                      ) && (
+                        <p className="model-source">
+                          Джерело: віртуальна лабораторія · дані моделі.
+                          Розрахунки виконайте самостійно.
+                        </p>
+                      )}
                       <div className="measurement-grid">
                         {e.fields.map((f) => {
                           const row = answers.experiments?.[e.id]?.[i] ?? {};
@@ -515,6 +557,60 @@ export function Workspace({
                     })
                   }
                 />
+                {(answers.simulationRecords ?? [])
+                  .filter((r) => r.experimentId === e.id)
+                  .map((r) => (
+                    <details className="model-history" key={r.rowIndex}>
+                      <summary>
+                        Віртуальний дослід · {e.rows[r.rowIndex]} · модель v
+                        {r.modelVersion}
+                      </summary>
+                      <p className="muted">
+                        {new Date(r.recordedAt).toLocaleString("uk-UA", {
+                          timeZone: "Europe/Kyiv",
+                        })}
+                        . Це покази під час перенесення; поточні клітинки учень
+                        міг змінити вручну.
+                      </p>
+                      <dl className="model-parameters">
+                        {simulationSetup(number, e.id).controls.map((c) => (
+                          <div key={c.key}>
+                            <dt>{c.label}</dt>
+                            <dd>
+                              {c.options
+                                ? c.options[r.parameters[c.key]]
+                                : `${r.parameters[c.key]} ${c.unit ?? ""}`}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                      <h4>Покази під час перенесення</h4>
+                      <dl className="model-parameters">
+                        {Object.entries(r.readings).map(([key, value]) => (
+                          <div key={key}>
+                            <dt>
+                              {e.fields.find((f) => f.key === key)?.label ??
+                                key}
+                            </dt>
+                            <dd>
+                              {value}
+                              {e.fields.find((f) => f.key === key)?.unit
+                                ? " " +
+                                  e.fields.find((f) => f.key === key)?.unit
+                                : ""}
+                              {answers.experiments?.[e.id]?.[r.rowIndex]?.[
+                                key
+                              ] !== value && (
+                                <span className="field-error">
+                                  Клітинку змінено після перенесення
+                                </span>
+                              )}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </details>
+                  ))}
                 {comments(e.id)}
               </section>
             ))}
@@ -729,9 +825,11 @@ export function Workspace({
               Власні відкриття.
             </h3>
             <p className="muted">
-              {experimentMode === "DATA"
-                ? "Режим: аналіз наданих даних."
-                : "Режим: реальний експеримент."}
+              {experimentMode === "SIMULATION"
+                ? "Режим: віртуальний експеримент (модель)."
+                : experimentMode === "DATA"
+                  ? "Режим: аналіз наданих даних."
+                  : "Режим: реальний експеримент."}
             </p>
             <p className="muted">
               {feedbackMode === "PRACTICE"

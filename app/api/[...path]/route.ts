@@ -1,3 +1,4 @@
+import { validateSimulationRecords } from "@/lib/simulation";
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { compare, hash } from "bcryptjs";
@@ -167,7 +168,7 @@ async function handle(
           labVersionId: z.string(),
           dueAt: z.string().datetime().nullable(),
           feedbackMode: z.enum(["PRACTICE", "INDEPENDENT"]),
-          experimentMode: z.enum(["REAL", "DATA"]),
+          experimentMode: z.enum(["REAL", "DATA", "SIMULATION"]),
         })
         .parse(await req.json());
       if (
@@ -186,6 +187,41 @@ async function handle(
       )
         return fail("Шаблон не знайдено.", 404);
       return json(await db.assignment.create({ data: input }), 201);
+    }
+    if (
+      path[0] === "assignments" &&
+      path[1] &&
+      path[2] === "mode" &&
+      method === "PATCH"
+    ) {
+      if (user.role !== "TEACHER") return fail("Доступ лише для вчителя.", 403);
+      const { experimentMode } = z
+        .object({ experimentMode: z.enum(["REAL", "DATA", "SIMULATION"]) })
+        .parse(await req.json());
+      const assignment = await db.assignment.findFirst({
+        where: { id: path[1], classroom: { teacherId: user.id } },
+      });
+      if (!assignment) return fail("Роботу не знайдено.", 404);
+      await db.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${assignment.id}))`;
+        const submissions = await tx.submission.findMany({
+          where: { assignmentId: assignment.id },
+          select: { status: true, answers: true },
+        });
+        if (
+          submissions.some(
+            (s) =>
+              s.status !== "DRAFT" ||
+              ((s.answers as Answers).simulationRecords?.length ?? 0) > 0,
+          )
+        )
+          throw new Error("MODE_LOCKED");
+        await tx.assignment.update({
+          where: { id: assignment.id },
+          data: { experimentMode },
+        });
+      });
+      return json({ ok: true });
     }
     if (path[0] === "labs" && path[1] && method === "POST") {
       if (user.role !== "TEACHER") return fail("Доступ лише для вчителя.", 403);
@@ -265,15 +301,46 @@ async function handle(
         const content = assignment.labVersion.content as unknown as LabContent;
         if (input.submit) {
           const missing = completeness(content, input.answers);
-          if (
-            assignment.experimentMode === "DATA" &&
-            !input.answers.source?.trim()
-          )
-            missing.push("Вкажіть джерело наданих даних.");
           if (missing.length)
             return json({ error: "Заповніть обов’язкові поля.", missing }, 422);
         }
+        const records = input.answers.simulationRecords ?? [];
+        const recordError = validateSimulationRecords(
+          assignment.labVersion.number,
+          content.experiments,
+          records,
+        );
+        if (recordError) return fail(recordError, 422);
         const result = await db.$transaction(async (tx) => {
+          await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${assignment.id}))`;
+          const latestAssignment = await tx.assignment.findUniqueOrThrow({
+            where: { id: assignment.id },
+            select: { experimentMode: true },
+          });
+          if (
+            records.length &&
+            latestAssignment.experimentMode !== "SIMULATION"
+          )
+            throw new Error("SIMULATION_NOT_ALLOWED");
+          if (
+            input.submit &&
+            latestAssignment.experimentMode === "DATA" &&
+            !input.answers.source?.trim()
+          )
+            throw new Error("SOURCE_REQUIRED");
+          if (
+            input.submit &&
+            latestAssignment.experimentMode === "SIMULATION" &&
+            content.experiments.some((e) =>
+              e.rows.some(
+                (_, i) =>
+                  !records.some(
+                    (r) => r.experimentId === e.id && r.rowIndex === i,
+                  ),
+              ),
+            )
+          )
+            throw new Error("SIMULATION_REQUIRED");
           const existing = await tx.submission.upsert({
             where: { assignmentId_studentId: key },
             update: {},
@@ -459,6 +526,25 @@ async function handle(
     }
     return fail("Маршрут не знайдено.", 404);
   } catch (err) {
+    if (err instanceof Error) {
+      if (err.message === "MODE_LOCKED")
+        return fail(
+          "Режим уже зафіксовано: є здані роботи або перенесені віртуальні покази.",
+          409,
+        );
+      if (err.message === "SIMULATION_NOT_ALLOWED")
+        return fail(
+          "Учитель не призначив цю роботу як віртуальний експеримент.",
+          422,
+        );
+      if (err.message === "SIMULATION_REQUIRED")
+        return fail(
+          "Для кожного рядка проведіть віртуальний дослід і перенесіть покази приладів.",
+          422,
+        );
+      if (err.message === "SOURCE_REQUIRED")
+        return fail("Вкажіть джерело наданих даних.", 422);
+    }
     if (err instanceof z.ZodError)
       return fail(
         "Перевірте введені дані: " +
@@ -484,3 +570,4 @@ async function handle(
 export const GET = handle;
 export const POST = handle;
 export const PUT = handle;
+export const PATCH = handle;

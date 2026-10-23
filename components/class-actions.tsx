@@ -146,6 +146,7 @@ export function AssignForm({
         <select name="experimentMode">
           <option value="REAL">Власний експеримент</option>
           <option value="DATA">Аналіз наданих даних</option>
+          <option value="SIMULATION">Віртуальний експеримент</option>
         </select>
       </label>
       <p className="muted">
@@ -160,6 +161,75 @@ export function AssignForm({
       <button className="button primary" disabled={busy}>
         Призначити класу <ArrowRight size={16} />
       </button>
+    </form>
+  );
+}
+
+export function AssignmentMode({
+  id,
+  mode,
+  locked,
+}: {
+  id: string;
+  mode: string;
+  locked: boolean;
+}) {
+  const router = useRouter();
+  const [value, setValue] = useState(mode),
+    [error, setError] = useState(""),
+    [busy, setBusy] = useState(false);
+  return (
+    <form
+      className="mode-editor"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setBusy(true);
+        setError("");
+        try {
+          const r = await fetch(`/api/assignments/${id}/mode`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ experimentMode: value }),
+          });
+          const data = await r.json();
+          if (!r.ok) throw new Error(data.error);
+          router.refresh();
+        } catch (e) {
+          setError(e instanceof Error ? e.message : "Помилка з’єднання");
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      <label>
+        Спосіб виконання
+        <select
+          aria-label="Змінити спосіб виконання"
+          disabled={locked || busy}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+        >
+          <option value="REAL">Власний експеримент</option>
+          <option value="DATA">Аналіз наданих даних</option>
+          <option value="SIMULATION">Віртуальний експеримент</option>
+        </select>
+      </label>
+      <button
+        className="button secondary"
+        disabled={locked || busy || value === mode}
+      >
+        Зберегти режим
+      </button>
+      {locked && (
+        <p className="muted">
+          Режим зафіксовано після здавання або перенесення віртуальних показів.
+        </p>
+      )}
+      {error && (
+        <p role="alert" className="error">
+          {error}
+        </p>
+      )}
     </form>
   );
 }

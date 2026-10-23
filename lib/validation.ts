@@ -1,6 +1,20 @@
 import { z } from "zod";
 const short = z.string().max(10000);
 export const answersSchema = z.object({
+  simulationRecords: z
+    .array(
+      z.object({
+        modelVersion: z.literal(1),
+        labNumber: z.number().int().min(1).max(10),
+        experimentId: z.string().max(80),
+        rowIndex: z.number().int().min(0).max(29),
+        parameters: z.record(z.string().max(50), z.number().finite()),
+        readings: z.record(z.string().max(80), z.string().max(1000)),
+        recordedAt: z.iso.datetime(),
+      }),
+    )
+    .max(60)
+    .optional(),
   prediction: short.optional(),
   experiments: z
     .record(

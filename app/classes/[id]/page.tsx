@@ -3,7 +3,11 @@ import { notFound, redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Shell } from "@/components/shell";
-import { AssignForm, CopyCode } from "@/components/class-actions";
+import {
+  AssignForm,
+  CopyCode,
+  AssignmentMode,
+} from "@/components/class-actions";
 import { statuses } from "@/components/lab-grid";
 export default async function ClassPage({
   params,
@@ -69,9 +73,11 @@ export default async function ClassPage({
                   </small>
                   <h3>{a.labVersion.title}</h3>
                   <small className="muted">
-                    {a.experimentMode === "REAL"
-                      ? "Власний експеримент"
-                      : "Надані дані"}{" "}
+                    {a.experimentMode === "SIMULATION"
+                      ? "Віртуальний експеримент"
+                      : a.experimentMode === "REAL"
+                        ? "Власний експеримент"
+                        : "Надані дані"}{" "}
                     ·{" "}
                     {a.feedbackMode === "PRACTICE"
                       ? "З підказками"
@@ -96,6 +102,18 @@ export default async function ClassPage({
                     }{" "}
                     на перевірці
                   </span>
+                )}
+                {teacher && (
+                  <AssignmentMode
+                    id={a.id}
+                    mode={a.experimentMode}
+                    locked={a.submissions.some(
+                      (s) =>
+                        s.status !== "DRAFT" ||
+                        ((s.answers as { simulationRecords?: unknown[] })
+                          .simulationRecords?.length ?? 0) > 0,
+                    )}
+                  />
                 )}
                 {teacher && (
                   <div className="student-list">
