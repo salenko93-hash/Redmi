@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+  engineType = "client"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+enum Role {
+  STUDENT
+  TEACHER
+}
+enum Status {
+  DRAFT
+  SUBMITTED
+  RETURNED
+  GRADED
+}
+model User {
+  id String @id @default(cuid())
+  email String @unique
+  name String
+  recoveryHash String?
+  passwordHash String
+  role Role @default(STUDENT)
+  createdAt DateTime @default(now())
+  sessions Session[]
+  ownedClasses Classroom[]
+  memberships Membership[]
+  submissions Submission[]
+  comments Comment[]
+}
+model Session {
+  tokenHash String @id
+  userId String
+  expiresAt DateTime
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  @@index([expiresAt])
+}
+model RateLimit {
+  key String @id
+  count Int
+  resetAt DateTime
+}
+model TeacherInvite {
+  tokenHash String @id
+  expiresAt DateTime
+  usedAt DateTime?
+}
+model Classroom {
+  id String @id @default(cuid())
+  name String
+  code String @unique
+  teacherId String
+  createdAt DateTime @default(now())
+  teacher User @relation(fields:[teacherId], references:[id])
+  memberships Membership[]
+  assignments Assignment[]
+}
+model Membership {
+  id String @id @default(cuid())
+  classroomId String
+  userId String
+  classroom Classroom @relation(fields:[classroomId], references:[id], onDelete:Cascade)
+  user User @relation(fields:[userId], references:[id], onDelete:Cascade)
+  @@unique([classroomId,userId])
+}
+model LabVersion {
+  id String @id @default(cuid())
+  authorId String?
+  number Int
+  version Int @default(1)
+  title String
+  content Json
+  createdAt DateTime @default(now())
+  assignments Assignment[]
+  @@unique([number,version])
+}
+model Assignment {
+  id String @id @default(cuid())
+  classroomId String
+  labVersionId String
+  dueAt DateTime?
+  feedbackMode String @default("PRACTICE")
+  experimentMode String @default("REAL")
+  createdAt DateTime @default(now())
+  classroom Classroom @relation(fields:[classroomId], references:[id], onDelete:Cascade)
+  labVersion LabVersion @relation(fields:[labVersionId], references:[id])
+  submissions Submission[]
+  @@unique([classroomId,labVersionId])
+}
+model Submission {
+  id String @id @default(cuid())
+  assignmentId String
+  studentId String
+  status Status @default(DRAFT)
+  revision Int @default(0)
+  answers Json @default("{}")
+  score Int?
+  rubric Json?
+  feedback String?
+  submittedAt DateTime?
+  updatedAt DateTime @updatedAt
+  assignment Assignment @relation(fields:[assignmentId], references:[id], onDelete:Cascade)
+  student User @relation(fields:[studentId], references:[id])
+  attempts Attempt[]
+  comments Comment[]
+  @@unique([assignmentId,studentId])
+}
+model Attempt {
+  id String @id @default(cuid())
+  submissionId String
+  revision Int
+  answers Json
+  score Int?
+  feedback String?
+  createdAt DateTime @default(now())
+  submission Submission @relation(fields:[submissionId], references:[id], onDelete:Cascade)
+}
+model Comment {
+  id String @id @default(cuid())
+  submissionId String
+  authorId String
+  field String
+  body String
+  createdAt DateTime @default(now())
+  submission Submission @relation(fields:[submissionId], references:[id], onDelete:Cascade)
+  author User @relation(fields:[authorId], references:[id])
+}
