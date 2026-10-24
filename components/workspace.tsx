@@ -14,9 +14,19 @@ import {
   AlertCircle,
 } from "lucide-react";
 import type { Answers, LabContent } from "@/lib/types";
-import { emptyAnswers, fieldFeedback, progress } from "@/lib/physics";
+import {
+  emptyAnswers,
+  fieldFeedback,
+  progress,
+  completeness,
+} from "@/lib/physics";
 import { LabTools } from "./lab-tools";
 import { ExperimentGraph } from "./graph";
+import {
+  questionFigure,
+  questionWithInlineFigure,
+} from "@/lib/question-figures";
+import { QuestionFigure } from "./question-figure";
 import { ForceDiagram } from "./force-diagram";
 import { VirtualLab } from "./virtual-lab";
 import { simulationSetup, type SimulationRecord } from "@/lib/simulation";
@@ -53,6 +63,7 @@ export function Workspace({
   feedbackMode,
   experimentMode,
   preview = false,
+  sandbox = false,
 }: {
   assignmentId: string;
   userId: string;
@@ -62,6 +73,7 @@ export function Workspace({
   feedbackMode: string;
   experimentMode: string;
   preview?: boolean;
+  sandbox?: boolean;
 }) {
   const router = useRouter();
   const [answers, setAnswers] = useState<Answers>(
@@ -70,7 +82,13 @@ export function Workspace({
       : emptyAnswers(content)) as Answers,
   );
   const [step, setStep] = useState(0),
-    [state, setState] = useState(preview ? "Перегляд шаблону" : "Збережено"),
+    [state, setState] = useState(
+      sandbox
+        ? "Пробне проходження · не зберігається"
+        : preview
+          ? "Перегляд шаблону"
+          : "Збережено",
+    ),
     [error, setError] = useState(""),
     [missing, setMissing] = useState<string[]>([]),
     [conflict, setConflict] = useState(false),
@@ -90,6 +108,7 @@ export function Workspace({
     mounted = useRef(false);
   const storageKey = `fizlab:${userId}:${assignmentId}`;
   const persist = useCallback(() => {
+    if (sandbox) return;
     try {
       localStorage.setItem(
         storageKey,
@@ -105,12 +124,16 @@ export function Workspace({
         "Браузер не дозволяє локальне збереження. Перевіряйте стан серверного збереження.",
       );
     }
-  }, [storageKey]);
+  }, [storageKey, sandbox]);
   function change(a: Answers) {
     latest.current = a;
     dirty.current = true;
     setAnswers(a);
     setError("");
+    if (sandbox) {
+      setState("Пробне проходження · не зберігається");
+      return;
+    }
     persist();
     if (!blocked.current)
       setState(
@@ -144,7 +167,7 @@ export function Workspace({
   }
   const save = useCallback(
     async (submit = false): Promise<boolean> => {
-      if (readOnly || blocked.current) return false;
+      if (sandbox || readOnly || blocked.current) return false;
       if (busy.current) {
         await busy.current;
         if (blocked.current) return false;
@@ -210,12 +233,12 @@ export function Workspace({
       busy.current = task;
       return task;
     },
-    [readOnly, assignmentId, persist, router, storageKey],
+    [readOnly, assignmentId, persist, router, storageKey, sandbox],
   );
   useEffect(() => {
     if (mounted.current) return;
     mounted.current = true;
-    if (readOnly) {
+    if (readOnly || sandbox) {
       ready.current = true;
       return;
     }
@@ -246,13 +269,14 @@ export function Workspace({
       setError("Не вдалося прочитати локальну чернетку.");
     }
     ready.current = true;
-  }, [readOnly, storageKey]);
+  }, [readOnly, storageKey, sandbox]);
   useEffect(() => {
-    if (!ready.current || readOnly || !dirty.current) return;
+    if (sandbox || !ready.current || readOnly || !dirty.current) return;
     const t = setTimeout(() => void save(), 1000);
     return () => clearTimeout(t);
-  }, [answers, readOnly, save]);
+  }, [answers, readOnly, save, sandbox]);
   useEffect(() => {
+    if (sandbox) return;
     const online = () => void save();
     const offline = () => {
       if (!readOnly) setState("Немає з’єднання · збережено на пристрої");
@@ -275,7 +299,7 @@ export function Workspace({
       window.removeEventListener("offline", offline);
       window.removeEventListener("beforeunload", unload);
     };
-  }, [save, persist, readOnly]);
+  }, [save, persist, readOnly, sandbox]);
   const comments = (field: string) =>
     initial?.comments
       .filter((c) => c.field === field)
@@ -285,9 +309,23 @@ export function Workspace({
         </p>
       ));
   const reviewMode = readOnly && !!initial;
+  function goToStep(next: number) {
+    setStep(next);
+    requestAnimationFrame(() =>
+      document
+        .getElementById("workspace-start")
+        ?.scrollIntoView({
+          block: "start",
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
+            .matches
+            ? "instant"
+            : "smooth",
+        }),
+    );
+  }
   const shownSteps = reviewMode || printAll ? [0, 1, 2, 3] : [step];
   return (
-    <div className="workspace">
+    <div className="workspace" id="workspace-start">
       <div className="work-status-bar">
         <span className="save-state" role="status">
           {state.includes("Немає") ? (
@@ -396,7 +434,7 @@ export function Workspace({
           <button
             key={s}
             className={i === step ? "current" : ""}
-            onClick={() => setStep(i)}
+            onClick={() => goToStep(i)}
           >
             <span>{i + 1}</span>
             {s}
@@ -633,31 +671,19 @@ export function Workspace({
             <section className="panel work-section">
               <div className="eyebrow">03 / ПОЯСНЕННЯ</div>
               <h2>Розуміти більше, ніж формулу</h2>
-              {[1, 4, 5, 6, 10].includes(number) && (
-                <details className="reference-image">
-                  <summary>Рисунки до контрольних запитань</summary>
-                  <a
-                    href={`/references/lab-${number}.png`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <img
-                      src={`/references/lab-${number}.png`}
-                      alt={`Сторінка оригіналу з рисунками до запитань лабораторної роботи № ${number}`}
-                      loading="lazy"
-                    />
-                  </a>
-                  <p className="muted">
-                    Натисніть на зображення, щоб відкрити його у повному
-                    розмірі. Методичні уточнення дивіться в тексті завдань.
-                  </p>
-                </details>
-              )}
               {content.questions.map((q, i) => (
                 <div key={i}>
                   <label className="question-label">
                     <span className="question-number">{i + 1}</span>
-                    {q}
+                    {questionFigure(number, q)
+                      ? questionWithInlineFigure(q)
+                      : q}
+                  </label>
+                  {questionFigure(number, q) && (
+                    <QuestionFigure {...questionFigure(number, q)!} />
+                  )}
+                  <label className="answer-label">
+                    Ваша відповідь на запитання {i + 1}
                     <textarea
                       rows={4}
                       value={answers.questions?.[i] ?? ""}
@@ -719,7 +745,7 @@ export function Workspace({
               <button
                 className="button secondary"
                 disabled={step === 0}
-                onClick={() => setStep(step - 1)}
+                onClick={() => goToStep(step - 1)}
               >
                 <ArrowLeft size={16} />
                 Назад
@@ -727,7 +753,7 @@ export function Workspace({
               {step < 3 ? (
                 <button
                   className="button primary"
-                  onClick={() => setStep(step + 1)}
+                  onClick={() => goToStep(step + 1)}
                 >
                   Далі
                   <ChevronRight size={17} />
@@ -737,10 +763,20 @@ export function Workspace({
                   <button
                     className="button primary"
                     disabled={sending || conflict}
-                    onClick={() => setConfirmSubmit(true)}
+                    onClick={() => {
+                      if (sandbox) {
+                        const gaps = completeness(content, answers);
+                        setMissing(gaps);
+                        setState(
+                          gaps.length
+                            ? "Пробне проходження: заповніть пропущені поля"
+                            : "Пробне проходження завершено · не збережено",
+                        );
+                      } else setConfirmSubmit(true);
+                    }}
                   >
                     <Send size={17} />
-                    Здати роботу
+                    {sandbox ? "Завершити пробне проходження" : "Здати роботу"}
                   </button>
                 )
               )}
@@ -819,22 +855,36 @@ export function Workspace({
         <aside className="work-aside no-print">
           <div className="panel">
             <span className="eyebrow">ВАШ МАРШРУТ</span>
-            <h3>
-              Маленькі кроки.
-              <br />
-              Власні відкриття.
-            </h3>
+            <h3>{steps[step]}</h3>
             <p className="muted">
-              {experimentMode === "SIMULATION"
-                ? "Режим: віртуальний експеримент (модель)."
-                : experimentMode === "DATA"
-                  ? "Режим: аналіз наданих даних."
-                  : "Режим: реальний експеримент."}
+              {preview && !initial
+                ? "Навчальний шаблон · тільки перегляд."
+                : sandbox
+                  ? "Пробне проходження · без збереження."
+                  : experimentMode === "SIMULATION"
+                    ? "Режим: віртуальний експеримент (модель)."
+                    : experimentMode === "DATA"
+                      ? "Режим: аналіз наданих даних."
+                      : "Режим: реальний експеримент."}
             </p>
             <p className="muted">
               {feedbackMode === "PRACTICE"
                 ? "Підказки до обчислень увімкнено."
                 : "Самостійна робота: перевірка обчислень відкриється після оцінювання."}
+            </p>
+            <details className="stage-reference" open>
+              <summary>Формули та одиниці</summary>
+              <p>{content.theory}</p>
+            </details>
+            <p className="muted">
+              {
+                [
+                  "Прочитайте умови та запишіть власний прогноз.",
+                  "Змінюйте одну величину за раз. Перевіряйте одиниці вимірювання.",
+                  "Рисунки розміщено біля відповідних запитань. Пояснюйте відповідь.",
+                  "Порівняйте результати з прогнозом і поясніть джерела похибок.",
+                ][step]
+              }
             </p>
             <a
               className="button secondary wide"
@@ -847,7 +897,7 @@ export function Workspace({
             </a>
           </div>
           <LabTools number={number} />
-          {!readOnly && (
+          {!readOnly && !sandbox && (
             <button
               className={"help-button " + (answers.help ? "requested" : "")}
               onClick={() => change({ ...answers, help: !answers.help })}
@@ -858,9 +908,6 @@ export function Workspace({
                 : "Потрібна допомога"}
             </button>
           )}
-          <div className="aside-tip">
-            ✦<p>Чесне вимірювання цінніше за «ідеальне» число.</p>
-          </div>
         </aside>
       </div>
     </div>

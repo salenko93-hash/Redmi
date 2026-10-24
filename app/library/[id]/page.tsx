@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Shell } from "@/components/shell";
-import { Workspace } from "@/components/workspace";
+import { LibraryWorkspace } from "@/components/library-workspace";
 import { TemplateEditor } from "@/components/template-editor";
 import type { LabContent } from "@/lib/types";
 export default async function Lab({
@@ -41,15 +41,12 @@ export default async function Lab({
       {u.role === "TEACHER" && (
         <TemplateEditor id={lab.id} title={lab.title} content={content} />
       )}
-      <Workspace
-        preview
-        assignmentId={lab.id}
+      <LibraryWorkspace
+        id={lab.id}
         userId={u.id}
         content={content}
         number={lab.number}
-        initial={null}
-        feedbackMode="PRACTICE"
-        experimentMode="REAL"
+        teacher={u.role === "TEACHER"}
       />
     </Shell>
   );
