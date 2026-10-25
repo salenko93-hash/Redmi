@@ -33,7 +33,10 @@ for (const touch of [false, true]) {
       const distance = instrument.getByLabel("Довжина шляху", { exact: true });
       const angle = instrument.getByLabel("Нахил жолоба", { exact: true });
       const ramp = instrument.locator('[data-instrument="ramp"]');
+      const path = instrument.locator('[data-instrument="path"]');
       const ball = instrument.locator('[data-instrument="ball"]');
+      const pathLength = () =>
+        path.evaluate((el) => (el as SVGLineElement).getTotalLength());
       async function geometry() {
         return ramp.evaluate((el) => {
           const line = el as SVGLineElement;
@@ -75,12 +78,22 @@ for (const touch of [false, true]) {
       }
 
       // Exercise native pointer/touch events, not just programmatic state changes.
+      const left = (await angle.boundingBox())!,
+        right = (await distance.boundingBox())!;
+      expect(left.x).toBeLessThan(right.x);
+      expect(left.y).toBeCloseTo(right.y, 0);
+      await expect(distance).toHaveAttribute("max", "2");
+      await expect(
+        instrument.locator('[data-instrument="ruler"]'),
+      ).toContainText("2 м");
       const initial = await geometry();
       await pointAt(angle, 0.85);
       expect((await geometry()).angle).not.toBeCloseTo(initial.angle);
       await checkAngle();
+      const initialPath = await pathLength();
       await pointAt(distance, 0.25);
-      expect((await geometry()).length).toBeLessThan(initial.length);
+      expect(await pathLength()).toBeLessThan(initialPath);
+      expect((await geometry()).length).toBeCloseTo(initial.length, 5);
       await checkAngle();
 
       await angle.focus();
@@ -88,15 +101,22 @@ for (const touch of [false, true]) {
       await checkAngle();
       await distance.focus();
       await distance.press("Home");
-      const short = await geometry();
+      const short = await pathLength();
       await distance.press("End");
-      expect((await geometry()).length / short.length).toBeCloseTo(
-        1.5 / 0.2,
-        5,
-      );
+      expect((await pathLength()) / short).toBeCloseTo(2 / 0.2, 5);
+      expect((await geometry()).length).toBeCloseTo(initial.length, 5);
       await angle.focus();
       await angle.press("End");
       await checkAngle();
+      for (const label of ["start-label", "finish-label"]) {
+        const rotation = await instrument
+          .locator(`[data-instrument="${label}"]`)
+          .evaluate((el) => {
+            const m = (el as SVGGraphicsElement).getScreenCTM()!;
+            return Math.atan2(m.b, m.a);
+          });
+        expect(rotation).toBeCloseTo(0, 6);
+      }
       // Even at maximum slope and distance the ball stays within the scene.
       const bounds = await ball.evaluate((el) => {
         const scene = (
@@ -112,6 +132,9 @@ for (const touch of [false, true]) {
         };
       });
       expect(bounds.inside).toBeTruthy();
+      await instrument.screenshot({
+        path: test.info().outputPath("two-metre-ramp.png"),
+      });
       await expect(ball).toHaveAttribute("cx", "0");
       await instrument
         .getByRole("button", { name: "Запустити дослід", exact: true })
@@ -123,7 +146,7 @@ for (const touch of [false, true]) {
         ).replace(",", "."),
       );
       expect(Number(await ball.getAttribute("cx"))).toBeCloseTo(
-        (await geometry()).length,
+        await pathLength(),
         5,
       );
       await angle.focus();
@@ -153,10 +176,7 @@ for (const touch of [false, true]) {
         ).replace(",", "."),
       );
       expect(shortTime).toBeLessThan(slow);
-      expect(Number(await ball.getAttribute("cx"))).toBeCloseTo(
-        short.length,
-        5,
-      );
+      expect(Number(await ball.getAttribute("cx"))).toBeCloseTo(short, 5);
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= innerWidth,

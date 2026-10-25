@@ -44,6 +44,18 @@ test("rolling sphere, rotation and pendulum follow their stated models", () => {
   p.mass = 0.25;
   close(simulate(3, "mass", p).values.T, m1.values.T);
 });
+test("the two-metre ramp accepts its full scale and preserves earlier readings", () => {
+  const p = initialParameters(1, "speed");
+  p.distance = 1.5;
+  const old = simulate(1, "speed", p);
+  p.distance = 2;
+  assert.ok(validateParameters(1, "speed", p));
+  const full = simulate(1, "speed", p);
+  assert.equal(full.readings.l, "2");
+  close(full.values.t / old.values.t, Math.sqrt(2 / 1.5));
+  p.distance = 2.1;
+  assert.equal(validateParameters(1, "speed", p), false);
+});
 test("balance requires actual equilibrium and does not provide the calculated mass", () => {
   const p = initialParameters(4, "weigh");
   assert.equal(simulate(4, "weigh", p).canRecord, false);

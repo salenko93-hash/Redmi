@@ -19,6 +19,7 @@ import {
   type SimulationResult,
 } from "@/lib/simulation";
 import type { Experiment } from "@/lib/types";
+import { RampScene } from "./ramp-scene";
 
 function Scene({
   number: n,
@@ -92,7 +93,7 @@ function Scene({
   return (
     <svg
       className="simulation-scene"
-      viewBox="0 0 600 300"
+      viewBox={`0 0 600 ${n === 1 ? 410 : 300}`}
       role="img"
       aria-label={`Віртуальний прилад лабораторної роботи ${n}. ${phase === 1 ? r.message : "Дослід у процесі підготовки або виконання."}`}
     >
@@ -101,84 +102,16 @@ function Scene({
           <path d="M25 0H0V25" fill="none" stroke="#dde8d7" strokeWidth=".7" />
         </pattern>
       </defs>
-      <rect width="600" height="300" rx="16" fill="#f2f7ed" />
-      <rect width="600" height="300" fill={`url(#${id})`} />
-      {n === 1 &&
-        (() => {
-          // A fixed scale keeps distance changes visible; the SVG rotation is
-          // the same angle used by the physical model. The ball rolls along
-          // the surface with s proportional to t², rather than a fixed path.
-          const length = p.distance * 220,
-            angle = (p.angle * Math.PI) / 180,
-            endX = 510,
-            endY = 245,
-            startX = endX - length * Math.cos(angle),
-            startY = endY - length * Math.sin(angle);
-          return (
-            <g>
-              <path
-                d={`M${startX} ${startY}L${endX} ${endY}H${startX}Z`}
-                fill="#dce5ce"
-              />
-              <g
-                transform={`translate(${startX} ${startY}) rotate(${p.angle})`}
-              >
-                <line
-                  data-instrument="ramp"
-                  x1="0"
-                  y1="0"
-                  x2={length}
-                  y2="0"
-                  stroke="#8f9d73"
-                  strokeWidth="4"
-                />
-                <circle
-                  data-instrument="ball"
-                  cx={length * phase ** 2}
-                  cy="-13"
-                  r="11"
-                  fill="#608372"
-                  stroke="#315a43"
-                  strokeWidth="2"
-                />
-                <rect
-                  x={length + 12}
-                  y="-35"
-                  width="12"
-                  height="40"
-                  rx="4"
-                  fill="#929e95"
-                />
-                <g stroke="#8f9d73">
-                  <line x1="0" y1="10" x2={length} y2="10" />
-                  {Array.from(
-                    { length: Math.round(p.distance * 10) + 1 },
-                    (_, i) => (
-                      <line
-                        key={i}
-                        x1={i * 22}
-                        x2={i * 22}
-                        y1="10"
-                        y2={i % 5 ? 15 : 20}
-                      />
-                    ),
-                  )}
-                </g>
-              </g>
-              <text x="60" y="25">
-                Шлях: {p.distance} м · Нахил: {p.angle}°
-              </text>
-              <g stroke="#8f9d73" strokeWidth="2">
-                <line x1="60" y1="270" x2="170" y2="270" />
-                <line x1="60" y1="265" x2="60" y2="275" />
-                <line x1="170" y1="265" x2="170" y2="275" />
-              </g>
-              <text x="190" y="275">
-                Масштаб: 0,5 м · поділка жолоба: 0,1 м
-              </text>
-            </g>
-          );
-        })()}
+      <rect width="600" height={n === 1 ? 410 : 300} rx="16" fill="#f2f7ed" />
+      <rect width="600" height={n === 1 ? 410 : 300} fill={`url(#${id})`} />
+      {n === 1 && (
+        <RampScene
+          distance={p.distance}
+          angle={p.angle}
+          phase={phase}
+          id={id}
+        />
+      )}
       {n === 2 && (
         <g>
           <ellipse
@@ -713,7 +646,9 @@ export function VirtualLab({
             result={result}
             phase={phase}
           />
-          <div className="virtual-controls">
+          <div
+            className={`virtual-controls${number === 1 ? " ramp-controls" : ""}`}
+          >
             {setup.controls
               .filter((c) => number !== 4 || c.key === "object")
               .map((c) => (

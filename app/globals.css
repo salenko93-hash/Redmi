@@ -2565,6 +2565,9 @@ td {
   border: 1px solid #e2eadb;
   border-radius: 10px;
 }
+.virtual-controls.ramp-controls {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
 .virtual-controls label {
   font-size: 11px;
   min-width: 0;
