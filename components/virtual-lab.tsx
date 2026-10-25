@@ -105,44 +105,77 @@ function Scene({
       <rect width="600" height="300" fill={`url(#${id})`} />
       {n === 1 &&
         (() => {
-          const y1 = 65,
-            y2 = 230,
-            x = 80 + phase ** 2 * 420,
-            y = y1 + phase ** 2 * (y2 - y1);
+          // A fixed scale keeps distance changes visible; the SVG rotation is
+          // the same angle used by the physical model. The ball rolls along
+          // the surface with s proportional to t², rather than a fixed path.
+          const length = p.distance * 220,
+            angle = (p.angle * Math.PI) / 180,
+            endX = 510,
+            endY = 245,
+            startX = endX - length * Math.cos(angle),
+            startY = endY - length * Math.sin(angle);
           return (
             <g>
               <path
-                d={`M70 ${y1 + 16}L520 ${y2 + 16}L70 ${y2 + 16}Z`}
+                d={`M${startX} ${startY}L${endX} ${endY}H${startX}Z`}
                 fill="#dce5ce"
               />
-              <line
-                x1="70"
-                y1={y1 + 16}
-                x2="520"
-                y2={y2 + 16}
-                stroke="#8f9d73"
-                strokeWidth="6"
-              />
-              <circle
-                cx={x}
-                cy={y}
-                r="13"
-                fill="#608372"
-                stroke="#315a43"
-                strokeWidth="2"
-              />
-              <rect
-                x="520"
-                y="213"
-                width="15"
-                height="38"
-                rx="4"
-                fill="#929e95"
-              />
-              <text x="90" y="35">
+              <g
+                transform={`translate(${startX} ${startY}) rotate(${p.angle})`}
+              >
+                <line
+                  data-instrument="ramp"
+                  x1="0"
+                  y1="0"
+                  x2={length}
+                  y2="0"
+                  stroke="#8f9d73"
+                  strokeWidth="4"
+                />
+                <circle
+                  data-instrument="ball"
+                  cx={length * phase ** 2}
+                  cy="-13"
+                  r="11"
+                  fill="#608372"
+                  stroke="#315a43"
+                  strokeWidth="2"
+                />
+                <rect
+                  x={length + 12}
+                  y="-35"
+                  width="12"
+                  height="40"
+                  rx="4"
+                  fill="#929e95"
+                />
+                <g stroke="#8f9d73">
+                  <line x1="0" y1="10" x2={length} y2="10" />
+                  {Array.from(
+                    { length: Math.round(p.distance * 10) + 1 },
+                    (_, i) => (
+                      <line
+                        key={i}
+                        x1={i * 22}
+                        x2={i * 22}
+                        y1="10"
+                        y2={i % 5 ? 15 : 20}
+                      />
+                    ),
+                  )}
+                </g>
+              </g>
+              <text x="60" y="25">
                 Шлях: {p.distance} м · Нахил: {p.angle}°
               </text>
-              {ruler}
+              <g stroke="#8f9d73" strokeWidth="2">
+                <line x1="60" y1="270" x2="170" y2="270" />
+                <line x1="60" y1="265" x2="60" y2="275" />
+                <line x1="170" y1="265" x2="170" y2="275" />
+              </g>
+              <text x="190" y="275">
+                Масштаб: 0,5 м · поділка жолоба: 0,1 м
+              </text>
             </g>
           );
         })()}
