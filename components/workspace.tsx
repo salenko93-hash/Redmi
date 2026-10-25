@@ -12,6 +12,7 @@ import {
   HelpCircle,
   Download,
   AlertCircle,
+  BookOpen,
 } from "lucide-react";
 import type { Answers, LabContent } from "@/lib/types";
 import {
@@ -27,6 +28,7 @@ import {
   questionWithInlineFigure,
 } from "@/lib/question-figures";
 import { QuestionFigure } from "./question-figure";
+import { SpeedTimeFigure } from "./speed-time-figure";
 import { ForceDiagram } from "./force-diagram";
 import { VirtualLab } from "./virtual-lab";
 import { simulationSetup, type SimulationRecord } from "@/lib/simulation";
@@ -312,15 +314,12 @@ export function Workspace({
   function goToStep(next: number) {
     setStep(next);
     requestAnimationFrame(() =>
-      document
-        .getElementById("workspace-start")
-        ?.scrollIntoView({
-          block: "start",
-          behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
-            .matches
-            ? "instant"
-            : "smooth",
-        }),
+      document.getElementById("workspace-start")?.scrollIntoView({
+        block: "start",
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? "instant"
+          : "smooth",
+      }),
     );
   }
   const shownSteps = reviewMode || printAll ? [0, 1, 2, 3] : [step];
@@ -447,6 +446,23 @@ export function Workspace({
             <section className="panel work-section">
               <div className="eyebrow">01 / ПІДГОТОВКА</div>
               <h2>Спочатку — запитання</h2>
+              {number === 1 && (
+                <a
+                  href="/materials/1"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="lab-material-link no-print"
+                >
+                  <BookOpen size={20} />
+                  <span>
+                    <strong>Сучасна вебпам’ятка до роботи № 1</strong>
+                    <small>
+                      Уточнена методика, графік і тренувальний прилад
+                    </small>
+                  </span>
+                  <ChevronRight size={18} />
+                </a>
+              )}
               <h4>Мета дослідження</h4>
               <p>{content.purpose}</p>
               <h4>Обладнання</h4>
@@ -679,9 +695,12 @@ export function Workspace({
                       ? questionWithInlineFigure(q)
                       : q}
                   </label>
-                  {questionFigure(number, q) && (
-                    <QuestionFigure {...questionFigure(number, q)!} />
-                  )}
+                  {questionFigure(number, q) &&
+                    (number === 1 ? (
+                      <SpeedTimeFigure />
+                    ) : (
+                      <QuestionFigure {...questionFigure(number, q)!} />
+                    ))}
                   <label className="answer-label">
                     Ваша відповідь на запитання {i + 1}
                     <textarea
@@ -890,10 +909,12 @@ export function Workspace({
               className="button secondary wide"
               target="_blank"
               rel="noreferrer"
-              href={`/originals/lab-${number}.pdf`}
+              href={
+                number === 1 ? "/materials/1" : `/originals/lab-${number}.pdf`
+              }
             >
-              <Download size={16} />
-              Оригінальний PDF
+              {number === 1 ? <BookOpen size={16} /> : <Download size={16} />}
+              {number === 1 ? "Вебпам’ятка до роботи" : "Оригінальний PDF"}
             </a>
           </div>
           <LabTools number={number} />

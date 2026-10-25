@@ -3111,3 +3111,127 @@ td {
 .work-section textarea::placeholder {
   color: #6e7e62;
 }
+
+/* Native worksheet material and the accessible speed/time chart. */
+.lab-material-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #d8e2cc;
+  background: #f1f6e7;
+  border-radius: 12px;
+  padding: 15px;
+  margin: 0 0 24px;
+  color: #355b3f;
+}
+.lab-material-link span {
+  flex: 1;
+  min-width: 0;
+}
+.lab-material-link strong,
+.lab-material-link small {
+  display: block;
+}
+.lab-material-link small {
+  color: #526c47;
+  margin-top: 4px;
+}
+.lab-material-link > svg {
+  flex-shrink: 0;
+}
+.speed-time-figure {
+  max-width: 760px;
+}
+.speed-time-plot {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.speed-time-plot text {
+  font-family: inherit;
+  font-size: 16px;
+  fill: #38543f;
+}
+.speed-intervals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0;
+}
+.speed-intervals button {
+  border: 1px solid #d9e2d0;
+  background: #f6f8f1;
+  color: #395a3f;
+  padding: 8px 12px;
+  border-radius: 7px;
+  font-size: 13px;
+  min-height: 40px;
+}
+.speed-intervals button[aria-pressed="true"] {
+  background: #2f6047;
+  color: #fff;
+  border-color: #2f6047;
+}
+.speed-intervals .speed-zoom {
+  margin-left: auto;
+  background: #fff;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 7px;
+}
+.speed-data {
+  border-top: 1px solid #e1e8d9;
+  margin-top: 14px;
+  padding-top: 12px;
+  font-size: 13px;
+  color: #3d5c40;
+}
+.speed-data summary {
+  cursor: pointer;
+  min-height: 30px;
+}
+.speed-data table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+.speed-data caption {
+  text-align: left;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.speed-data th,
+.speed-data td {
+  text-align: left;
+  padding: 8px;
+  border-bottom: 1px solid #e0e7d9;
+}
+.speed-dialog {
+  width: 900px;
+}
+@media (max-width: 600px) {
+  .speed-time-figure {
+    padding: 10px;
+  }
+  .speed-intervals button {
+    padding: 8px 10px;
+  }
+  .speed-intervals .speed-zoom {
+    width: 100%;
+    margin-left: 0;
+  }
+  .lab-material-link {
+    padding: 12px;
+  }
+}
+@media print {
+  .speed-intervals,
+  .speed-dialog,
+  .speed-data {
+    display: none !important;
+  }
+  .speed-time-figure {
+    break-inside: avoid;
+  }
+}
