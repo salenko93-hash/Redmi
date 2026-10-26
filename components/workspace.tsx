@@ -81,7 +81,7 @@ export function Workspace({
   sandbox?: boolean;
 }) {
   const router = useRouter();
-  const materialHref = [1, 2, 3, 4, 5, 6].includes(number)
+  const materialHref = [1, 2, 3, 4, 5, 6, 7].includes(number)
     ? `/materials/${number}`
     : null;
   const [answers, setAnswers] = useState<Answers>(
@@ -473,7 +473,9 @@ export function Workspace({
                               ? "Правила зважування, одиниці й інтерактивні терези"
                               : number === 5
                                 ? "Три способи визначення густини та інтерактивні прилади"
-                                : "Пружність, закон Гука й перевірка після розвантаження"}
+                                : number === 6
+                                  ? "Пружність, закон Гука й перевірка після розвантаження"
+                                  : "Тертя ковзання, реакція опори й порівняння граней"}
                     </small>
                   </span>
                   <ChevronRight size={18} />

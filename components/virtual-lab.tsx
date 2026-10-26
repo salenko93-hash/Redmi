@@ -25,6 +25,7 @@ import { PendulumScene } from "./pendulum-scene";
 import { BalanceScene } from "./balance-scene";
 import { DensityScene } from "./density-scene";
 import { ElasticScene } from "./elastic-scene";
+import { FrictionScene } from "./friction-scene";
 
 function Scene({
   number: n,
@@ -54,7 +55,9 @@ function Scene({
               ? 400
               : n === 6
                 ? 440
-                : 300;
+                : n === 7
+                  ? 460
+                  : 300;
   const spring = (x: number, y: number, length: number) => (
     <path
       d={`M${x} ${y}v8 ${Array.from({ length: 12 }, (_, i) => `l${i % 2 ? -16 : 16} ${length / 12}`).join(" ")} l8 5`}
@@ -126,55 +129,7 @@ function Scene({
       )}
       {n === 6 && <ElasticScene parameters={p} result={r} phase={phase} />}
       {n === 7 && (
-        <g>
-          <rect x="40" y="220" width="520" height="15" rx="3" fill="#b9a57a" />
-          <g transform={`translate(${60 + phase * 240} 0)`}>
-            <rect
-              x="0"
-              y={p.side === 0 ? 170 : 130}
-              width={p.side === 0 ? 100 : 60}
-              height={p.side === 0 ? 50 : 90}
-              fill="#cfbb90"
-              stroke="#9b865b"
-            />
-            {Array.from({ length: p.loads }, (_, i) => (
-              <rect
-                key={i}
-                x="15"
-                y={(p.side === 0 ? 150 : 110) - i * 18}
-                width="30"
-                height="17"
-                fill="#81988b"
-              />
-            ))}
-            <line
-              x1="100"
-              y1="190"
-              x2="180"
-              y2="190"
-              stroke="#617c65"
-              strokeWidth="3"
-            />
-            <rect
-              x="180"
-              y="174"
-              width="85"
-              height="32"
-              rx="8"
-              fill="#fff"
-              stroke="#739477"
-            />
-            <text x="222" y="195" textAnchor="middle">
-              {v.F.toFixed(2)} Н
-            </text>
-          </g>
-          <text x="60" y="40">
-            Рівномірне ковзання →
-          </text>
-          <text x="60" y="70">
-            Сила реакції опори: {v.N.toFixed(2)} Н
-          </text>
-        </g>
+        <FrictionScene parameters={p} result={r} phase={phase} id={id} />
       )}
       {n === 8 && (
         <g>
