@@ -24,6 +24,7 @@ import { RotationScene } from "./rotation-scene";
 import { PendulumScene } from "./pendulum-scene";
 import { BalanceScene } from "./balance-scene";
 import { DensityScene } from "./density-scene";
+import { ElasticScene } from "./elastic-scene";
 
 function Scene({
   number: n,
@@ -51,7 +52,9 @@ function Scene({
             ? 350
             : n === 5
               ? 400
-              : 300;
+              : n === 6
+                ? 440
+                : 300;
   const spring = (x: number, y: number, length: number) => (
     <path
       d={`M${x} ${y}v8 ${Array.from({ length: 12 }, (_, i) => `l${i % 2 ? -16 : 16} ${length / 12}`).join(" ")} l8 5`}
@@ -121,45 +124,7 @@ function Scene({
           phase={phase}
         />
       )}
-      {n === 6 && (
-        <g>
-          <path
-            d="M90 270H170V30H335"
-            fill="none"
-            stroke="#99a99a"
-            strokeWidth="9"
-          />
-          {spring(300, 38, 70 + phase * v.x * 500)}
-          <rect
-            x="277"
-            y={130 + phase * v.x * 500}
-            width="54"
-            height="45"
-            rx="6"
-            fill="#af9c79"
-          />
-          <text x="365" y="80">
-            m = {p.mass} г
-          </text>
-          <text x="365" y="110">
-            F = {v.F.toFixed(2)} Н
-          </text>
-          <text x="365" y="140">
-            l₀ = {p.initial} см
-          </text>
-          <path d="M220 40V265" stroke="#bbcab1" strokeWidth="2" />
-          {Array.from({ length: 15 }, (_, i) => (
-            <line
-              key={i}
-              x1="215"
-              x2={i % 2 ? 230 : 235}
-              y1={45 + i * 14}
-              y2={45 + i * 14}
-              stroke="#9eb18f"
-            />
-          ))}
-        </g>
-      )}
+      {n === 6 && <ElasticScene parameters={p} result={r} phase={phase} />}
       {n === 7 && (
         <g>
           <rect x="40" y="220" width="520" height="15" rx="3" fill="#b9a57a" />

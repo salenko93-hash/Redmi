@@ -31,6 +31,7 @@ import { QuestionFigure } from "./question-figure";
 import { SpeedTimeFigure } from "./speed-time-figure";
 import { StonesFigure } from "./stones-figure";
 import { OilLabelFigure } from "./oil-label-figure";
+import { StiffnessFigure } from "./stiffness-figure";
 import { ForceDiagram } from "./force-diagram";
 import { VirtualLab } from "./virtual-lab";
 import { simulationSetup, type SimulationRecord } from "@/lib/simulation";
@@ -80,7 +81,7 @@ export function Workspace({
   sandbox?: boolean;
 }) {
   const router = useRouter();
-  const materialHref = [1, 2, 3, 4, 5].includes(number)
+  const materialHref = [1, 2, 3, 4, 5, 6].includes(number)
     ? `/materials/${number}`
     : null;
   const [answers, setAnswers] = useState<Answers>(
@@ -470,7 +471,9 @@ export function Workspace({
                             ? "Три серії дослідів і тренувальний маятник"
                             : number === 4
                               ? "Правила зважування, одиниці й інтерактивні терези"
-                              : "Три способи визначення густини та інтерактивні прилади"}
+                              : number === 5
+                                ? "Три способи визначення густини та інтерактивні прилади"
+                                : "Пружність, закон Гука й перевірка після розвантаження"}
                     </small>
                   </span>
                   <ChevronRight size={18} />
@@ -717,6 +720,8 @@ export function Workspace({
                       />
                     ) : number === 5 ? (
                       <OilLabelFigure />
+                    ) : number === 6 ? (
+                      <StiffnessFigure />
                     ) : (
                       <QuestionFigure {...questionFigure(number, q)!} />
                     ))}

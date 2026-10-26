@@ -3333,6 +3333,51 @@ td {
 .oil-label-figure {
   max-width: 760px;
 }
+
+.stiffness-plot {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.stiffness-plot text {
+  font-size: 16px;
+  fill: #35553c;
+}
+.stiffness-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0;
+}
+.stiffness-controls button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid #d9e3cd;
+  border-radius: 8px;
+  color: #35553c;
+  background: #f6f8ef;
+  font-weight: 600;
+}
+.stiffness-controls button[aria-pressed="true"] {
+  color: white;
+  background: #2b5942;
+  border-color: #2b5942;
+}
+@media print {
+  .stiffness-controls,
+  .stiffness-figure dialog {
+    display: none !important;
+  }
+  .stiffness-figure {
+    break-inside: avoid;
+  }
+  .stiffness-figure [data-spring-line] {
+    opacity: 1;
+  }
+}
 .oil-label-layout {
   display: grid;
   grid-template-columns: minmax(110px, 0.7fr) minmax(0, 1fr);
