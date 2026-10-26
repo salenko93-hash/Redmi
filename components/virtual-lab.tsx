@@ -23,6 +23,7 @@ import { RampScene } from "./ramp-scene";
 import { RotationScene } from "./rotation-scene";
 import { PendulumScene } from "./pendulum-scene";
 import { BalanceScene } from "./balance-scene";
+import { DensityScene } from "./density-scene";
 
 function Scene({
   number: n,
@@ -40,53 +41,17 @@ function Scene({
   const id = useId().replace(/:/g, "");
   const v = r.values;
   const sceneHeight =
-    n === 1 ? 410 : n === 2 ? 360 : n === 3 ? 440 : n === 4 ? 350 : 300;
-  const ruler = (
-    <g stroke="#b7c7b0">
-      {Array.from({ length: 19 }, (_, i) => (
-        <g key={i}>
-          <line
-            x1={60 + i * 25}
-            x2={60 + i * 25}
-            y1="270"
-            y2={i % 2 ? 277 : 283}
-          />
-        </g>
-      ))}
-      <line x1="60" y1="270" x2="510" y2="270" />
-    </g>
-  );
-  const cylinder = (x: number, level: number, label: string) => (
-    <g>
-      <path
-        d={`M${x} 70V240Q${x + 38} 252 ${x + 76} 240V70`}
-        fill="#fff8"
-        stroke="#87a6ac"
-        strokeWidth="3"
-      />
-      <rect
-        x={x + 3}
-        y={240 - level}
-        width="70"
-        height={level}
-        fill="#b6d9df"
-        opacity=".8"
-      />
-      {Array.from({ length: 7 }, (_, i) => (
-        <line
-          key={i}
-          x1={x + 58}
-          x2={x + 73}
-          y1={85 + i * 23}
-          y2={85 + i * 23}
-          stroke="#5b8590"
-        />
-      ))}
-      <text x={x + 38} y="270" textAnchor="middle">
-        {label}
-      </text>
-    </g>
-  );
+    n === 1
+      ? 410
+      : n === 2
+        ? 360
+        : n === 3
+          ? 440
+          : n === 4
+            ? 350
+            : n === 5
+              ? 400
+              : 300;
   const spring = (x: number, y: number, length: number) => (
     <path
       d={`M${x} ${y}v8 ${Array.from({ length: 12 }, (_, i) => `l${i % 2 ? -16 : 16} ${length / 12}`).join(" ")} l8 5`}
@@ -148,55 +113,14 @@ function Scene({
           id={id}
         />
       )}
-      {n === 5 &&
-        (experiment === "regular" ? (
-          <g>
-            <path
-              d="M190 115l145-40 90 55-145 40Z"
-              fill="#d8c59c"
-              stroke="#96805a"
-            />
-            <path d="M190 115v95l90 45v-85Z" fill="#b49b72" stroke="#96805a" />
-            <path
-              d="M280 170l145-40v95l-145 30Z"
-              fill="#c6b087"
-              stroke="#96805a"
-            />
-            <text x="65" y="40">
-              Терези: {Number(v.m).toFixed(2)} г
-            </text>
-            <text x="65" y="70">
-              Лінійка: {p.l} × {p.d} × {p.h} см
-            </text>
-            {ruler}
-          </g>
-        ) : experiment === "irregular" ? (
-          <g>
-            {cylinder(120, (v.V1 ?? 100) * 0.65, "До занурення")}
-            {cylinder(
-              360,
-              ((v.V1 ?? 100) + phase * (v.V ?? 20)) * 0.65,
-              "Після занурення",
-            )}
-            <path
-              d={`M390 ${40 + phase * 150}l22 8 5 28-15 15-24-9-4-25Z`}
-              fill="#8b9b8b"
-            />
-            <text x="70" y="35">
-              Маса зразка: {Number(v.m).toFixed(2)} г
-            </text>
-          </g>
-        ) : (
-          <g>
-            {cylinder(250, phase * (v.V ?? 100), "Мірна посудина")}
-            <text x="60" y="35">
-              Порожня посудина: {v.m1} г
-            </text>
-            <text x="60" y="60">
-              Із рідиною: {Number(v.m1 + phase * (v.m2 - v.m1)).toFixed(2)} г
-            </text>
-          </g>
-        ))}
+      {n === 5 && (
+        <DensityScene
+          experiment={experiment}
+          parameters={p}
+          result={r}
+          phase={phase}
+        />
+      )}
       {n === 6 && (
         <g>
           <path

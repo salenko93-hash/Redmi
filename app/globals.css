@@ -3329,3 +3329,72 @@ td {
   font-weight: 600;
   color: #35553c;
 }
+
+.oil-label-figure {
+  max-width: 760px;
+}
+.oil-label-layout {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.7fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+  padding: 20px;
+  background: #f7f8ed;
+  border-radius: 12px;
+}
+.oil-label-layout > svg {
+  display: block;
+  width: 100%;
+  max-height: 310px;
+}
+.oil-label-layout dl {
+  margin: 0;
+}
+.oil-label-layout dl > div + div {
+  margin-top: 20px;
+}
+.oil-label-layout dt {
+  font-size: 14px;
+  color: #526c47;
+}
+.oil-label-layout dd {
+  margin: 4px 0 0;
+  font-size: 36px;
+  line-height: 1.2;
+  font-weight: 650;
+  color: #31583b;
+}
+.oil-label-layout dd span {
+  font-size: 18px;
+  font-weight: 500;
+}
+.oil-label-layout p {
+  font-size: 13px;
+  margin: 20px 0 0;
+  color: #526a47;
+}
+.oil-label-zoom {
+  margin-top: 14px;
+}
+.oil-label-dialog {
+  width: 800px;
+}
+@media (max-width: 600px) {
+  .oil-label-layout {
+    grid-template-columns: 1fr;
+    padding: 18px;
+    gap: 16px;
+  }
+  .oil-label-layout > svg {
+    max-height: 220px;
+  }
+}
+@media print {
+  .oil-label-zoom,
+  .oil-label-dialog {
+    display: none !important;
+  }
+  .oil-label-figure {
+    break-inside: avoid;
+  }
+}

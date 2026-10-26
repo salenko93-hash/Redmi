@@ -30,6 +30,7 @@ import {
 import { QuestionFigure } from "./question-figure";
 import { SpeedTimeFigure } from "./speed-time-figure";
 import { StonesFigure } from "./stones-figure";
+import { OilLabelFigure } from "./oil-label-figure";
 import { ForceDiagram } from "./force-diagram";
 import { VirtualLab } from "./virtual-lab";
 import { simulationSetup, type SimulationRecord } from "@/lib/simulation";
@@ -79,7 +80,7 @@ export function Workspace({
   sandbox?: boolean;
 }) {
   const router = useRouter();
-  const materialHref = [1, 2, 3, 4].includes(number)
+  const materialHref = [1, 2, 3, 4, 5].includes(number)
     ? `/materials/${number}`
     : null;
   const [answers, setAnswers] = useState<Answers>(
@@ -467,7 +468,9 @@ export function Workspace({
                           ? "Уточнена методика, формули й лічильник обертів"
                           : number === 3
                             ? "Три серії дослідів і тренувальний маятник"
-                            : "Правила зважування, одиниці й інтерактивні терези"}
+                            : number === 4
+                              ? "Правила зважування, одиниці й інтерактивні терези"
+                              : "Три способи визначення густини та інтерактивні прилади"}
                     </small>
                   </span>
                   <ChevronRight size={18} />
@@ -712,6 +715,8 @@ export function Workspace({
                       <StonesFigure
                         ignoreBagMass={q.includes("масою мішечка знехтуй")}
                       />
+                    ) : number === 5 ? (
+                      <OilLabelFigure />
                     ) : (
                       <QuestionFigure {...questionFigure(number, q)!} />
                     ))}

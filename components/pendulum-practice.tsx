@@ -3,7 +3,7 @@ import { useId, useRef, useState } from "react";
 import { labs } from "@/lib/labs";
 import { labThreeSeries } from "@/lib/lab-three-material";
 import { VirtualLab } from "./virtual-lab";
-import styles from "./pendulum-practice.module.css";
+import styles from "./practice-tabs.module.css";
 export function PendulumPractice() {
   const [active, setActive] = useState(0);
   const id = useId();
