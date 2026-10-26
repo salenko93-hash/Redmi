@@ -3334,6 +3334,18 @@ td {
   max-width: 760px;
 }
 
+@media print {
+  .floating-bodies-figure dialog {
+    display: none !important;
+  }
+  .floating-bodies-figure [data-body-number] {
+    opacity: 1;
+  }
+  .floating-bodies-figure {
+    break-inside: avoid;
+  }
+}
+
 .stiffness-plot {
   display: block;
   width: 100%;

@@ -28,6 +28,7 @@ import { ElasticScene } from "./elastic-scene";
 import { FrictionScene } from "./friction-scene";
 import { PressureScene } from "./pressure-scene";
 import { HydroScene } from "./hydro-scene";
+import { FloatingScene } from "./floating-scene";
 
 function Scene({
   number: n,
@@ -63,7 +64,7 @@ function Scene({
                     ? 470
                     : n === 9
                       ? 590
-                      : 300;
+                      : 540;
   return (
     <svg
       className="simulation-scene"
@@ -139,59 +140,9 @@ function Scene({
         />
       )}
       {n === 9 && <HydroScene parameters={p} result={r} phase={phase} />}
-      {n === 10 &&
-        (() => {
-          const y =
-            v.state > 0
-              ? 80 + phase * 120
-              : v.state === 0
-                ? 130
-                : 130 + phase * (85 - 65 * (1 - v.fraction) - 130);
-          return (
-            <g>
-              <rect x="170" y="85" width="260" height="180" fill="#bfdfe3" />
-              <path
-                d="M170 55V265H430V55"
-                stroke="#8ca6ac"
-                strokeWidth="4"
-                fill="none"
-              />
-              <rect
-                x="278"
-                y={y}
-                width="44"
-                height="65"
-                rx="15"
-                fill="#f5f3dd"
-                stroke="#8da390"
-              />
-              <rect
-                x="282"
-                y={y + 37}
-                width="36"
-                height="22"
-                rx="7"
-                fill="#c6b180"
-              />
-              <rect
-                x="281"
-                y={y - 2}
-                width="38"
-                height="9"
-                rx="3"
-                fill="#9c9476"
-              />
-              <text x="50" y="35">
-                Маса з піском: {20 + p.sand} г · Об’єм: {p.volume} см³
-              </text>
-              <text x="300" y="288" textAnchor="middle">
-                {phase === 1
-                  ? r.message
-                  : "Спостерігайте за поведінкою пробірки"}
-              </text>
-            </g>
-          );
-        })()}
+      {n === 10 && (
+        <FloatingScene parameters={p} result={r} phase={phase} id={id} />
+      )}
     </svg>
   );
 }

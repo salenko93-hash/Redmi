@@ -74,11 +74,11 @@ test("teacher preview, ephemeral pupil trial, force vectors and adjacent figures
     )
     .toBeGreaterThanOrEqual(-1);
   await expect(page.locator(".question-figure")).toHaveCount(1);
-  await expect(page.locator(".question-figure img").first()).toBeVisible();
-  await expect(page.locator(".question-figure")).toHaveAttribute(
-    "class",
-    "question-figure",
-  );
+  await expect(page.locator(".question-figure > svg")).toBeVisible();
+  await expect(page.locator(".question-figure img")).toHaveCount(0);
+  await expect(
+    page.locator(".question-figure > svg [data-body-number]"),
+  ).toHaveCount(3);
   await page
     .getByRole("button", { name: "Збільшити рисунок", exact: true })
     .click();

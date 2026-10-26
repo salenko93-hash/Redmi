@@ -33,6 +33,7 @@ import { StonesFigure } from "./stones-figure";
 import { OilLabelFigure } from "./oil-label-figure";
 import { StiffnessFigure } from "./stiffness-figure";
 import { WeightlessnessFigure } from "./weightlessness-figure";
+import { FloatingBodiesFigure } from "./floating-bodies-figure";
 import { ForceDiagram } from "./force-diagram";
 import { VirtualLab } from "./virtual-lab";
 import { simulationSetup, type SimulationRecord } from "@/lib/simulation";
@@ -82,7 +83,7 @@ export function Workspace({
   sandbox?: boolean;
 }) {
   const router = useRouter();
-  const materialHref = [1, 2, 3, 4, 5, 6, 7, 8, 9].includes(number)
+  const materialHref = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].includes(number)
     ? `/materials/${number}`
     : null;
   const [answers, setAnswers] = useState<Answers>(
@@ -480,7 +481,9 @@ export function Workspace({
                                     ? "Тертя ковзання, реакція опори й порівняння граней"
                                     : number === 8
                                       ? "Дві серії тиску, площа опори й модель невагомості"
-                                      : "Два покази динамометра, повне занурення й густина"}
+                                      : number === 9
+                                        ? "Два покази динамометра, повне занурення й густина"
+                                        : "Середня густина, три стани плавання й схема сил"}
                     </small>
                   </span>
                   <ChevronRight size={18} />
@@ -729,6 +732,8 @@ export function Workspace({
                       <OilLabelFigure />
                     ) : number === 6 ? (
                       <StiffnessFigure />
+                    ) : number === 10 ? (
+                      <FloatingBodiesFigure />
                     ) : (
                       <QuestionFigure {...questionFigure(number, q)!} />
                     ))}
