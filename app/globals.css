@@ -962,6 +962,9 @@ textarea:disabled {
   gap: 22px;
   align-items: start;
 }
+.two-column > section {
+  min-width: 0;
+}
 .assignment-row {
   display: flex;
   justify-content: space-between;

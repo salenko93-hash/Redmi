@@ -9,6 +9,7 @@ import {
   AssignmentMode,
 } from "@/components/class-actions";
 import { statuses } from "@/components/lab-grid";
+import { StudentImport } from "@/components/student-import";
 export default async function ClassPage({
   params,
 }: {
@@ -24,7 +25,9 @@ export default async function ClassPage({
         : { memberships: { some: { userId: u.id } } }),
     },
     include: {
-      memberships: { include: { user: { select: { id: true, name: true } } } },
+      memberships: {
+        include: { user: { select: { id: true, name: true, email: true } } },
+      },
       assignments: {
         include: {
           labVersion: true,
@@ -36,6 +39,20 @@ export default async function ClassPage({
   });
   if (!c) notFound();
   const teacher = u.role === "TEACHER";
+  c.memberships.sort((a, b) =>
+    (a.rosterName ?? a.user.name).localeCompare(
+      b.rosterName ?? b.user.name,
+      "uk",
+    ),
+  );
+  const invites = teacher
+    ? await db.studentInvite.findMany({
+        where: { classroomId: c.id, claimedAt: null },
+        select: { id: true, name: true, email: true, code: true },
+        orderBy: { name: "asc" },
+      })
+    : [];
+
   const all = teacher
     ? await db.labVersion.findMany({
         where: { OR: [{ authorId: null }, { authorId: u.id }] },
@@ -52,14 +69,35 @@ export default async function ClassPage({
         <div>
           <h1>{c.name}</h1>
           <p>
-            {c.memberships.length} учнів · {c.assignments.length} призначених
-            робіт
+            {c.memberships.length} учнів
+            {teacher && invites.length > 0
+              ? ` · ${invites.length} очікують приєднання`
+              : ""}{" "}
+            · {c.assignments.length} призначених робіт
           </p>
         </div>
         {teacher && <CopyCode code={c.code} />}
       </div>
       <div className={teacher ? "two-column" : "single-column"}>
         <section>
+          {teacher && (
+            <div className="panel">
+              <h2>Учні класу</h2>
+              <StudentImport classroomId={c.id} invites={invites} />
+              {c.memberships.length > 0 && (
+                <h3>Приєдналися · {c.memberships.length}</h3>
+              )}
+              {c.memberships.map((m) => (
+                <p key={m.id} data-roster-member={m.user.id}>
+                  {m.rosterName ?? m.user.name}{" "}
+                  <small className="muted">· {m.user.email}</small>
+                </p>
+              ))}
+              {!c.memberships.length && !invites.length && (
+                <p className="muted">Поділіться кодом класу з учнями.</p>
+              )}
+            </div>
+          )}
           <div className="panel">
             <h2>Дослідження класу</h2>
             {!c.assignments.length && (
@@ -124,7 +162,7 @@ export default async function ClassPage({
                       return (
                         <div key={m.id}>
                           <span>
-                            {m.user.name}{" "}
+                            {m.rosterName ?? m.user.name}{" "}
                             {s && (s.answers as { help?: boolean }).help && (
                               <span title="Потребує допомоги">🙋</span>
                             )}
@@ -151,17 +189,6 @@ export default async function ClassPage({
               </div>
             ))}
           </div>
-          {teacher && (
-            <div className="panel">
-              <h2>Учні класу</h2>
-              {c.memberships.map((m) => (
-                <p key={m.id}>{m.user.name}</p>
-              ))}
-              {!c.memberships.length && (
-                <p className="muted">Поділіться кодом класу з учнями.</p>
-              )}
-            </div>
-          )}
         </section>
         {teacher && <AssignForm classroomId={c.id} labs={all} />}
       </div>

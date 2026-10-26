@@ -1,0 +1,102 @@
+.roster {
+  min-width: 0;
+}
+.roster table {
+  min-width: 580px;
+  white-space: normal;
+}
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0;
+}
+.toolbar h3 {
+  margin: 0 auto 0 0;
+}
+.editor {
+  background: #f5f8ef;
+  border: 1px solid #dce6d2;
+  border-radius: 14px;
+  padding: 22px;
+  margin-top: 18px;
+}
+.editor h3 {
+  margin-top: 0;
+}
+.editor p {
+  font-size: 14px;
+  line-height: 1.75;
+}
+.upload,
+.paste {
+  display: grid;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 18px 0;
+}
+.upload input {
+  width: 100%;
+  min-width: 0;
+  background: white;
+  border: 1px dashed #aebf9d;
+  border-radius: 10px;
+  padding: 18px 12px;
+}
+.paste textarea {
+  width: 100%;
+  min-width: 0;
+  font-family: inherit;
+  font-size: 14px;
+}
+.hint,
+.reason {
+  color: #536a48;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.reason {
+  display: block;
+  margin-top: 5px;
+  max-width: 260px;
+}
+.preview {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid #dce6d2;
+}
+.preview > button {
+  margin-top: 16px;
+}
+.preview th,
+.preview td,
+.pending th,
+.pending td {
+  padding: 12px;
+}
+.preview td,
+.pending td {
+  overflow-wrap: anywhere;
+}
+.receipt {
+  padding: 14px 18px;
+  background: #edf4e4;
+  border-radius: 10px;
+  color: #31583b;
+}
+.pending {
+  margin-top: 26px;
+}
+.pending td:nth-child(3) {
+  min-width: 185px;
+}
+@media (max-width: 600px) {
+  .editor {
+    padding: 16px;
+  }
+  .toolbar > .button {
+    width: 100%;
+  }
+}

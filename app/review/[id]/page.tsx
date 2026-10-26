@@ -28,6 +28,15 @@ export default async function Review({
     },
   });
   if (!s) notFound();
+  const membership = await db.membership.findUnique({
+    where: {
+      classroomId_userId: {
+        classroomId: s.assignment.classroomId,
+        userId: s.studentId,
+      },
+    },
+    select: { rosterName: true },
+  });
   const content = s.assignment.labVersion.content as unknown as LabContent;
   const checks = checkCalculations(content, s.answers as Answers);
   return (
@@ -40,7 +49,7 @@ export default async function Review({
           <div className="eyebrow">
             ПЕРЕВІРКА · {s.assignment.classroom.name}
           </div>
-          <h1>{s.student.name}</h1>
+          <h1>{membership?.rosterName ?? s.student.name}</h1>
           <p>
             № {s.assignment.labVersion.number} · {s.assignment.labVersion.title}{" "}
             · Версія {s.assignment.labVersion.version}

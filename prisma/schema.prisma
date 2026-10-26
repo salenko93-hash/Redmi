@@ -29,6 +29,7 @@ model User {
   memberships Membership[]
   submissions Submission[]
   comments Comment[]
+  claimedStudentInvites StudentInvite[]
 }
 model Session {
   tokenHash String @id
@@ -56,14 +57,32 @@ model Classroom {
   teacher User @relation(fields:[teacherId], references:[id])
   memberships Membership[]
   assignments Assignment[]
+  studentInvites StudentInvite[]
 }
 model Membership {
   id String @id @default(cuid())
   classroomId String
   userId String
+  rosterName String?
   classroom Classroom @relation(fields:[classroomId], references:[id], onDelete:Cascade)
   user User @relation(fields:[userId], references:[id], onDelete:Cascade)
   @@unique([classroomId,userId])
+}
+model StudentInvite {
+  id String @id @default(cuid())
+  classroomId String
+  name String
+  email String?
+  key String
+  code String @unique
+  claimedById String?
+  claimedAt DateTime?
+  createdAt DateTime @default(now())
+  classroom Classroom @relation(fields:[classroomId], references:[id], onDelete:Cascade)
+  claimedBy User? @relation(fields:[claimedById], references:[id], onDelete:SetNull)
+  @@unique([classroomId,key])
+  @@unique([classroomId,claimedById])
+  @@index([classroomId,createdAt])
 }
 model LabVersion {
   id String @id @default(cuid())

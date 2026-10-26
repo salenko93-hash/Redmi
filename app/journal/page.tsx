@@ -5,6 +5,7 @@ import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Shell } from "@/components/shell";
 import { statuses } from "@/components/lab-grid";
+import { teacherRosterNames } from "@/lib/roster-names";
 export default async function Journal() {
   const u = await currentUser();
   if (!u) redirect("/");
@@ -17,6 +18,7 @@ export default async function Journal() {
     },
     orderBy: { updatedAt: "desc" },
   });
+  const rosterNames = await teacherRosterNames(u.id);
   return (
     <Shell title="Журнал оцінок">
       <div className="page-heading">
@@ -48,7 +50,11 @@ export default async function Journal() {
           <tbody>
             {rows.map((s) => (
               <tr key={s.id}>
-                <td>{s.student.name}</td>
+                <td>
+                  {rosterNames.get(
+                    `${s.assignment.classroomId}:${s.studentId}`,
+                  ) ?? s.student.name}
+                </td>
                 <td>{s.assignment.classroom.name}</td>
                 <td>
                   № {s.assignment.labVersion.number} ·{" "}

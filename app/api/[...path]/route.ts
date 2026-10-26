@@ -14,6 +14,8 @@ import {
   newToken,
 } from "@/lib/auth";
 import { answersSchema, credentials } from "@/lib/validation";
+import { parseRosterCsv, planRoster, rosterCsvCell } from "@/lib/roster";
+import { teacherRosterNames } from "@/lib/roster-names";
 import { completeness, checkCalculations } from "@/lib/physics";
 import type { Answers, LabContent } from "@/lib/types";
 const json = (data: unknown, status = 200) =>
@@ -121,6 +123,129 @@ async function handle(
     }
     const user = await currentUser();
     if (!user) return fail("Увійдіть у свій обліковий запис.", 401);
+    if (
+      path[0] === "classes" &&
+      path[2] === "students" &&
+      ((path.length === 4 && ["import", "codes"].includes(path[3])) ||
+        (path.length === 5 && path[3] === "invites"))
+    ) {
+      if (user.role !== "TEACHER") return fail("Доступ лише для вчителя.", 403);
+      const classroom = await db.classroom.findFirst({
+        where: { id: path[1], teacherId: user.id },
+        select: { id: true },
+      });
+      if (!classroom) return fail("Клас не знайдено.", 404);
+      if (path[3] === "codes" && path.length === 4 && method === "GET") {
+        const invites = await db.studentInvite.findMany({
+          where: { classroomId: classroom.id },
+          orderBy: { name: "asc" },
+        });
+        const rows = [
+          ["ПІБ", "Email", "Код приєднання", "Статус"],
+          ...invites.map((i) => [
+            i.name,
+            i.email ?? "",
+            i.claimedAt ? "" : i.code,
+            i.claimedAt ? "Приєднався" : "Очікує приєднання",
+          ]),
+        ];
+        return new NextResponse(
+          "\uFEFF" +
+            rows.map((row) => row.map(rosterCsvCell).join(";")).join("\r\n"),
+          {
+            headers: {
+              "Content-Type": "text/csv; charset=utf-8",
+              "Content-Disposition":
+                'attachment; filename="fizlab-student-codes.csv"',
+              "Cache-Control": "no-store",
+            },
+          },
+        );
+      }
+      if (path[3] === "invites" && path.length === 5 && method === "DELETE") {
+        const removed = await db.studentInvite.deleteMany({
+          where: { id: path[4], classroomId: classroom.id, claimedAt: null },
+        });
+        if (!removed.count)
+          return fail(
+            "Запрошення вже використане або видалене. Оновіть список.",
+            409,
+          );
+        return json({ ok: true });
+      }
+      if (path[3] === "import" && path.length === 4 && method === "POST") {
+        const { csv, mode } = z
+          .object({
+            csv: z.string().max(131072),
+            mode: z.enum(["preview", "commit"]),
+          })
+          .parse(await req.json());
+        const parsed = parseRosterCsv(csv);
+        if (parsed.errors.length)
+          return json(
+            {
+              rows: parsed.rows,
+              errors: parsed.errors,
+              ignoredColumns: parsed.ignoredColumns,
+            },
+            mode === "preview" ? 200 : 422,
+          );
+        const loadPlan = async (client: Prisma.TransactionClient) => {
+          const [invites, memberships] = await Promise.all([
+            client.studentInvite.findMany({
+              where: { classroomId: classroom.id },
+              select: { key: true, name: true },
+            }),
+            client.membership.findMany({
+              where: { classroomId: classroom.id },
+              select: {
+                user: { select: { name: true, email: true } },
+                rosterName: true,
+              },
+            }),
+          ]);
+          return planRoster(
+            parsed.rows,
+            invites,
+            memberships.map((m) => ({
+              ...m.user,
+              name: m.rosterName ?? m.user.name,
+            })),
+          );
+        };
+        if (mode === "preview")
+          return json({
+            rows: await loadPlan(db),
+            errors: [],
+            ignoredColumns: parsed.ignoredColumns,
+          });
+        if (!(await rateLimit("roster-import:" + user.id, 20)))
+          return fail("Забагато імпортів. Спробуйте пізніше.", 429);
+        const result = await db.$transaction(async (tx) => {
+          // Serialize imports into one class, including mixed name-only/email lists.
+          await tx.$queryRaw`SELECT "id" FROM "Classroom" WHERE "id" = ${classroom.id} FOR UPDATE`;
+          const rows = await loadPlan(tx);
+          const inserted = await tx.studentInvite.createMany({
+            data: rows
+              .filter((r) => r.action === "create")
+              .map((r) => ({
+                classroomId: classroom.id,
+                name: r.name,
+                email: r.email,
+                key: r.key,
+                code: "S" + randomBytes(8).toString("hex").toUpperCase(),
+              })),
+            skipDuplicates: true,
+          });
+          return {
+            created: inserted.count,
+            skipped: rows.length - inserted.count,
+          };
+        });
+        return json(result, 201);
+      }
+      return fail("Маршрут не знайдено.", 404);
+    }
     if (route === "me" && method === "GET") return json(user);
     if (route === "classes" && method === "POST") {
       if (user.role !== "TEACHER") return fail("Доступ лише для вчителя.", 403);
@@ -147,18 +272,92 @@ async function handle(
           code: z
             .string()
             .trim()
-            .max(30)
-            .transform((s) => s.toUpperCase()),
+            .max(40)
+            .transform((s) => s.replace(/[\s-]/g, "").toUpperCase()),
         })
         .parse(await req.json());
       const c = await db.classroom.findUnique({ where: { code } });
-      if (!c) return fail("Клас із таким кодом не знайдено.", 404);
-      await db.membership.upsert({
-        where: { classroomId_userId: { classroomId: c.id, userId: user.id } },
-        update: {},
-        create: { classroomId: c.id, userId: user.id },
+      if (!c) {
+        const joined = await db.$transaction(async (tx) => {
+          const invite = await tx.studentInvite.findUnique({ where: { code } });
+          if (
+            !invite ||
+            (invite.email && invite.email !== user.email) ||
+            (invite.claimedAt && invite.claimedById !== user.id)
+          )
+            return null;
+          const alreadyClaimed = await tx.studentInvite.findUnique({
+            where: {
+              classroomId_claimedById: {
+                classroomId: invite.classroomId,
+                claimedById: user.id,
+              },
+            },
+          });
+          if (alreadyClaimed && alreadyClaimed.id !== invite.id) return null;
+          if (!invite.claimedAt) {
+            const changed = await tx.studentInvite.updateMany({
+              where: { id: invite.id, claimedAt: null },
+              data: { claimedById: user.id, claimedAt: new Date() },
+            });
+            if (!changed.count) {
+              const latest = await tx.studentInvite.findUnique({
+                where: { id: invite.id },
+              });
+              if (latest?.claimedById !== user.id) return null;
+            }
+          }
+          await tx.membership.upsert({
+            where: {
+              classroomId_userId: {
+                classroomId: invite.classroomId,
+                userId: user.id,
+              },
+            },
+            update: { rosterName: invite.name },
+            create: {
+              classroomId: invite.classroomId,
+              userId: user.id,
+              rosterName: invite.name,
+            },
+          });
+          return invite.classroomId;
+        });
+        if (!joined)
+          return fail(
+            "Код недійсний, уже використаний або призначений іншому обліковому запису.",
+            404,
+          );
+        return json({ ok: true, classroomId: joined });
+      }
+      await db.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT "id" FROM "Classroom" WHERE "id" = ${c.id} FOR UPDATE`;
+        const pending = await tx.studentInvite.findFirst({
+          where: { classroomId: c.id, email: user.email, claimedAt: null },
+        });
+        const claimed = await tx.studentInvite.findUnique({
+          where: {
+            classroomId_claimedById: {
+              classroomId: c.id,
+              claimedById: user.id,
+            },
+          },
+        });
+        let rosterName: string | undefined;
+        if (pending && !claimed) {
+          const changed = await tx.studentInvite.updateMany({
+            where: { id: pending.id, claimedAt: null },
+            data: { claimedAt: new Date(), claimedById: user.id },
+          });
+          if (changed.count) rosterName = pending.name;
+        }
+        await tx.membership.upsert({
+          where: { classroomId_userId: { classroomId: c.id, userId: user.id } },
+          update: rosterName ? { rosterName } : {},
+          create: { classroomId: c.id, userId: user.id, rosterName },
+        });
       });
-      return json({ ok: true });
+      return json({ ok: true, classroomId: c.id });
     }
     if (route === "assignments" && method === "POST") {
       if (user.role !== "TEACHER") return fail("Доступ лише для вчителя.", 403);
@@ -495,6 +694,7 @@ async function handle(
           assignment: { include: { classroom: true, labVersion: true } },
         },
       });
+      const rosterNames = await teacherRosterNames(user.id);
       const cell = (v: unknown) =>
         '"' +
         String(v ?? "")
@@ -507,7 +707,8 @@ async function handle(
           ["Клас", "Учень", "Робота", "Статус", "Оцінка", "Здано"],
           ...rows.map((s) => [
             s.assignment.classroom.name,
-            s.student.name,
+            rosterNames.get(`${s.assignment.classroomId}:${s.studentId}`) ??
+              s.student.name,
             s.assignment.labVersion.number,
             s.status,
             s.score,
@@ -571,3 +772,4 @@ export const GET = handle;
 export const POST = handle;
 export const PUT = handle;
 export const PATCH = handle;
+export const DELETE = handle;

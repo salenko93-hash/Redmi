@@ -40,7 +40,11 @@ export function ClassAction({ teacher }: { teacher: boolean }) {
           required
           minLength={2}
           maxLength={80}
-          placeholder={teacher ? "Наприклад, 7-Б" : "Введіть код від учителя"}
+          placeholder={
+            teacher
+              ? "Наприклад, 7-Б"
+              : "Особистий або спільний код від учителя"
+          }
         />
       </label>
       <button className="button primary" disabled={busy}>
