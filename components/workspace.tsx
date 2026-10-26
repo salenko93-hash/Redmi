@@ -82,7 +82,7 @@ export function Workspace({
   sandbox?: boolean;
 }) {
   const router = useRouter();
-  const materialHref = [1, 2, 3, 4, 5, 6, 7, 8].includes(number)
+  const materialHref = [1, 2, 3, 4, 5, 6, 7, 8, 9].includes(number)
     ? `/materials/${number}`
     : null;
   const [answers, setAnswers] = useState<Answers>(
@@ -478,7 +478,9 @@ export function Workspace({
                                   ? "Пружність, закон Гука й перевірка після розвантаження"
                                   : number === 7
                                     ? "Тертя ковзання, реакція опори й порівняння граней"
-                                    : "Дві серії тиску, площа опори й модель невагомості"}
+                                    : number === 8
+                                      ? "Дві серії тиску, площа опори й модель невагомості"
+                                      : "Два покази динамометра, повне занурення й густина"}
                     </small>
                   </span>
                   <ChevronRight size={18} />

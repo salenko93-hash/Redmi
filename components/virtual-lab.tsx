@@ -27,6 +27,7 @@ import { DensityScene } from "./density-scene";
 import { ElasticScene } from "./elastic-scene";
 import { FrictionScene } from "./friction-scene";
 import { PressureScene } from "./pressure-scene";
+import { HydroScene } from "./hydro-scene";
 
 function Scene({
   number: n,
@@ -60,15 +61,9 @@ function Scene({
                   ? 460
                   : n === 8
                     ? 470
-                    : 300;
-  const spring = (x: number, y: number, length: number) => (
-    <path
-      d={`M${x} ${y}v8 ${Array.from({ length: 12 }, (_, i) => `l${i % 2 ? -16 : 16} ${length / 12}`).join(" ")} l8 5`}
-      fill="none"
-      stroke="#577f66"
-      strokeWidth="3"
-    />
-  );
+                    : n === 9
+                      ? 590
+                      : 300;
   return (
     <svg
       className="simulation-scene"
@@ -143,62 +138,7 @@ function Scene({
           id={id}
         />
       )}
-      {n === 9 && (
-        <g>
-          <rect
-            x="290"
-            y="125"
-            width="225"
-            height="135"
-            rx="8"
-            fill="#c5e2e5"
-          />
-          <path
-            d="M290 115v145h225V115"
-            fill="none"
-            stroke="#8da9ab"
-            strokeWidth="3"
-          />
-          {[150, 400].map((x, i) => (
-            <g key={x}>
-              <rect
-                x={x - 30}
-                y="30"
-                width="60"
-                height="90"
-                rx="12"
-                fill="#fff"
-                stroke="#91ad94"
-              />
-              {spring(x, 40, 30)}
-              <line
-                x1={x}
-                y1="120"
-                x2={x}
-                y2={i ? 75 + phase * 90 : 180}
-                stroke="#75927b"
-              />
-              <rect
-                x={x - 22}
-                y={i ? 75 + phase * 90 : 180}
-                width="44"
-                height="45"
-                rx="6"
-                fill="#a5afa7"
-              />
-              <text x={x} y="108" textAnchor="middle">
-                {(i ? v.P1 - phase * (v.P1 - v.P2) : v.P1).toFixed(3)} Н
-              </text>
-            </g>
-          ))}
-          <text x="150" y="285" textAnchor="middle">
-            У повітрі
-          </text>
-          <text x="400" y="285" textAnchor="middle">
-            Повністю у воді
-          </text>
-        </g>
-      )}
+      {n === 9 && <HydroScene parameters={p} result={r} phase={phase} />}
       {n === 10 &&
         (() => {
           const y =
