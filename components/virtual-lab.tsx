@@ -26,6 +26,7 @@ import { BalanceScene } from "./balance-scene";
 import { DensityScene } from "./density-scene";
 import { ElasticScene } from "./elastic-scene";
 import { FrictionScene } from "./friction-scene";
+import { PressureScene } from "./pressure-scene";
 
 function Scene({
   number: n,
@@ -57,7 +58,9 @@ function Scene({
                 ? 440
                 : n === 7
                   ? 460
-                  : 300;
+                  : n === 8
+                    ? 470
+                    : 300;
   const spring = (x: number, y: number, length: number) => (
     <path
       d={`M${x} ${y}v8 ${Array.from({ length: 12 }, (_, i) => `l${i % 2 ? -16 : 16} ${length / 12}`).join(" ")} l8 5`}
@@ -132,44 +135,13 @@ function Scene({
         <FrictionScene parameters={p} result={r} phase={phase} id={id} />
       )}
       {n === 8 && (
-        <g>
-          <rect x="65" y="237" width="470" height="18" rx="5" fill="#d6e1cb" />
-          <rect
-            x={300 - Math.max(35, v.a * 1000) / 2}
-            y={237 - Math.max(40, v.b * 3000)}
-            width={Math.max(35, v.a * 1000)}
-            height={Math.max(40, v.b * 3000)}
-            fill="#cdb58b"
-            stroke="#988054"
-          />
-          {Array.from({ length: v.loads }, (_, i) => (
-            <rect
-              key={i}
-              x="285"
-              y={220 - Math.max(40, v.b * 3000) - i * 18}
-              width="30"
-              height="17"
-              fill="#7a9688"
-            />
-          ))}
-          <line
-            x1="300"
-            y1="250"
-            x2="300"
-            y2="277"
-            stroke="#a48d61"
-            strokeWidth="3"
-          />
-          <text x="55" y="35">
-            Сила тиску: {v.F.toFixed(2)} Н
-          </text>
-          <text x="55" y="60">
-            Грань: {v.a} × {v.b} м
-          </text>
-          <text x="345" y="270">
-            Опора
-          </text>
-        </g>
+        <PressureScene
+          experiment={experiment}
+          parameters={p}
+          result={r}
+          phase={phase}
+          id={id}
+        />
       )}
       {n === 9 && (
         <g>
