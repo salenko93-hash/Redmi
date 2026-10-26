@@ -78,6 +78,8 @@ export function Workspace({
   sandbox?: boolean;
 }) {
   const router = useRouter();
+  const materialHref =
+    number === 1 || number === 2 ? `/materials/${number}` : null;
   const [answers, setAnswers] = useState<Answers>(
     (initial?.answers && Object.keys(initial.answers as object).length
       ? initial.answers
@@ -446,18 +448,20 @@ export function Workspace({
             <section className="panel work-section">
               <div className="eyebrow">01 / ПІДГОТОВКА</div>
               <h2>Спочатку — запитання</h2>
-              {number === 1 && (
+              {materialHref && (
                 <a
-                  href="/materials/1"
+                  href={materialHref}
                   target="_blank"
                   rel="noreferrer"
                   className="lab-material-link no-print"
                 >
                   <BookOpen size={20} />
                   <span>
-                    <strong>Сучасна вебпам’ятка до роботи № 1</strong>
+                    <strong>Сучасна вебпам’ятка до роботи № {number}</strong>
                     <small>
-                      Уточнена методика, графік і тренувальний прилад
+                      {number === 1
+                        ? "Уточнена методика, графік і тренувальний прилад"
+                        : "Уточнена методика, формули й лічильник обертів"}
                     </small>
                   </span>
                   <ChevronRight size={18} />
@@ -909,12 +913,10 @@ export function Workspace({
               className="button secondary wide"
               target="_blank"
               rel="noreferrer"
-              href={
-                number === 1 ? "/materials/1" : `/originals/lab-${number}.pdf`
-              }
+              href={materialHref ?? `/originals/lab-${number}.pdf`}
             >
-              {number === 1 ? <BookOpen size={16} /> : <Download size={16} />}
-              {number === 1 ? "Вебпам’ятка до роботи" : "Оригінальний PDF"}
+              {materialHref ? <BookOpen size={16} /> : <Download size={16} />}
+              {materialHref ? "Вебпам’ятка до роботи" : "Оригінальний PDF"}
             </a>
           </div>
           <LabTools number={number} />

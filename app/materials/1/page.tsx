@@ -18,7 +18,7 @@ import { RampScene } from "@/components/ramp-scene";
 import { VirtualLab } from "@/components/virtual-lab";
 import { SpeedTimeFigure } from "@/components/speed-time-figure";
 import { MaterialPrint } from "@/components/material-print";
-import styles from "./guide.module.css";
+import styles from "../guide.module.css";
 
 export const metadata: Metadata = {
   title: "Лабораторна № 1 — Середня швидкість",

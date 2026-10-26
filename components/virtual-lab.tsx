@@ -20,6 +20,7 @@ import {
 } from "@/lib/simulation";
 import type { Experiment } from "@/lib/types";
 import { RampScene } from "./ramp-scene";
+import { RotationScene } from "./rotation-scene";
 
 function Scene({
   number: n,
@@ -36,6 +37,7 @@ function Scene({
 }) {
   const id = useId().replace(/:/g, "");
   const v = r.values;
+  const sceneHeight = n === 1 ? 410 : n === 2 ? 360 : 300;
   const ruler = (
     <g stroke="#b7c7b0">
       {Array.from({ length: 19 }, (_, i) => (
@@ -93,7 +95,7 @@ function Scene({
   return (
     <svg
       className="simulation-scene"
-      viewBox={`0 0 600 ${n === 1 ? 410 : 300}`}
+      viewBox={`0 0 600 ${sceneHeight}`}
       role="img"
       aria-label={`Віртуальний прилад лабораторної роботи ${n}. ${phase === 1 ? r.message : "Дослід у процесі підготовки або виконання."}`}
     >
@@ -102,8 +104,8 @@ function Scene({
           <path d="M25 0H0V25" fill="none" stroke="#dde8d7" strokeWidth=".7" />
         </pattern>
       </defs>
-      <rect width="600" height={n === 1 ? 410 : 300} rx="16" fill="#f2f7ed" />
-      <rect width="600" height={n === 1 ? 410 : 300} fill={`url(#${id})`} />
+      <rect width="600" height={sceneHeight} rx="16" fill="#f2f7ed" />
+      <rect width="600" height={sceneHeight} fill={`url(#${id})`} />
       {n === 1 && (
         <RampScene
           distance={p.distance}
@@ -113,38 +115,13 @@ function Scene({
         />
       )}
       {n === 2 && (
-        <g>
-          <ellipse
-            cx="290"
-            cy="150"
-            rx="170"
-            ry="105"
-            fill="#e1ebd4"
-            stroke="#9eb88e"
-            strokeWidth="2"
-          />
-          <line
-            x1="290"
-            y1="150"
-            x2={290 + 170 * Math.cos(phase * (v.cycles ?? 10) * 2 * Math.PI)}
-            y2={150 + 105 * Math.sin(phase * (v.cycles ?? 10) * 2 * Math.PI)}
-            stroke="#78976a"
-            strokeWidth="2"
-          />
-          <circle
-            cx={290 + 170 * Math.cos(phase * (v.cycles ?? 10) * 2 * Math.PI)}
-            cy={150 + 105 * Math.sin(phase * (v.cycles ?? 10) * 2 * Math.PI)}
-            r="13"
-            fill="#426d53"
-          />
-          <circle cx="290" cy="150" r="5" fill="#78976a" />
-          <text x="60" y="35">
-            Повних обертів: {Math.floor(phase * p.cycles)}
-          </text>
-          <text x="60" y="277">
-            Радіус: {p.radius} м
-          </text>
-        </g>
+        <RotationScene
+          radius={p.radius}
+          cycles={p.cycles}
+          phase={phase}
+          elapsed={v.t * phase}
+          id={id}
+        />
       )}
       {n === 3 &&
         (() => {
