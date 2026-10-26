@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ForceDiagram } from "../components/force-diagram";
+import { BalanceScene } from "../components/balance-scene";
 import {
   questionFigure,
   questionWithInlineFigure,
@@ -55,8 +56,43 @@ test("references attach to relevant questions without a full worksheet page", ()
     assert.ok(questions.some((q) => questionFigure(n, q)));
   }
   assert.equal(questionFigure(1, "Поясніть роль тертя."), null);
+  assert.equal(questionFigure(4, "Зважте тіло масою 32 г."), null);
   assert.equal(
     questionWithInlineFigure("За графіком в оригінальному PDF поясніть рух."),
     "За графіком нижче поясніть рух.",
   );
+});
+test("equal-arm balance lowers the heavier pan and shows repeated weights explicitly", () => {
+  for (const difference of [10, 0, -10]) {
+    const html = renderToStaticMarkup(
+      createElement(
+        "svg",
+        {},
+        createElement(BalanceScene, {
+          difference,
+          leftLabel: "Тіло",
+          loads: [{ key: "w20", label: "20 г", count: 2 }],
+          status: "Схема",
+          id: "test-balance",
+        }),
+      ),
+    );
+    const readY = (side: string) =>
+      Number(
+        html.match(
+          new RegExp(`data-instrument="${side}-pan"[^>]*cy="([\\d.]+)"`),
+        )![1],
+      );
+    const left = readY("left"),
+      right = readY("right");
+    assert.ok(
+      difference > 0
+        ? left > right
+        : difference < 0
+          ? right > left
+          : left === right,
+    );
+    assert.ok(html.includes('data-count="2"'));
+    assert.ok(html.includes("2×20 г"));
+  }
 });

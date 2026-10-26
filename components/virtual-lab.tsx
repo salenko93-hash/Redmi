@@ -22,6 +22,7 @@ import type { Experiment } from "@/lib/types";
 import { RampScene } from "./ramp-scene";
 import { RotationScene } from "./rotation-scene";
 import { PendulumScene } from "./pendulum-scene";
+import { BalanceScene } from "./balance-scene";
 
 function Scene({
   number: n,
@@ -38,7 +39,8 @@ function Scene({
 }) {
   const id = useId().replace(/:/g, "");
   const v = r.values;
-  const sceneHeight = n === 1 ? 410 : n === 2 ? 360 : n === 3 ? 440 : 300;
+  const sceneHeight =
+    n === 1 ? 410 : n === 2 ? 360 : n === 3 ? 440 : n === 4 ? 350 : 300;
   const ruler = (
     <g stroke="#b7c7b0">
       {Array.from({ length: 19 }, (_, i) => (
@@ -135,67 +137,17 @@ function Scene({
           id={id}
         />
       )}
-      {n === 4 &&
-        (() => {
-          const tilt = Math.max(-15, Math.min(15, -v.difference)),
-            dy = Math.sin((tilt * Math.PI) / 180) * 160;
-          return (
-            <g>
-              <path d="M230 260H370L310 230V120H290V230Z" fill="#95a89b" />
-              <line
-                x1="130"
-                y1={120 - dy}
-                x2="470"
-                y2={120 + dy}
-                stroke="#7f9180"
-                strokeWidth="8"
-              />
-              <circle cx="300" cy="120" r="10" fill="#c3aa79" />
-              <path
-                d={`M130 ${120 - dy}l-55 95h110Z`}
-                fill="none"
-                stroke="#91a48a"
-              />
-              <path
-                d={`M470 ${120 + dy}l-55 95h110Z`}
-                fill="none"
-                stroke="#91a48a"
-              />
-              <ellipse cx="130" cy={215 - dy} rx="56" ry="9" fill="#c5ac7b" />
-              <ellipse cx="470" cy={215 + dy} rx="56" ry="9" fill="#c5ac7b" />
-              <rect
-                x="110"
-                y={172 - dy}
-                width="40"
-                height="33"
-                rx="7"
-                fill="#7e9b93"
-              />
-              {weights
-                .filter((w) => p[w.key] > 0)
-                .map((w, i) => (
-                  <rect
-                    key={w.key}
-                    x={435 + (i % 4) * 17}
-                    y={193 + dy - Math.floor(i / 4) * 17}
-                    width="14"
-                    height="15"
-                    rx="3"
-                    fill="#75816f"
-                  />
-                ))}
-              <text x="300" y="35" textAnchor="middle">
-                {r.message}
-              </text>
-              <text x="130" y="285" textAnchor="middle">
-                Досліджуване тіло
-              </text>
-              <text x="470" y="285" textAnchor="middle">
-                Набір важків
-              </text>
-            </g>
-          );
-        })()}
+      {n === 4 && (
+        <BalanceScene
+          difference={v.difference}
+          leftLabel={r.readings.object}
+          loads={weights
+            .filter((w) => p[w.key] > 0)
+            .map((w) => ({ key: w.key, label: w.label, count: p[w.key] }))}
+          status={r.message}
+          id={id}
+        />
+      )}
       {n === 5 &&
         (experiment === "regular" ? (
           <g>
@@ -650,6 +602,52 @@ export function VirtualLab({
             )}
           </div>
         </div>
+        {number === 4 && (
+          <section
+            className="balance-selection"
+            aria-label="Важки на правій шальці"
+          >
+            <div>
+              <h4>На правій шальці</h4>
+              <button
+                type="button"
+                className="button secondary"
+                disabled={
+                  running || !weights.some((w) => parameters[w.key] > 0)
+                }
+                onClick={() => {
+                  reset();
+                  setParameters((p) => ({
+                    ...p,
+                    ...Object.fromEntries(weights.map((w) => [w.key, 0])),
+                  }));
+                }}
+              >
+                Прибрати всі важки
+              </button>
+            </div>
+            <p role="status" className="balance-status">
+              {result.message}
+            </p>
+            {weights.some((w) => parameters[w.key] > 0) ? (
+              <ul>
+                {weights
+                  .filter((w) => parameters[w.key] > 0)
+                  .map((w) => (
+                    <li key={w.key} data-selected-weight={w.key}>
+                      {parameters[w.key]} × {w.label}
+                    </li>
+                  ))}
+              </ul>
+            ) : (
+              <p>Шалька з важками порожня.</p>
+            )}
+            <p>
+              Кількість кожного номіналу показана явно. Після рівноваги суму мас
+              обчисли самостійно.
+            </p>
+          </section>
+        )}
         <div className="virtual-toolbar">
           <button
             type="button"
