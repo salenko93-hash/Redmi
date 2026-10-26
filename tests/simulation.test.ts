@@ -44,6 +44,16 @@ test("rolling sphere, rotation and pendulum follow their stated models", () => {
   p.mass = 0.25;
   close(simulate(3, "mass", p).values.T, m1.values.T);
 });
+test("small-angle pendulum accepts worksheet amplitudes and preserves prior model readings", () => {
+  const p = initialParameters(3, "amplitude");
+  const original = simulate(3, "amplitude", { ...p, amplitude: 0.03 });
+  for (const amplitude of [0.025, 0.055]) {
+    assert.ok(validateParameters(3, "amplitude", { ...p, amplitude }));
+    const r = simulate(3, "amplitude", { ...p, amplitude });
+    close(r.values.T, original.values.T);
+    close(+r.readings.A, amplitude);
+  }
+});
 test("the two-metre ramp accepts its full scale and preserves earlier readings", () => {
   const p = initialParameters(1, "speed");
   p.distance = 1.5;

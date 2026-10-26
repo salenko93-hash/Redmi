@@ -78,8 +78,9 @@ export function Workspace({
   sandbox?: boolean;
 }) {
   const router = useRouter();
-  const materialHref =
-    number === 1 || number === 2 ? `/materials/${number}` : null;
+  const materialHref = [1, 2, 3].includes(number)
+    ? `/materials/${number}`
+    : null;
   const [answers, setAnswers] = useState<Answers>(
     (initial?.answers && Object.keys(initial.answers as object).length
       ? initial.answers
@@ -461,7 +462,9 @@ export function Workspace({
                     <small>
                       {number === 1
                         ? "Уточнена методика, графік і тренувальний прилад"
-                        : "Уточнена методика, формули й лічильник обертів"}
+                        : number === 2
+                          ? "Уточнена методика, формули й лічильник обертів"
+                          : "Три серії дослідів і тренувальний маятник"}
                     </small>
                   </span>
                   <ChevronRight size={18} />

@@ -1,0 +1,67 @@
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.tabs button {
+  border: 1px solid #d7e1cc;
+  background: #f5f8ef;
+  border-radius: 10px;
+  padding: 13px 8px;
+  color: #35543b;
+  font-size: 14px;
+  font-weight: 650;
+  min-height: 48px;
+}
+.tabs button span {
+  display: block;
+  font-size: 10px;
+  opacity: 0.75;
+  margin-bottom: 2px;
+}
+.tabs button[aria-selected="true"] {
+  background: #2b5942;
+  color: #f7f5e5;
+  border-color: #2b5942;
+}
+.conditions {
+  background: #f3f6eb;
+  border: 1px solid #dfe7d3;
+  padding: 18px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+.conditions p {
+  font-size: 14px;
+  line-height: 1.7;
+  margin: 8px 0;
+}
+.conditions small {
+  display: block;
+  color: #536a48;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.note {
+  color: #52694b;
+  font-size: 12px;
+  margin-top: 16px;
+  line-height: 1.7;
+}
+.practice [role="tabpanel"]:focus-visible {
+  outline: 2px solid #75915a;
+  outline-offset: 3px;
+}
+@media (max-width: 480px) {
+  .tabs {
+    gap: 5px;
+  }
+  .tabs button {
+    font-size: 12px;
+    padding: 11px 3px;
+  }
+  .conditions {
+    padding: 14px;
+  }
+}

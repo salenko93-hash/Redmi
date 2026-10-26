@@ -21,6 +21,7 @@ import {
 import type { Experiment } from "@/lib/types";
 import { RampScene } from "./ramp-scene";
 import { RotationScene } from "./rotation-scene";
+import { PendulumScene } from "./pendulum-scene";
 
 function Scene({
   number: n,
@@ -37,7 +38,7 @@ function Scene({
 }) {
   const id = useId().replace(/:/g, "");
   const v = r.values;
-  const sceneHeight = n === 1 ? 410 : n === 2 ? 360 : 300;
+  const sceneHeight = n === 1 ? 410 : n === 2 ? 360 : n === 3 ? 440 : 300;
   const ruler = (
     <g stroke="#b7c7b0">
       {Array.from({ length: 19 }, (_, i) => (
@@ -123,57 +124,17 @@ function Scene({
           id={id}
         />
       )}
-      {n === 3 &&
-        (() => {
-          const len = 95 + v.length * 100,
-            angle =
-              (v.amplitude / v.length) *
-              Math.cos(phase * v.cycles * 2 * Math.PI),
-            x = 300 + len * Math.sin(angle),
-            y = 45 + len * Math.cos(angle);
-          return (
-            <g>
-              <path
-                d="M120 265H200V30H365"
-                fill="none"
-                stroke="#9caaa0"
-                strokeWidth="9"
-              />
-              <path
-                d={`M300 45V${45 + len}`}
-                stroke="#a5b49e"
-                strokeDasharray="5 5"
-              />
-              <line
-                x1="300"
-                y1="45"
-                x2={x}
-                y2={y}
-                stroke="#6b7e6b"
-                strokeWidth="2"
-              />
-              <circle
-                cx={x}
-                cy={y}
-                r={9 + v.mass * 25}
-                fill="#bc9d72"
-                stroke="#8e7657"
-              />
-              <text x="350" y="65">
-                l = {v.length} м
-              </text>
-              <text x="350" y="90">
-                m = {v.mass} кг
-              </text>
-              <text x="350" y="115">
-                A = {v.amplitude} м
-              </text>
-              <text x="350" y="255">
-                Циклів: {Math.floor(phase * p.cycles)}
-              </text>
-            </g>
-          );
-        })()}
+      {n === 3 && (
+        <PendulumScene
+          length={v.length}
+          amplitude={v.amplitude}
+          mass={v.mass}
+          cycles={p.cycles}
+          phase={phase}
+          elapsed={v.t * phase}
+          id={id}
+        />
+      )}
       {n === 4 &&
         (() => {
           const tilt = Math.max(-15, Math.min(15, -v.difference)),
