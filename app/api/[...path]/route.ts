@@ -51,8 +51,11 @@ async function handle(
     if (route === "auth/recover" && method === "POST") {
       const input = z
         .object({
-          email: z.email().transform((s) => s.toLowerCase()),
-          code: z.string().min(10).max(100),
+          email: z
+            .email()
+            .trim()
+            .transform((s) => s.toLowerCase()),
+          code: z.string().trim().min(10).max(100),
           password: z.string().min(10).max(128),
         })
         .parse(await req.json());

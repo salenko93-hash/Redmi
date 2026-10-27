@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
+import { developmentOrigins } from "./lib/site-origin";
 const config: NextConfig = {
   poweredByHeader: false,
+  allowedDevOrigins: developmentOrigins(process.env.APP_URL),
   devIndicators: false,
   serverExternalPackages: ["bcryptjs"],
   async headers() {

@@ -1,8 +1,21 @@
 import { currentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { publicSiteOrigin } from "@/lib/site-origin";
 import { AuthForm } from "@/components/auth-form";
 import { Atom, FlaskConical, ArrowUpRight } from "lucide-react";
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ mode?: string | string[] }>;
+}) {
+  const initialMode =
+    (await searchParams).mode === "recover" ? "recover" : "login";
+  const expectedOrigin = publicSiteOrigin(process.env.APP_URL);
+  const host = (await headers()).get("host");
+  const initialOriginMismatch = Boolean(
+    expectedOrigin && host && new URL(expectedOrigin).host !== host,
+  );
   if (await currentUser()) redirect("/dashboard");
   return (
     <div className="auth-page">
@@ -45,7 +58,12 @@ export default async function Home() {
         </div>
       </section>
       <section className="auth-panel">
-        <AuthForm />
+        <AuthForm
+          key={initialMode}
+          initialMode={initialMode}
+          expectedOrigin={expectedOrigin}
+          initialOriginMismatch={initialOriginMismatch}
+        />
       </section>
     </div>
   );

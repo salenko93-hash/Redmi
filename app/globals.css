@@ -3924,3 +3924,20 @@ td {
     font-size: 21px;
   }
 }
+
+.auth-address-notice {
+  padding: 14px;
+  border: 1px solid #d8d4af;
+  border-radius: 10px;
+  background: #faf8e9;
+  color: #645d36;
+  font-size: 13px;
+}
+.auth-address-notice a {
+  display: block;
+  color: var(--green);
+  font-weight: 650;
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+  margin: 5px 0;
+}

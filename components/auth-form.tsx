@@ -1,9 +1,27 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, LoaderCircle, KeyRound } from "lucide-react";
-export function AuthForm() {
-  const [mode, setMode] = useState<"login" | "register" | "recover">("login"),
+export function AuthForm({
+  initialMode = "login",
+  expectedOrigin,
+  initialOriginMismatch = false,
+}: {
+  initialMode?: "login" | "recover";
+  expectedOrigin?: string;
+  initialOriginMismatch?: boolean;
+}) {
+  const [originMismatch, setOriginMismatch] = useState(initialOriginMismatch);
+  useEffect(
+    () =>
+      setOriginMismatch(
+        Boolean(expectedOrigin && window.location.origin !== expectedOrigin),
+      ),
+    [expectedOrigin],
+  );
+  const [mode, setMode] = useState<"login" | "register" | "recover">(
+      initialMode,
+    ),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [recoveryCode, setRecoveryCode] = useState("");
@@ -29,8 +47,7 @@ export function AuthForm() {
           className="button primary wide"
           onClick={() => {
             if (recover) {
-              setRecoveryCode("");
-              setMode("login");
+              window.location.assign("/");
             } else {
               router.push("/dashboard");
               router.refresh();
@@ -56,10 +73,20 @@ export function AuthForm() {
         {register
           ? "Приєднуйтеся до класу та досліджуйте світ."
           : recover
-            ? "Використайте код, отриманий під час реєстрації."
+            ? "Використайте особистий резервний код або новий код із PowerShell."
             : "Увійдіть, щоб продовжити дослідження."}
       </p>
+      {originMismatch && (
+        <p className="auth-address-notice" role="alert">
+          Для входу та відновлення доступу відкрийте адресу цього застосунку:{" "}
+          <a href={`${expectedOrigin}/${recover ? "?mode=recover" : ""}`}>
+            {expectedOrigin}
+          </a>
+          . Поточна адреса не відповідає налаштованій адресі сайту.
+        </p>
+      )}
       <form
+        method="post"
         onSubmit={async (e) => {
           e.preventDefault();
           setBusy(true);
@@ -111,7 +138,15 @@ export function AuthForm() {
         {recover && (
           <label>
             Код відновлення
-            <input name="code" required minLength={10} autoComplete="off" />
+            <input
+              name="code"
+              required
+              minLength={10}
+              maxLength={100}
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+            />
           </label>
         )}
         <label>
@@ -142,7 +177,10 @@ export function AuthForm() {
             {error}
           </p>
         )}
-        <button className="button primary wide" disabled={busy}>
+        <button
+          className="button primary wide"
+          disabled={busy || originMismatch}
+        >
           {busy ? (
             <LoaderCircle className="spin" size={18} />
           ) : (
@@ -158,20 +196,18 @@ export function AuthForm() {
         </button>
       </form>
       {mode === "login" && (
-        <button
+        <a
           className="text-button"
           style={{ marginTop: 12 }}
-          onClick={() => {
-            setMode("recover");
-            setError("");
-          }}
+          href="/?mode=recover"
         >
           Забули пароль?
-        </button>
+        </a>
       )}
       <p className="auth-switch">
         {register || recover ? "Уже маєте доступ?" : "Вперше у ФізЛаб?"}{" "}
         <button
+          type="button"
           onClick={() => {
             setMode(register || recover ? "login" : "register");
             setError("");

@@ -375,6 +375,46 @@ test("recovery code rotates and revokes existing sessions", async ({
   expect(after.id).toBe(before.id);
   expect(after.role).toBe(before.role);
   expect(after.isAdmin).toBe(before.isAdmin);
+
+  // Operator fallback sets a password directly without the recovery web form or secret arguments.
+  const localPassword = "OperatorReplacement2030!";
+  const resetOutput = await new Promise<string>((resolve, reject) => {
+    const child = execFile(
+      process.execPath,
+      [
+        "--import",
+        "tsx",
+        "scripts/recover-account.ts",
+        "--email",
+        email,
+        "--set-password",
+        "--password-stdin",
+      ],
+      { cwd: process.cwd(), env: process.env },
+      (error, stdout) => (error ? reject(error) : resolve(stdout)),
+    );
+    child.stdin!.end(localPassword + "\r\n");
+  });
+  expect(resetOutput).toContain("Пароль оновлено");
+  expect(resetOutput).not.toContain(localPassword);
+  expect((await api.get("/api/me")).status()).toBe(401);
+  expect(
+    (
+      await post(api, "/api/auth/login", {
+        email,
+        password: "Replacement2028!",
+      })
+    ).status(),
+  ).toBe(401);
+  expect(
+    (
+      await post(api, "/api/auth/login", { email, password: localPassword })
+    ).status(),
+  ).toBe(200);
+  const localUser = await (await api.get("/api/me")).json();
+  expect(localUser.id).toBe(before.id);
+  expect(localUser.role).toBe(before.role);
+  expect(localUser.isAdmin).toBe(before.isAdmin);
   await api.dispose();
 });
 test("two devices cannot silently overwrite each other and pending local data can be exported", async ({
