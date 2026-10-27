@@ -1,8 +1,15 @@
 import { test, expect } from "@playwright/test";
+import { ELASTIC_PX_PER_CM } from "../../lib/elastic-view";
 const base = process.env.E2E_BASE_URL ?? "http://localhost:3100";
+test.use({ hasTouch: true });
 test("lab six replaces PDF and shows calibrated elastic lengths, unloading and a native spring graph", async ({
   page,
-}) => {
+}, testInfo) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("console", (m) => {
+    if (m.type() === "error") errors.push(m.text());
+  });
   await page.goto("/materials/6");
   await expect(page).toHaveURL(base + "/");
   expect(
@@ -31,13 +38,11 @@ test("lab six replaces PDF and shows calibrated elastic lengths, unloading and a
   ).toBeVisible();
   await page.keyboard.press("Escape");
   await page.goto("/materials/6");
-  const writes: string[] = [],
-    errors: string[] = [];
+  const writes: string[] = [];
   page.on("request", (r) => {
     if (r.method() !== "GET" && r.url().includes("/api/assignments"))
       writes.push(r.url());
   });
-  page.on("pageerror", (e) => errors.push(e.message));
   const before = await page.evaluate(() => JSON.stringify(localStorage));
   await expect(
     page.getByRole("heading", {
@@ -71,10 +76,8 @@ test("lab six replaces PDF and shows calibrated elastic lengths, unloading and a
       .locator('[data-instrument="elastic-length"]')
       .evaluate((el) => (el as SVGLineElement).getTotalLength());
   const read = (s: string) => Number(s.replace(",", "."));
-  async function run() {
-    await instrument
-      .getByRole("button", { name: "Запустити дослід", exact: true })
-      .click();
+  async function run(button = "Запустити дослід") {
+    await instrument.getByRole("button", { name: button, exact: true }).click();
     await expect(instrument.locator(".virtual-results")).toBeVisible();
     await expect(instrument.locator(".virtual-results dd")).toHaveCount(4);
     await expect(
@@ -89,13 +92,21 @@ test("lab six replaces PDF and shows calibrated elastic lengths, unloading and a
     await expect(
       instrument.locator('[data-instrument="elastic-length-reading"]'),
     ).toHaveText(values[3].replace(".", ",") + " см");
-    expect((await length()) / 5.8).toBeCloseTo(read(values[3]), 3);
+    expect(
+      Math.abs((await length()) / ELASTIC_PX_PER_CM - read(values[3])),
+    ).toBeLessThan(0.001);
     return values.map(read);
   }
   const rubberSmall = await run();
   await expect(
     instrument.locator('[data-instrument="elastic-element"]'),
-  ).toHaveJSProperty("tagName", "line");
+  ).toHaveAttribute("data-elastic-kind", "rubber");
+  await instrument
+    .locator(".simulation-scene")
+    .screenshot({
+      path: testInfo.outputPath("realistic-rubber.png"),
+      caret: "initial",
+    });
   await mass.press("End");
   await expect(instrument.locator(".virtual-results")).toHaveCount(0);
   const rubberLarge = await run();
@@ -108,7 +119,10 @@ test("lab six replaces PDF and shows calibrated elastic lengths, unloading and a
   await material.selectOption("1");
   await expect(
     instrument.locator('[data-instrument="elastic-element"]'),
-  ).toHaveJSProperty("tagName", "polyline");
+  ).toHaveAttribute("data-elastic-kind", "spring");
+  await expect(
+    instrument.locator('[data-instrument="elastic-element"] [data-coil-half]'),
+  ).toHaveCount(24);
   const springLarge = await run();
   expect(springLarge[3] - springLarge[2]).toBeCloseTo(20, 3);
   await mass.press("Home");
@@ -121,8 +135,47 @@ test("lab six replaces PDF and shows calibrated elastic lengths, unloading and a
   const longer = await run();
   expect(longer[2]).toBe(25);
   expect(longer[3] - springSmall[3]).toBeCloseTo(10, 3);
+  await mass.press("End");
+  const maximum = await run();
+  expect(maximum[3]).toBeCloseTo(45, 3);
+  await instrument
+    .locator(".simulation-scene")
+    .screenshot({
+      path: testInfo.outputPath("realistic-spring-maximum.png"),
+      caret: "initial",
+    });
+  const beforeUnloading = await length();
   await mass.press("Home");
-  const unloaded = await run();
+  expect(await length()).toBeCloseTo(beforeUnloading, 4);
+  await expect(
+    instrument.locator('[data-instrument="elastic-installation"]'),
+  ).toHaveAttribute("data-elastic-state", "unloading");
+  await expect(instrument.locator('[data-elastic-reading="l"]')).toHaveText(
+    "—",
+  );
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await instrument
+    .getByRole("button", { name: "Запустити дослід", exact: true })
+    .click();
+  await page.waitForFunction((loaded) => {
+    const line = document.querySelector(
+      '[data-instrument="elastic-length"]',
+    ) as SVGLineElement;
+    return line.getTotalLength() < loaded - 5;
+  }, beforeUnloading);
+  await instrument.getByRole("button", { name: "Пауза", exact: true }).click();
+  const paused = await length();
+  expect(paused).toBeGreaterThan(25 * ELASTIC_PX_PER_CM);
+  expect(paused).toBeLessThan(beforeUnloading);
+  await page.waitForTimeout(180);
+  expect(await length()).toBe(paused);
+  await instrument
+    .locator(".simulation-scene")
+    .screenshot({
+      path: testInfo.outputPath("realistic-unloading-paused.png"),
+      caret: "initial",
+    });
+  const unloaded = await run("Продовжити");
   expect(unloaded[2]).toBe(unloaded[3]);
   await expect(
     instrument.locator('[data-instrument="elastic-extension"]'),
@@ -137,6 +190,21 @@ test("lab six replaces PDF and shows calibrated elastic lengths, unloading and a
   expect(writes).toEqual([]);
   expect(await page.evaluate(() => JSON.stringify(localStorage))).toBe(before);
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await mass.focus();
+  await mass.press("ArrowRight");
+  await instrument
+    .getByRole("button", { name: "Запустити дослід", exact: true })
+    .tap();
+  await expect(instrument.locator(".virtual-results")).toBeVisible();
+  await expect(instrument.locator('[data-elastic-reading="m"]')).toHaveText(
+    "100",
+  );
+  await instrument.evaluate((el) => el.scrollIntoView({ block: "start" }));
+  await page.screenshot({
+    path: testInfo.outputPath("realistic-elastic-mobile.png"),
+    caret: "initial",
+  });
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
@@ -148,4 +216,5 @@ test("lab six replaces PDF and shows calibrated elastic lengths, unloading and a
   await expect(
     figure.getByRole("button", { name: "Пружина 2", exact: true }),
   ).not.toBeVisible();
+  expect(errors).toEqual([]);
 });

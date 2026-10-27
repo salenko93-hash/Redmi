@@ -30,6 +30,8 @@ import { DensityReadouts } from "./density-readouts";
 import { densitySceneHeight } from "@/lib/density-view";
 import { advanceSimulationClock } from "@/lib/simulation-time";
 import { ElasticScene } from "./elastic-scene";
+import { ElasticReadouts } from "./elastic-readouts";
+import { ELASTIC_SCENE_HEIGHT, elasticTransition } from "@/lib/elastic-view";
 import { FrictionScene } from "./friction-scene";
 import { PressureScene } from "./pressure-scene";
 import { HydroScene } from "./hydro-scene";
@@ -42,6 +44,7 @@ function Scene({
   result: r,
   phase,
   rotationView,
+  elasticStart,
 }: {
   number: number;
   experiment: string;
@@ -49,6 +52,7 @@ function Scene({
   result: SimulationResult;
   phase: number;
   rotationView: RotationView;
+  elasticStart: number;
 }) {
   const id = useId().replace(/:/g, "");
   const v = r.values;
@@ -64,7 +68,7 @@ function Scene({
             : n === 5
               ? densitySceneHeight(experiment)
               : n === 6
-                ? 440
+                ? ELASTIC_SCENE_HEIGHT
                 : n === 7
                   ? 460
                   : n === 8
@@ -140,7 +144,15 @@ function Scene({
           phase={phase}
         />
       )}
-      {n === 6 && <ElasticScene parameters={p} result={r} phase={phase} />}
+      {n === 6 && (
+        <ElasticScene
+          id={id + "-elastic"}
+          parameters={p}
+          result={r}
+          phase={phase}
+          startExtension={elasticStart}
+        />
+      )}
       {n === 7 && (
         <FrictionScene parameters={p} result={r} phase={phase} id={id} />
       )}
@@ -182,6 +194,7 @@ export function VirtualLab({
       : {}),
   }));
   const [rotationView, setRotationView] = useState<RotationView>("perspective");
+  const [elasticStart, setElasticStart] = useState(0);
   const [row, setRow] = useState(lastRecord?.rowIndex ?? 0),
     [phase, setPhase] = useState(0),
     [running, setRunning] = useState(false),
@@ -223,6 +236,7 @@ export function VirtualLab({
     return () => cancelAnimationFrame(frame);
   }, [running, result.duration, number]);
   function reset() {
+    setElasticStart(0);
     setRunning(false);
     phaseRef.current = 0;
     setPhase(0);
@@ -230,7 +244,12 @@ export function VirtualLab({
     setReplace(false);
   }
   function adjust(key: string, value: number) {
+    const previousExtension =
+      number === 6
+        ? elasticTransition(elasticStart, result.values.x, phase)
+        : 0;
     reset();
+    if (number === 6 && key === "mass") setElasticStart(previousExtension);
     setParameters((p) => ({ ...p, [key]: value }));
   }
   function record() {
@@ -292,6 +311,7 @@ export function VirtualLab({
             result={result}
             phase={phase}
             rotationView={rotationView}
+            elasticStart={elasticStart}
           />
           <div className="virtual-toolbar">
             <button
@@ -330,6 +350,13 @@ export function VirtualLab({
               experiment={experiment.id}
               readings={result.readings}
               phase={phase}
+            />
+          )}
+          {number === 6 && (
+            <ElasticReadouts
+              readings={result.readings}
+              phase={phase}
+              message={result.message}
             />
           )}
           <div
@@ -582,7 +609,7 @@ export function VirtualLab({
             : "Анімацію може бути прискорено. Покази часу нижче — фізичний час моделі, а не тривалість анімації. "}
           Усі дані синтетичні; випадкова похибка не додається.
         </p>
-        {phase === 1 && number !== 5 && (
+        {phase === 1 && number !== 5 && number !== 6 && (
           <div className="virtual-results">
             <h4>Покази приладів</h4>
             <dl>

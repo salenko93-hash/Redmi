@@ -52,6 +52,22 @@ function StiffnessPlot({ active }: { active: number | null }) {
         opacity={active === null || active === 1 ? 1 : 0.25}
       >
         <path d="M65 285L195 61" stroke="#b46c38" strokeWidth="4" fill="none" />
+        <path
+          d="M65 98.9077H173"
+          stroke="#b46c38"
+          strokeDasharray="3 4"
+          fill="none"
+          opacity=".55"
+        />
+        <circle
+          data-spring-comparison="1"
+          cx="173"
+          cy="98.9077"
+          r="4"
+          fill="#fbf8eb"
+          stroke="#b46c38"
+          strokeWidth="2"
+        />
         <text x="200" y="69" fill="#94572f">
           1
         </text>
@@ -61,10 +77,29 @@ function StiffnessPlot({ active }: { active: number | null }) {
         opacity={active === null || active === 2 ? 1 : 0.25}
       >
         <path d="M65 285L495 87" stroke="#356a80" strokeWidth="4" fill="none" />
+        <path
+          d="M65 235.2698H173"
+          stroke="#356a80"
+          strokeDasharray="3 4"
+          fill="none"
+          opacity=".55"
+        />
+        <circle
+          data-spring-comparison="2"
+          cx="173"
+          cy="235.2698"
+          r="4"
+          fill="#fbf8eb"
+          stroke="#356a80"
+          strokeWidth="2"
+        />
         <text x="508" y="91" fill="#356a80">
           2
         </text>
       </g>
+      <text x="173" y="309" textAnchor="middle" style={{ fontSize: 11 }}>
+        Одне x
+      </text>
       <text x="293" y="341" textAnchor="middle" style={{ fontSize: 12 }}>
         Якісний графік · без числової шкали
       </text>

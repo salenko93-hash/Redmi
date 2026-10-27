@@ -90,12 +90,17 @@ export default async function LabSixMaterial() {
           </div>
           <div className={styles.heroVisual}>
             <svg
-              viewBox="0 0 600 440"
+              viewBox="0 0 600 610"
               className="simulation-scene"
               role="img"
               aria-label="Шнур на штативі, початкова й навантажена довжини та лінійка"
             >
-              <ElasticScene parameters={p} result={r} phase={1} />
+              <ElasticScene
+                id="material-six-elastic"
+                parameters={p}
+                result={r}
+                phase={1}
+              />
             </svg>
             <div className={styles.visualCaption}>
               <span>06 / ВИМІРЯЙ ЗМІНУ</span>

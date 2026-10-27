@@ -2,232 +2,280 @@ import {
   ELASTIC_ANCHOR as top,
   ELASTIC_PX_PER_CM as scale,
   elasticGeometry,
+  elasticCoordinate as q,
 } from "@/lib/elastic-view";
 import type { Parameters, SimulationResult } from "@/lib/simulation";
+import {
+  ElasticDefinitions,
+  ElasticStand,
+  ElasticElement,
+  ElasticLoads,
+} from "./elastic-equipment";
 const fmt = (v: number | string) => String(v).replace(".", ",");
 export function ElasticScene({
   parameters: p,
   result: r,
   phase,
+  id,
+  startExtension = 0,
 }: {
   parameters: Parameters;
   result: SimulationResult;
   phase: number;
+  id: string;
+  startExtension?: number;
 }) {
   const { restEnd, end, length } = elasticGeometry(
-    p.initial,
-    r.values.x,
-    phase,
-  );
-  const ready = phase === 1;
-  const zigzag = Array.from(
-    { length: 20 },
-    (_, i) =>
-      `${285 + (i % 2 ? -11 : 11)},${top + 8 + (i * (length - 16)) / 19}`,
-  ).join(" ");
+      p.initial,
+      r.values.x,
+      phase,
+      startExtension,
+    ),
+    ready = phase === 1;
+  const unloading = startExtension > r.values.x + 1e-9;
   return (
-    <g>
-      <text x="26" y="24">
-        {p.material === 0 ? "Гумовий шнур" : "Ідеальна пружина"} · порівняй
-        довжини
+    <g
+      data-instrument="elastic-installation"
+      data-elastic-state={
+        ready ? "equilibrium" : unloading ? "unloading" : "loading"
+      }
+    >
+      <ElasticDefinitions id={id} />
+      <text x="26" y="27" style={{ fontSize: 13, fontWeight: 650 }}>
+        {p.material === 0
+          ? "Пружні властивості гумового шнура"
+          : "Розтягнення ідеальної пружини"}
       </text>
+      <text x="26" y="47" style={{ fontSize: 10 }}>
+        Ті самі точки відліку · гачок і тягарці не входять у довжину елемента
+      </text>
+      <ElasticStand id={id} />
       <path
-        d="M42 391H112M76 391V40H285V52"
-        fill="none"
-        stroke="#8b9f91"
-        strokeWidth="7"
-        strokeLinejoin="round"
+        d={`M183 ${top}H306`}
+        stroke="#a7b79b"
+        strokeWidth=".7"
+        strokeDasharray="3 3"
       />
-      <line
-        x1="175"
-        x2="175"
-        y1={top}
-        y2={restEnd}
-        stroke="#9bac9d"
-        strokeWidth="5"
-        strokeDasharray="5 4"
+      <ElasticElement
+        id={id}
+        material={p.material}
+        initial={p.initial}
+        length={restEnd - top}
+        end={restEnd}
+        axis={198}
+        ghost
       />
       <path
-        d={`M146 ${top}H158M152 ${top}V${restEnd}M146 ${restEnd}H158`}
-        stroke="#93a181"
+        d={`M162 ${top}H174M168 ${top}V${q(restEnd)}M162 ${q(restEnd)}H174`}
         fill="none"
+        stroke="#9aa98b"
+        strokeWidth="1"
       />
-      <text x="140" y={(top + restEnd) / 2} textAnchor="end">
+      <text
+        x="157"
+        y={q((top + restEnd) / 2)}
+        textAnchor="end"
+        style={{ fontSize: 12 }}
+      >
         l₀
       </text>
       <text
-        x="175"
-        y={restEnd + 22}
+        x="198"
+        y={q(restEnd + 22)}
         textAnchor="middle"
-        style={{ fontSize: 11 }}
+        style={{ fontSize: 9 }}
       >
-        Без вантажу
+        Початковий стан
       </text>
-      <line
-        x1="170"
-        x2="347"
-        y1={restEnd}
-        y2={restEnd}
-        stroke="#b1bd9c"
-        strokeDasharray="5 4"
+      <path
+        d={`M198 ${q(restEnd)}H400`}
+        stroke="#a8b89b"
+        strokeDasharray="4 4"
+        strokeWidth=".8"
       />
-      {p.material === 0 ? (
-        <line
-          data-instrument="elastic-element"
-          x1="285"
-          x2="285"
-          y1={top}
-          y2={end}
-          stroke="#42745b"
-          strokeWidth="7"
-          strokeLinecap="round"
-        />
-      ) : (
-        <polyline
-          data-instrument="elastic-element"
-          points={`285,${top} ${zigzag} 285,${end}`}
-          stroke="#688b91"
-          strokeWidth="3"
-          fill="none"
-        />
-      )}
+      <path d={`M397 ${q(restEnd - 3)}l5 3-5 3`} fill="#a6b49b" />
+      <ElasticElement
+        id={id}
+        material={p.material}
+        initial={p.initial}
+        length={length}
+        end={end}
+      />
+      <ElasticLoads id={id} end={end} mass={p.mass} />
       <line
         data-instrument="elastic-length"
-        x1="349"
-        x2="349"
+        x1="367"
+        x2="367"
         y1={top}
-        y2={end}
-        stroke="#6e8b77"
-        strokeWidth="2"
+        y2={q(end)}
+        stroke="#6b8971"
+        strokeWidth="1.2"
       />
-      <path d={`M343 ${top}H355M343 ${end}H355`} stroke="#6e8b77" fill="none" />
-      <text x="360" y={(top + end) / 2}>
+      <path
+        d={`M362 ${top}H372M362 ${q(end)}H372`}
+        stroke="#6b8971"
+        fill="none"
+      />
+      <text x="377" y={q((top + end) / 2)} style={{ fontSize: 12 }}>
         l
       </text>
-      {end > restEnd + 0.1 && (
+      {Math.abs(end - restEnd) > 0.1 && (
         <g>
           <line
             data-instrument="elastic-extension"
-            x1="329"
-            x2="329"
-            y1={restEnd}
-            y2={end}
-            stroke="#b68a42"
-            strokeWidth="2"
+            x1="341"
+            x2="341"
+            y1={q(restEnd)}
+            y2={q(end)}
+            stroke="#ae8941"
+            strokeWidth="1.6"
           />
           <path
-            d={`M323 ${restEnd}H335M323 ${end}H335`}
+            d={`M337 ${q(restEnd)}H345M337 ${q(end)}H345`}
+            stroke="#ae8941"
             fill="none"
-            stroke="#b68a42"
           />
           <text
-            x="319"
-            y={(restEnd + end) / 2 + 4}
+            x="332"
+            y={q((restEnd + end) / 2 + 3)}
             textAnchor="end"
-            fill="#906725"
+            style={{ fontSize: 11, fill: "#987633" }}
           >
             x
           </text>
         </g>
       )}
-      {p.mass > 0 && (
-        <line
-          x1="285"
-          x2="285"
-          y1={end}
-          y2={end + 5}
-          stroke="#8b7c57"
-          strokeWidth="2"
-        />
-      )}
-      {Array.from({ length: p.mass / 100 }, (_, i) => (
-        <g key={i} data-instrument="elastic-load">
-          <rect
-            x="263"
-            y={end + 5 + i * 16}
-            width="44"
-            height="15"
-            rx="3"
-            fill="#c0ad80"
-            stroke="#8b7c57"
-          />
-          <text
-            x="285"
-            y={end + 16 + i * 16}
-            textAnchor="middle"
-            style={{ fontSize: 9 }}
-          >
-            100 г
-          </text>
-        </g>
-      ))}
       <g data-instrument="elastic-ruler">
-        <line
-          x1="401"
-          x2="401"
-          y1={top}
-          y2={top + 45 * scale}
-          stroke="#8da17b"
+        <rect
+          x="401"
+          y={top - 9}
+          width="35"
+          height={50 * scale + 18}
+          rx="2"
+          fill="#f4e9ca"
+          stroke="#c4b98d"
+          strokeWidth=".9"
         />
-        {Array.from({ length: 46 }, (_, i) => (
-          <g key={i}>
-            <line
-              x1={i % 5 ? 401 : 395}
-              x2="410"
-              y1={top + i * scale}
-              y2={top + i * scale}
-              stroke="#8da17b"
-            />
-            {i % 5 === 0 && (
-              <text x="418" y={top + i * scale + 4} style={{ fontSize: 10 }}>
-                {i}
-              </text>
-            )}
-          </g>
+        <path
+          d={`M434 ${top - 7}V${top + 50 * scale + 7}`}
+          stroke="#fff7df"
+          strokeWidth="1.2"
+        />
+        {Array.from({ length: 501 }, (_, i) => (
+          <line
+            key={i}
+            x1="402"
+            x2={
+              i % 50 === 0 ? 418 : i % 10 === 0 ? 413 : i % 5 === 0 ? 409 : 406
+            }
+            y1={q(top + (i * scale) / 10)}
+            y2={q(top + (i * scale) / 10)}
+            stroke="#827b57"
+            strokeWidth={i % 10 === 0 ? 0.7 : 0.35}
+          />
         ))}
-        <text x="418" y="40" style={{ fontSize: 11 }}>
+        {Array.from({ length: 11 }, (_, i) => (
+          <text
+            key={i}
+            x="430"
+            y={top + i * 5 * scale + 3}
+            textAnchor="end"
+            style={{ fontSize: 8, fill: "#6b6547" }}
+          >
+            {i * 5}
+          </text>
+        ))}
+        <text x="418" y="87" textAnchor="middle" style={{ fontSize: 10 }}>
           см
         </text>
       </g>
+      <path
+        data-instrument="elastic-pointer"
+        d={`M309 ${q(end)}H399l-5-3v6l5-3`}
+        stroke="#a88942"
+        strokeWidth="1.3"
+        fill="#b89c54"
+      />
+      <circle
+        data-instrument="elastic-anchor"
+        cx="295"
+        cy={top}
+        r="2"
+        fill="#b38f44"
+      />
+      <circle
+        data-instrument="elastic-endpoint"
+        cx="295"
+        cy={q(end)}
+        r="2.2"
+        fill="#b38f44"
+      />
       <rect
         x="462"
-        y="57"
+        y="128"
         width="117"
-        height="262"
-        rx="12"
-        fill="#fff"
-        stroke="#dbe5d2"
+        height="255"
+        rx="11"
+        fill="#fffef7"
+        stroke="#d9e3cf"
       />
-      <text x="476" y="84">
-        Маса
+      <text x="476" y="151" style={{ fontSize: 8.5, letterSpacing: 0.5 }}>
+        КІНЦЕВІ ПОКАЗИ
       </text>
-      <text x="476" y="108" style={{ fontSize: 18, fontWeight: 650 }}>
+      <text x="476" y="180" style={{ fontSize: 10 }}>
+        Навантаження
+      </text>
+      <text x="476" y="202" style={{ fontSize: 17, fontWeight: 650 }}>
         {fmt(p.mass)} г
       </text>
-      <text x="476" y="146">
-        l₀
+      <text x="476" y="232" style={{ fontSize: 10 }}>
+        Початкова l₀
       </text>
-      <text data-instrument="elastic-initial-reading" x="476" y="169">
+      <text
+        data-instrument="elastic-initial-reading"
+        x="476"
+        y="252"
+        style={{ fontSize: 15, fontWeight: 600 }}
+      >
         {fmt(r.readings.l0)} см
       </text>
-      <text x="476" y="207">
-        l
+      <text x="476" y="281" style={{ fontSize: 10 }}>
+        Довжина l
       </text>
-      <text data-instrument="elastic-length-reading" x="476" y="230">
+      <text
+        data-instrument="elastic-length-reading"
+        x="476"
+        y="302"
+        style={{ fontSize: 15, fontWeight: 600 }}
+      >
         {ready ? `${fmt(r.readings.l)} см` : "—"}
       </text>
-      <text x="476" y="267">
-        F ≈ mg
+      <text x="476" y="332" style={{ fontSize: 10 }}>
+        Сила за F ≈ mg
       </text>
-      <text data-instrument="elastic-force-reading" x="476" y="290">
+      <text
+        data-instrument="elastic-force-reading"
+        x="476"
+        y="353"
+        style={{ fontSize: 15, fontWeight: 600 }}
+      >
         {ready ? `${fmt(r.readings.F)} Н` : "—"}
       </text>
-      <text x="300" y="417" textAnchor="middle" style={{ fontSize: 11 }}>
+      <text x="300" y="582" textAnchor="middle" style={{ fontSize: 10 }}>
         {ready
           ? p.mass === 0
-            ? "Вантаж знято · порівняй l з l₀"
+            ? "Вантаж знято · перевір повернення до l₀"
             : "Статична рівновага · зніми кінцеві покази"
-          : "Запусти дослід, щоб зняти покази"}
+          : unloading
+            ? phase > 0
+              ? "Повернення після зняття навантаження"
+              : "Повернення після зняття навантаження · запусти дослід"
+            : phase > 0
+              ? "Перехід до статичної рівноваги · дочекайся кінцевих показів"
+              : "Зміни навантаження й запусти дослід"}
+      </text>
+      <text x="300" y="600" textAnchor="middle" style={{ fontSize: 9.5 }}>
+        Поділка лінійки 1 мм · x та F/x обчисли самостійно
       </text>
     </g>
   );
