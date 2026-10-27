@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { Play, Pause, RotateCcw, Timer, Plus } from "lucide-react";
-import { densityReference } from "@/lib/labs";
+import { densityEntries } from "@/lib/density-reference";
+import { ResearchCalculator } from "./research-calculator";
 export function LabTools({ number }: { number: number }) {
   const [running, setRunning] = useState(false),
     [elapsed, setElapsed] = useState(0),
@@ -65,18 +66,38 @@ export function LabTools({ number }: { number: number }) {
             <Plus size={16} /> Цикл: {count}
           </button>
         </div>
+        <ResearchCalculator />
         {[5, 9, 10].includes(number) && (
           <>
             <h4>Густини, кг/м³</h4>
             <p className="muted">
               Орієнтовні значення; залежать від складу й температури.
             </p>
-            {densityReference.map(([name, value]) => (
-              <div className="reference-row" key={name}>
-                <span>{name}</span>
-                <strong>{value}</strong>
-              </div>
-            ))}
+            {densityEntries
+              .filter((e) =>
+                [
+                  "Вода чиста",
+                  "Гліцерин",
+                  "Алюміній",
+                  "Залізо",
+                  "Мідь",
+                  "Олія",
+                ].includes(e.name),
+              )
+              .map(({ name, density }) => (
+                <div className="reference-row" key={name}>
+                  <span>{name}</span>
+                  <strong>{density.toLocaleString("uk-UA")}</strong>
+                </div>
+              ))}
+            <a
+              className="density-reference-link"
+              href="/materials/5#density-reference"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Повна таблиця густин ↗
+            </a>
           </>
         )}
       </div>

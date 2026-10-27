@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 const base = process.env.E2E_BASE_URL ?? "http://localhost:3100";
+test.use({ hasTouch: true });
 test("lab five replaces PDF and preserves dimensions, displaced volume, tare and independent calculations", async ({
   page,
 }) => {
@@ -31,6 +32,61 @@ test("lab five replaces PDF and preserves dimensions, displaced volume, tare and
   ).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).not.toBeVisible();
+  await page
+    .getByRole("button", { name: "2 Експеримент", exact: true })
+    .click();
+  const reference = page.locator(".density-reference");
+  await expect(
+    reference.getByRole("heading", { name: "Таблиця густин речовин" }),
+  ).toBeVisible();
+  await reference.getByRole("button", { name: "Гази 8", exact: true }).click();
+  await reference.getByLabel("Знайти речовину").fill("водень");
+  await expect(reference.locator("tbody tr:visible")).toHaveCount(1);
+  await expect(reference.locator("tbody tr:visible")).toContainText("0,00009");
+  await page.locator(".tools > summary").click();
+  const calculator = page.getByRole("region", {
+    name: "Калькулятор",
+    exact: true,
+  });
+  const calculation = calculator.getByLabel("Арифметичний вираз");
+  const storageBefore = await page.evaluate(() => JSON.stringify(localStorage));
+  await calculation.fill("(152 − 32) ÷ 40");
+  await calculation.press("Enter");
+  await expect(calculator.getByLabel("Результат калькулятора")).toHaveText("3");
+  await calculator.getByRole("button", { name: "C", exact: true }).click();
+  for (const key of ["7", "×", "8", "Обчислити"])
+    await calculator.getByRole("button", { name: key, exact: true }).click();
+  await expect(calculator.getByLabel("Результат калькулятора")).toHaveText(
+    "56",
+  );
+  await calculation.fill("1/(2-2)");
+  await calculation.press("Enter");
+  await expect(calculator.getByRole("alert")).toHaveText(
+    "На нуль ділити не можна.",
+  );
+  await calculation.fill("1,25 + 0.75");
+  await calculator
+    .getByRole("button", { name: "Обчислити", exact: true })
+    .click();
+  await expect(calculator.getByLabel("Результат калькулятора")).toHaveText("2");
+  await expect(calculator.getByRole("alert")).toHaveCount(0);
+  expect(await page.evaluate(() => JSON.stringify(localStorage))).toBe(
+    storageBefore,
+  );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await calculator.getByRole("button", { name: "C", exact: true }).tap();
+  for (const key of ["2", ",", "5", "×", "4", "Обчислити"])
+    await calculator.getByRole("button", { name: key, exact: true }).tap();
+  await expect(calculator.getByLabel("Результат калькулятора")).toHaveText(
+    "10",
+  );
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBeTruthy();
+  await page.setViewportSize({ width: 1280, height: 900 });
+
   await page.goto("/materials/5");
   const errors: string[] = [],
     writes: string[] = [];
@@ -58,6 +114,24 @@ test("lab five replaces PDF and preserves dimensions, displaced volume, tare and
   await expect(tabs.getByRole("tab")).toHaveCount(3);
   const instrument = page.locator(".virtual-lab");
   await expect(instrument).toHaveCount(1);
+  const toolbarPosition = await instrument.evaluate((el) => {
+    const scene = el
+      .querySelector("svg.simulation-scene")!
+      .getBoundingClientRect();
+    const toolbar = el
+      .querySelector(".virtual-toolbar")!
+      .getBoundingClientRect();
+    const controls = el
+      .querySelector(".virtual-controls")!
+      .getBoundingClientRect();
+    return {
+      gap: toolbar.top - scene.bottom,
+      above: toolbar.bottom <= controls.top,
+    };
+  });
+  expect(toolbarPosition.gap).toBeGreaterThanOrEqual(0);
+  expect(toolbarPosition.gap).toBeLessThanOrEqual(20);
+  expect(toolbarPosition.above).toBeTruthy();
   await page.emulateMedia({ reducedMotion: "reduce" });
   const dimensions = () =>
     instrument
@@ -162,7 +236,33 @@ test("lab five replaces PDF and preserves dimensions, displaced volume, tare and
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBeTruthy();
+  const materialReference = page.locator(".density-reference");
+  await materialReference
+    .getByRole("button", { name: "Рідини 16", exact: true })
+    .click();
+  await materialReference.getByLabel("Знайти речовину").fill("олово");
+  await expect(materialReference.locator("tbody tr:visible")).toHaveCount(1);
+  await expect(materialReference.locator("tbody tr:visible")).toContainText(
+    "409 °C",
+  );
+  await expect(materialReference.locator("tbody tr:visible")).toContainText(
+    "6,83",
+  );
+  await materialReference
+    .getByLabel("Знайти речовину")
+    .fill("немаєтакоїречовини");
+  await expect(materialReference.locator(".density-empty")).toBeVisible();
+  await materialReference.getByLabel("Знайти речовину").fill("вода");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBeTruthy();
   await page.emulateMedia({ media: "print" });
+  await expect(materialReference.locator("tbody tr:visible")).toHaveCount(52);
+  await expect(
+    materialReference.locator(".density-reference-controls"),
+  ).not.toBeVisible();
   await expect(instrument).not.toBeVisible();
   await expect(label).toBeVisible();
 });

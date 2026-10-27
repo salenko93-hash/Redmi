@@ -20,6 +20,7 @@ import { initialParameters, simulate } from "@/lib/simulation";
 import { Shell } from "@/components/shell";
 import { DensityScene } from "@/components/density-scene";
 import { DensityPractice } from "@/components/density-practice";
+import { DensityReference } from "@/components/density-reference";
 import { OilLabelFigure } from "@/components/oil-label-figure";
 import { MaterialPrint } from "@/components/material-print";
 import styles from "../guide.module.css";
@@ -80,8 +81,8 @@ export default async function LabFiveMaterial() {
             </span>
             <h1>Густина твердих тіл і рідин</h1>
             <p>
-              Маса розповідає лише частину історії. Виміряй об’єм і з’ясуй,
-              яка маса припадає на одиницю об’єму.
+              Маса розповідає лише частину історії. Виміряй об’єм і з’ясуй, яка
+              маса припадає на одиницю об’єму.
             </p>
             <div className={styles.heroMeta}>
               <span>
@@ -356,19 +357,7 @@ export default async function LabFiveMaterial() {
                   однозначним?
                 </li>
               </ul>
-              <details className={styles.disclosure}>
-                <summary>Приклади довідкових густин для порівняння</summary>
-                <p>
-                  Орієнтовні значення поблизу кімнатної температури: вода ≈ 1,00
-                  г/см³; етанол ≈ 0,79 г/см³; гліцерин ≈ 1,26 г/см³; алюміній ≈
-                  2,70 г/см³; сталь ≈ 7,8 г/см³ залежно від марки. Для деревини
-                  густина істотно залежить від породи та вологості.
-                </p>
-                <p>
-                  Це приклади, а не повний довідник. Користуйся таблицею,
-                  погодженою з учителем, та враховуй умови вимірювання.
-                </p>
-              </details>
+              <DensityReference />
               <div className={styles.creative}>
                 <span className={styles.sectionNumber}>
                   ДОСЛІДЖЕННЯ ІЗ ЗІРОЧКОЮ

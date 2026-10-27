@@ -278,6 +278,38 @@ export function VirtualLab({
             phase={phase}
             rotationView={rotationView}
           />
+          <div className="virtual-toolbar">
+            <button
+              type="button"
+              className="button primary"
+              onClick={() => {
+                setRecorded(false);
+                if (phase >= 1) {
+                  phaseRef.current = 0;
+                  setPhase(0);
+                }
+                setRunning(!running);
+              }}
+            >
+              {running ? <Pause size={16} /> : <Play size={16} />}{" "}
+              {running
+                ? "Пауза"
+                : phase > 0 && phase < 1
+                  ? "Продовжити"
+                  : "Запустити дослід"}
+            </button>
+            <button type="button" className="button secondary" onClick={reset}>
+              <RotateCcw size={16} />
+              Скинути прилад
+            </button>
+            <span>
+              {running
+                ? "Спостерігайте…"
+                : phase === 1
+                  ? "Дослід завершено"
+                  : "Готово до досліду"}
+            </span>
+          </div>
           <div
             className={`virtual-controls${number === 1 ? " ramp-controls" : ""}`}
           >
@@ -470,38 +502,6 @@ export function VirtualLab({
             </p>
           </section>
         )}
-        <div className="virtual-toolbar">
-          <button
-            type="button"
-            className="button primary"
-            onClick={() => {
-              setRecorded(false);
-              if (phase >= 1) {
-                phaseRef.current = 0;
-                setPhase(0);
-              }
-              setRunning(!running);
-            }}
-          >
-            {running ? <Pause size={16} /> : <Play size={16} />}{" "}
-            {running
-              ? "Пауза"
-              : phase > 0 && phase < 1
-                ? "Продовжити"
-                : "Запустити дослід"}
-          </button>
-          <button type="button" className="button secondary" onClick={reset}>
-            <RotateCcw size={16} />
-            Скинути прилад
-          </button>
-          <span>
-            {running
-              ? "Спостерігайте…"
-              : phase === 1
-                ? "Дослід завершено"
-                : "Готово до досліду"}
-          </span>
-        </div>
         <p className="muted">
           Анімацію може бути прискорено. Покази часу нижче — фізичний час
           моделі, а не тривалість анімації. Усі дані синтетичні; випадкова

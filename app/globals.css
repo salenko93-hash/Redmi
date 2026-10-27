@@ -3559,3 +3559,301 @@ td {
     font-size: 21px;
   }
 }
+
+/* Research tools and the searchable density reference share the project palette. */
+.research-calculator {
+  border-top: 1px solid var(--line);
+  margin-top: 24px;
+  padding-top: 18px;
+  min-width: 0;
+}
+.research-calculator h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+.research-calculator label {
+  font-size: 11px;
+  color: var(--muted);
+}
+.research-calculator input {
+  width: 100%;
+  min-width: 0;
+  margin-top: 6px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+}
+.research-calculator input[aria-invalid="true"] {
+  border-color: #ba654e;
+}
+.calculator-result {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  margin: 10px 0;
+  background: var(--sage);
+  border-radius: 8px;
+}
+.calculator-result span {
+  font-size: 10px;
+  color: #657563;
+}
+.calculator-result output {
+  font-size: 22px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.calculator-keys {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.calculator-keys button {
+  min-width: 0;
+  min-height: 42px;
+  padding: 7px 2px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+}
+.calculator-keys button:hover {
+  background: var(--sage);
+}
+.calculator-keys .calculator-operation {
+  background: var(--sage);
+}
+.calculator-keys .calculator-equals {
+  color: white;
+  background: var(--green);
+  border-color: var(--green);
+}
+.calculator-keys .calculator-equals:hover {
+  background: #1f4534;
+}
+.calculator-error {
+  color: #9b4334;
+  font-size: 12px;
+}
+.research-calculator .muted {
+  font-size: 11px;
+  margin: 12px 0 0;
+}
+.density-reference-link {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 11px;
+  color: var(--green);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.density-reference {
+  min-width: 0;
+  padding: 24px;
+  background: #fbfcf8;
+  border: 1px solid #dce5d4;
+  border-radius: 14px;
+  margin: 20px 0;
+}
+.density-reference-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #68835a;
+}
+.density-reference h3 {
+  font-size: 23px;
+  margin: 12px 0;
+}
+.density-reference > p {
+  font-size: 13px;
+}
+.density-reference-controls {
+  margin: 20px 0 12px;
+}
+.density-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+.density-search .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.density-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  padding: 12px 0;
+  background: transparent;
+  font-size: 14px;
+  color: var(--ink);
+}
+.density-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+.density-filters button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: white;
+  color: var(--ink);
+  font-size: 12px;
+}
+.density-filters button[aria-pressed="true"] {
+  background: var(--green);
+  color: #fff;
+  border-color: var(--green);
+}
+.density-filters span {
+  opacity: 0.7;
+  font-size: 11px;
+}
+.density-reference-controls p {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 8px 0;
+}
+.density-reference-table {
+  max-height: 440px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: white;
+}
+.density-reference-table table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin: 0;
+}
+.density-reference-table caption {
+  text-align: left;
+  padding: 12px 14px;
+  color: #69805b;
+  font-size: 12px;
+  background: #f5f8ef;
+}
+.density-reference-table th,
+.density-reference-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--line);
+  white-space: normal;
+}
+.density-reference-table th:first-child {
+  width: 44%;
+  text-align: left;
+}
+.density-reference-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--sage);
+  color: #526849;
+  font-weight: 600;
+  font-size: 12px;
+}
+.density-reference-table tbody th {
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--ink);
+  background: transparent;
+}
+.density-reference-table td,
+.density-reference-table thead th:not(:first-child) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.density-reference-table small {
+  display: block;
+  color: var(--muted);
+  margin-top: 4px;
+  font-size: 10px;
+}
+.density-reference-table tbody tr:not([hidden]):nth-child(even) {
+  background: #fcfdf9;
+}
+.density-reference .density-reference-note {
+  font-size: 11px;
+  color: #697864;
+  line-height: 1.8;
+  margin: 16px 0 0;
+}
+.virtual-instrument > .virtual-toolbar {
+  margin: 0;
+}
+@media (max-width: 600px) {
+  .density-reference {
+    padding: 16px 12px;
+  }
+  .density-reference h3 {
+    font-size: 20px;
+  }
+  .density-filters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .density-reference-table th,
+  .density-reference-table td {
+    padding: 10px 7px;
+    font-size: 11px;
+  }
+  .density-reference-table tbody th {
+    font-size: 12px;
+  }
+  .density-reference-table thead th {
+    font-size: 10px;
+  }
+  .virtual-instrument > .virtual-toolbar .button {
+    flex: 1;
+    min-height: 44px;
+    font-size: 11px;
+  }
+}
+@media print {
+  .density-reference {
+    background: white;
+    padding: 0;
+    border: 0;
+  }
+  .density-reference-table {
+    max-height: none;
+    overflow: visible;
+    border: 0;
+  }
+  .density-reference-table tr[hidden] {
+    display: table-row;
+  }
+  .density-reference-table thead th {
+    position: static;
+  }
+  .density-reference-table tr {
+    break-inside: avoid;
+  }
+}

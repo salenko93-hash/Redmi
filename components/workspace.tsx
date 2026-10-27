@@ -23,6 +23,7 @@ import {
   completeness,
 } from "@/lib/physics";
 import { LabTools } from "./lab-tools";
+import { DensityReference } from "./density-reference";
 import { ExperimentGraph } from "./graph";
 import {
   questionFigure,
@@ -699,6 +700,12 @@ export function Workspace({
                 {comments(e.id)}
               </section>
             ))}
+          {number === 5 &&
+            (shownSteps.includes(1) || shownSteps.includes(3)) && (
+              <section className="panel no-print">
+                <DensityReference />
+              </section>
+            )}
           {shownSteps.includes(1) && content.diagram && (
             <section className="panel">
               <h2>Схеми сил</h2>
