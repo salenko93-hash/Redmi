@@ -1,8 +1,14 @@
 import { test, expect } from "@playwright/test";
 const base = process.env.E2E_BASE_URL ?? "http://localhost:3100";
+test.use({ hasTouch: true });
 test("lab four replaces PDF, counts each weight, preserves balance direction and clarifies tare", async ({
   page,
-}) => {
+}, testInfo) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("console", (m) => {
+    if (m.type() === "error") errors.push(m.text());
+  });
   await page.goto("/materials/4");
   await expect(page).toHaveURL(base + "/");
   expect(
@@ -25,6 +31,15 @@ test("lab four replaces PDF, counts each weight, preserves balance direction and
     page.locator(".stones-figure .simulation-scene").first(),
   ).toBeVisible();
   await expect(page.locator(".stones-figure img")).toHaveCount(0);
+  const stones = page.locator(".stones-figure").first();
+  await expect(stones.locator('[data-object="bag"]').first()).toBeVisible();
+  await expect(
+    stones.locator('[data-side="left"][data-count="2"]').first(),
+  ).toHaveAttribute("data-weight", "left-500mg");
+  await stones.screenshot({
+    path: testInfo.outputPath("stones-balance.png"),
+    caret: "initial",
+  });
   await page
     .getByRole("button", { name: "Збільшити рисунок", exact: true })
     .click();
@@ -54,6 +69,20 @@ test("lab four replaces PDF, counts each weight, preserves balance direction and
   await expect(page.locator(".stones-loads")).toContainText("2 × 500 мг");
   await expect(page.locator(".stones-loads")).toContainText("1 × 50 г");
   const instrument = page.locator(".virtual-lab");
+  for (const [index, object] of [
+    "headphones",
+    "block",
+    "stone",
+    "coin",
+  ].entries()) {
+    await instrument
+      .getByLabel("Тіло на лівій шальці", { exact: true })
+      .selectOption(String(index));
+    await expect(instrument.locator(`[data-object="${object}"]`)).toBeVisible();
+  }
+  await instrument
+    .getByLabel("Тіло на лівій шальці", { exact: true })
+    .selectOption("0");
   const clear = instrument.getByRole("button", {
     name: "Прибрати всі важки",
     exact: true,
@@ -106,6 +135,22 @@ test("lab four replaces PDF, counts each weight, preserves balance direction and
   await expect(instrument.locator(".balance-status")).toContainText(
     "Терези в рівновазі",
   );
+  const panTransforms = await instrument
+    .locator('[data-instrument$="-pan"]')
+    .evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const matrix = (node as SVGGraphicsElement).getScreenCTM()!;
+        return { b: matrix.b, c: matrix.c };
+      }),
+    );
+  expect(panTransforms).toEqual([
+    { b: 0, c: 0 },
+    { b: 0, c: 0 },
+  ]);
+  await instrument.screenshot({
+    path: testInfo.outputPath("realistic-balance.png"),
+    caret: "initial",
+  });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await instrument
     .getByRole("button", { name: "Запустити дослід", exact: true })
@@ -134,6 +179,21 @@ test("lab four replaces PDF, counts each weight, preserves balance direction and
   expect(writes).toEqual([]);
   expect(await page.evaluate(() => JSON.stringify(localStorage))).toBe(before);
   await page.setViewportSize({ width: 390, height: 844 });
+  await instrument
+    .getByRole("button", { name: "Додати 20 г", exact: true })
+    .tap();
+  await expect(instrument.locator('[data-selected-weight="w20"]')).toHaveText(
+    "1 × 20 г",
+  );
+  await instrument
+    .getByRole("button", { name: "Забрати 20 г", exact: true })
+    .tap();
+  await expect(clear).toBeDisabled();
+  await instrument.locator(".simulation-scene").scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: testInfo.outputPath("realistic-balance-mobile.png"),
+    caret: "initial",
+  });
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
@@ -148,4 +208,5 @@ test("lab four replaces PDF, counts each weight, preserves balance direction and
       exact: true,
     }),
   ).toBeVisible();
+  expect(errors).toEqual([]);
 });

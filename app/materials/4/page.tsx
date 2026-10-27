@@ -100,7 +100,7 @@ export default async function LabFourMaterial() {
           </div>
           <div className={styles.heroVisual}>
             <svg
-              viewBox="0 0 600 350"
+              viewBox="0 0 600 450"
               className="simulation-scene"
               role="img"
               aria-label="Навчальний приклад зважування навушників на рівноплечих терезах"

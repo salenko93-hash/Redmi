@@ -1,3 +1,4 @@
+import { BALANCE_TOLERANCE_GRAMS } from "./balance-view";
 import { rampBallProperties, rampMaterials, rampMotion } from "./ramp";
 
 /** Deterministic educational models. SI inside each model; displayed units match the worksheet. */
@@ -373,7 +374,7 @@ export function simulate(
       const object = balanceObjects[p.object],
         total = weights.reduce((s, w) => s + (p[w.key] ?? 0) * w.mass, 0),
         difference = object.mass - total;
-      canRecord = Math.abs(difference) < 0.005;
+      canRecord = Math.abs(difference) < BALANCE_TOLERANCE_GRAMS;
       readings = {
         object: object.name,
         weights: weights

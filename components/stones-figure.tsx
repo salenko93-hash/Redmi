@@ -13,7 +13,7 @@ export function StonesFigure({
   const figure = (suffix: string) => (
     <svg
       className="simulation-scene"
-      viewBox="0 0 600 350"
+      viewBox="0 0 600 450"
       role="img"
       aria-label="Рівноплечі терези в рівновазі. Ліворуч мішечок із 32 камінцями, 2 г і два важки по 500 мг. Праворуч 50 г, 20 г, 10 г, 2 г і 1 г."
     >
