@@ -2,6 +2,7 @@
 import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Download, Upload, Users, Trash2 } from "lucide-react";
+import { InvitationEmail } from "./invitation-email";
 import { CopyCode } from "./class-actions";
 import {
   ROSTER_MAX_BYTES,
@@ -283,8 +284,12 @@ export function StudentImport({
           <p className={styles.hint}>
             Передайте кожному учню його рядок із кодом. Учень входить або
             реєструється з указаним Email, відкриває «Мій клас» і вводить код.
-            Листи автоматично не надсилаються.
+            Для розсилки листів скористайтеся кнопкою нижче.
           </p>
+          <InvitationEmail
+            classroomId={classroomId}
+            revision={invites.map((i) => i.id).join(",")}
+          />
           <div className="table-scroll">
             <table>
               <thead>

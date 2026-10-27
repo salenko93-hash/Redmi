@@ -96,7 +96,28 @@
   .editor {
     padding: 16px;
   }
-  .toolbar > .button {
+  .toolbar > :is(button, a) {
     width: 100%;
   }
+}
+
+.mail {
+  margin: 20px 0;
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.check input,
+.mail td input {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  accent-color: #285540;
+}
+.mail table {
+  margin-bottom: 18px;
 }

@@ -15,6 +15,12 @@ import {
 } from "@/lib/auth";
 import { answersSchema, credentials } from "@/lib/validation";
 import { parseRosterCsv, planRoster, rosterCsvCell } from "@/lib/roster";
+import {
+  invitationMailConfig,
+  invitationMessage,
+  invitationTransport,
+  definiteMailFailure,
+} from "@/lib/invitation-email";
 import { teacherRosterNames } from "@/lib/roster-names";
 import { completeness, checkCalculations } from "@/lib/physics";
 import type { Answers, LabContent } from "@/lib/types";
@@ -126,15 +132,151 @@ async function handle(
     if (
       path[0] === "classes" &&
       path[2] === "students" &&
-      ((path.length === 4 && ["import", "codes"].includes(path[3])) ||
+      ((path.length === 4 && ["import", "codes", "email"].includes(path[3])) ||
         (path.length === 5 && path[3] === "invites"))
     ) {
       if (user.role !== "TEACHER") return fail("Доступ лише для вчителя.", 403);
       const classroom = await db.classroom.findFirst({
         where: { id: path[1], teacherId: user.id },
-        select: { id: true },
+        select: { id: true, name: true },
       });
       if (!classroom) return fail("Клас не знайдено.", 404);
+      if (path[3] === "email" && path.length === 4) {
+        const config = invitationMailConfig();
+        if (method === "GET") {
+          const invites = await db.studentInvite.findMany({
+            where: { classroomId: classroom.id, claimedAt: null },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              emailStatus: true,
+              emailAttemptAt: true,
+              emailSentAt: true,
+            },
+            orderBy: { name: "asc" },
+          });
+          return json({
+            configured: Boolean(config),
+            sender: config?.from ?? null,
+            siteUrl: config?.url ?? null,
+            invites,
+          });
+        }
+        if (method === "POST") {
+          const { ids, resend } = z
+            .object({
+              ids: z.array(z.string().min(1).max(100)).min(1).max(5),
+              resend: z.boolean().default(false),
+            })
+            .parse(await req.json());
+          if (!config)
+            return fail(
+              "Розсилка ще не налаштована. Попросіть адміністратора підключити пошту та публічну адресу сайту.",
+              503,
+            );
+          if (!(await rateLimit("invite-email:" + user.id, 100)))
+            return fail(
+              "Ліміт розсилки вичерпано. Спробуйте через 15 хвилин.",
+              429,
+            );
+          const transport = invitationTransport(config);
+          const results = await Promise.all(
+            [...new Set(ids)].map(async (id) => {
+              const now = new Date(),
+                attemptId = randomBytes(16).toString("hex");
+              const eligible = await db.studentInvite.updateMany({
+                where: {
+                  id,
+                  classroomId: classroom.id,
+                  claimedAt: null,
+                  email: { not: null },
+                  AND: [
+                    {
+                      OR: [
+                        { emailAttemptAt: null },
+                        {
+                          emailAttemptAt: {
+                            lt: new Date(now.getTime() - 60000),
+                          },
+                        },
+                      ],
+                    },
+                    {
+                      OR: [
+                        {
+                          emailStatus: {
+                            in: resend
+                              ? ["NOT_SENT", "FAILED", "SENT", "UNKNOWN"]
+                              : ["NOT_SENT", "FAILED"],
+                          },
+                        },
+                        ...(resend
+                          ? [
+                              {
+                                emailStatus: "SENDING",
+                                emailAttemptAt: {
+                                  lt: new Date(now.getTime() - 120000),
+                                },
+                              },
+                            ]
+                          : []),
+                      ],
+                    },
+                  ],
+                },
+                data: {
+                  emailStatus: "SENDING",
+                  emailAttemptId: attemptId,
+                  emailAttemptAt: now,
+                },
+              });
+              if (!eligible.count) return { id, status: "skipped" };
+              const invite = await db.studentInvite.findUnique({
+                where: { id },
+              });
+              if (!invite?.email) return { id, status: "skipped" };
+              let status = "SENT";
+              try {
+                const result = await transport.sendMail({
+                  from: { name: "ФізЛаб", address: config.from },
+                  to: { name: invite.name, address: invite.email },
+                  messageId: `<${attemptId}@${config.from.split("@")[1]}>`,
+                  ...invitationMessage({
+                    name: invite.name,
+                    email: invite.email,
+                    code: invite.code,
+                    classroom: classroom.name,
+                    teacher: user.name,
+                    url: config.url,
+                  }),
+                });
+                if (!result.accepted.length) status = "FAILED";
+              } catch (error) {
+                status = definiteMailFailure(error) ? "FAILED" : "UNKNOWN";
+              }
+              await db.studentInvite.updateMany({
+                where: { id, emailAttemptId: attemptId },
+                data: {
+                  emailStatus: status,
+                  ...(status === "SENT" ? { emailSentAt: new Date() } : {}),
+                },
+              });
+              return {
+                id,
+                status:
+                  status === "SENT"
+                    ? "sent"
+                    : status === "FAILED"
+                      ? "failed"
+                      : "uncertain",
+              };
+            }),
+          );
+          return json({ results });
+        }
+        return fail("Маршрут не знайдено.", 404);
+      }
       if (path[3] === "codes" && path.length === 4 && method === "GET") {
         const invites = await db.studentInvite.findMany({
           where: { classroomId: classroom.id },
@@ -164,11 +306,19 @@ async function handle(
       }
       if (path[3] === "invites" && path.length === 5 && method === "DELETE") {
         const removed = await db.studentInvite.deleteMany({
-          where: { id: path[4], classroomId: classroom.id, claimedAt: null },
+          where: {
+            id: path[4],
+            classroomId: classroom.id,
+            claimedAt: null,
+            OR: [
+              { emailStatus: { not: "SENDING" } },
+              { emailAttemptAt: { lt: new Date(Date.now() - 120000) } },
+            ],
+          },
         });
         if (!removed.count)
           return fail(
-            "Запрошення вже використане або видалене. Оновіть список.",
+            "Запрошення вже використане, видалене або зараз надсилається. Оновіть список.",
             409,
           );
         return json({ ok: true });

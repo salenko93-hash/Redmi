@@ -77,6 +77,10 @@ model StudentInvite {
   code String @unique
   claimedById String?
   claimedAt DateTime?
+  emailStatus String @default("NOT_SENT")
+  emailAttemptId String?
+  emailAttemptAt DateTime?
+  emailSentAt DateTime?
   createdAt DateTime @default(now())
   classroom Classroom @relation(fields:[classroomId], references:[id], onDelete:Cascade)
   claimedBy User? @relation(fields:[claimedById], references:[id], onDelete:SetNull)
