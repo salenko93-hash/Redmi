@@ -1,5 +1,7 @@
 "use client";
 import { useId, useState } from "react";
+import { PressureBlock, PressureDefinitions } from "./pressure-equipment";
+import { pressureGeometry } from "@/lib/pressure-view";
 export function WeightlessnessFigure() {
   const [falling, setFalling] = useState(false);
   const id = useId();
@@ -38,6 +40,7 @@ export function WeightlessnessFigure() {
             ? "Сила тяжіння діє вниз. Реакція опори й вага дорівнюють нулю. Брусок та опора падають разом без опору повітря."
             : "Сила тяжіння діє вниз, реакція опори вгору. Тіло в спокої, вага дорівнює mg."}
         </desc>
+        <PressureDefinitions id={id} />
         <defs>
           <marker
             id={`${id}-arrow`}
@@ -52,15 +55,22 @@ export function WeightlessnessFigure() {
           </marker>
         </defs>
         <g transform={`translate(0,${falling ? 20 : 0})`}>
-          <rect x="72" y="160" width="220" height="12" rx="4" fill="#c1cfb0" />
-          <rect
-            x="140"
-            y="105"
-            width="85"
-            height="55"
-            rx="5"
-            fill="#ceb88f"
-            stroke="#8e7957"
+          <path
+            d="M72 170L107 138H327L292 170Z"
+            fill="#d8c5a2"
+            stroke="#ad9267"
+          />
+          <path
+            d="M72 170H292V180H72Z"
+            fill={`url(#${id}-wood)`}
+            stroke="#ad9267"
+          />
+          <path d="M292 170l35-32v10l-35 32Z" fill="#a08258" />
+          <PressureBlock
+            id={id}
+            geometry={pressureGeometry(0.08, 0.04, 0.02, 0)}
+            x={140}
+            base={160}
           />
           {falling ? (
             <path
@@ -71,8 +81,10 @@ export function WeightlessnessFigure() {
             />
           ) : (
             <path
-              d="M100 173L90 186M135 173L125 186M170 173L160 186M205 173L195 186M240 173L230 186"
-              stroke="#94a582"
+              d="M90 180V208H103V180M260 180V208H273V180"
+              stroke="#9b8057"
+              strokeWidth="4"
+              fill="none"
             />
           )}
         </g>

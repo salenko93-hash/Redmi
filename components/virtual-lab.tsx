@@ -36,6 +36,8 @@ import { FrictionScene } from "./friction-scene";
 import { FrictionReadouts } from "./friction-readouts";
 import { FRICTION_SCENE_HEIGHT } from "@/lib/friction-view";
 import { PressureScene } from "./pressure-scene";
+import { PressureReadouts } from "./pressure-readouts";
+import { PRESSURE_SCENE_HEIGHT } from "@/lib/pressure-view";
 import { HydroScene } from "./hydro-scene";
 import { FloatingScene } from "./floating-scene";
 
@@ -74,7 +76,7 @@ function Scene({
                 : n === 7
                   ? FRICTION_SCENE_HEIGHT
                   : n === 8
-                    ? 470
+                    ? PRESSURE_SCENE_HEIGHT
                     : n === 9
                       ? 590
                       : 540;
@@ -368,6 +370,13 @@ export function VirtualLab({
               message={result.message}
             />
           )}
+          {number === 8 && (
+            <PressureReadouts
+              experiment={experiment.id}
+              readings={result.readings}
+              phase={phase}
+            />
+          )}
           <div
             className={`virtual-controls${number === 1 ? " ramp-controls" : ""}`}
           >
@@ -613,32 +622,39 @@ export function VirtualLab({
           </section>
         )}
         <p className="muted">
-          {number === 1 || number === 3
-            ? "Відтворення 1×: рух і відлік використовують фізичний час моделі. "
-            : "Анімацію може бути прискорено. Покази часу нижче — фізичний час моделі, а не тривалість анімації. "}
+          {number === 8
+            ? "Відлік показує огляд розмірів нерухомого бруска, а не рух чи зміну сили. "
+            : number === 1 || number === 3
+              ? "Відтворення 1×: рух і відлік використовують фізичний час моделі. "
+              : "Анімацію може бути прискорено. Покази часу нижче — фізичний час моделі, а не тривалість анімації. "}
           Усі дані синтетичні; випадкова похибка не додається.
         </p>
-        {phase === 1 && number !== 5 && number !== 6 && number !== 7 && (
-          <div className="virtual-results">
-            <h4>Покази приладів</h4>
-            <dl>
-              {experiment.fields
-                .filter(
-                  (f) => !f.calculated && result.readings[f.key] !== undefined,
-                )
-                .map((f) => (
-                  <div key={f.key}>
-                    <dt>
-                      {f.label}
-                      {f.unit ? ` (${f.unit})` : ""}
-                    </dt>
-                    <dd>{result.readings[f.key]}</dd>
-                  </div>
-                ))}
-            </dl>
-            <p role="status">{result.message}</p>
-          </div>
-        )}
+        {phase === 1 &&
+          number !== 5 &&
+          number !== 6 &&
+          number !== 7 &&
+          number !== 8 && (
+            <div className="virtual-results">
+              <h4>Покази приладів</h4>
+              <dl>
+                {experiment.fields
+                  .filter(
+                    (f) =>
+                      !f.calculated && result.readings[f.key] !== undefined,
+                  )
+                  .map((f) => (
+                    <div key={f.key}>
+                      <dt>
+                        {f.label}
+                        {f.unit ? ` (${f.unit})` : ""}
+                      </dt>
+                      <dd>{result.readings[f.key]}</dd>
+                    </div>
+                  ))}
+              </dl>
+              <p role="status">{result.message}</p>
+            </div>
+          )}
         <div className="virtual-transfer">
           <label>
             Рядок таблиці

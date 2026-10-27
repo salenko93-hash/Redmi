@@ -1,8 +1,15 @@
 import { test, expect } from "@playwright/test";
+test.use({ hasTouch: true });
 const base = process.env.E2E_BASE_URL ?? "http://localhost:3100";
 test("lab eight replaces PDF, preserves oriented dimensions, separates load and area and explains weightlessness", async ({
   page,
 }) => {
+  const writes: string[] = [],
+    errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("console", (m) => {
+    if (m.type() === "error") errors.push(m.text());
+  });
   await page.goto("/materials/8");
   await expect(page).toHaveURL(base + "/");
   expect(
@@ -23,9 +30,6 @@ test("lab eight replaces PDF, preserves oriented dimensions, separates load and 
   await page.getByRole("button", { name: "3 Запитання", exact: true }).click();
   await expect(page.locator(".weightlessness-figure")).toBeVisible();
   await page.goto("/materials/8");
-  const writes: string[] = [],
-    errors: string[] = [];
-  page.on("pageerror", (e) => errors.push(e.message));
   page.on("request", (r) => {
     if (r.method() !== "GET" && r.url().includes("/api/assignments"))
       writes.push(r.url());
@@ -47,6 +51,12 @@ test("lab eight replaces PDF, preserves oriented dimensions, separates load and 
   await expect(tabs.getByRole("tab")).toHaveCount(2);
   await expect(instrument).toHaveCount(1);
   await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(instrument.locator('[data-pressure-reading="F"]')).toHaveText(
+    "—",
+  );
+  await expect(
+    instrument.locator('[data-instrument="pressure-force-reading"]'),
+  ).toHaveText("—");
   const geometry = () =>
     instrument
       .locator('[data-instrument="pressure-footprint"]')
@@ -122,6 +132,48 @@ test("lab eight replaces PDF, preserves oriented dimensions, separates load and 
   await expect(
     instrument.locator('[data-instrument="pressure-force-reading"]'),
   ).toHaveText("5 Н");
+  // A stationary block is observed with moving ruler cursors, not dropped.
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await instrument
+    .getByLabel("Кількість тягарців", { exact: true })
+    .press("Home");
+  const blockBefore = await instrument
+    .locator('[data-instrument="pressure-block-front"]')
+    .getAttribute("points");
+  await instrument
+    .getByRole("button", { name: "Запустити дослід", exact: true })
+    .click();
+  const cursor = () =>
+    instrument
+      .locator('[data-instrument="pressure-ruler-pointer-a"]')
+      .getAttribute("x1");
+  await page.waitForFunction(() => {
+    const pointer = document.querySelector(
+      '.virtual-lab [data-instrument="pressure-ruler-pointer-a"]',
+    );
+    return pointer && Number(pointer.getAttribute("x1")) > 100;
+  });
+  await instrument.getByRole("button", { name: "Пауза", exact: true }).click();
+  const paused = await cursor();
+  expect(Number(paused)).toBeGreaterThan(95);
+  expect(Number(paused)).toBeLessThan(95 + footprint.width);
+  await page.waitForTimeout(180);
+  expect(await cursor()).toBe(paused);
+  await expect(
+    instrument.locator('[data-instrument="pressure-block-front"]'),
+  ).toHaveAttribute("points", blockBefore!);
+  await expect(instrument.locator('[data-pressure-reading="F"]')).toHaveText(
+    "—",
+  );
+  await instrument
+    .getByRole("button", { name: "Продовжити", exact: true })
+    .click();
+  await expect(instrument.locator(".virtual-results dd")).toHaveCount(2);
+  expect(Number(await cursor()) - 95).toBeCloseTo(footprint.width, 5);
+  await expect(instrument.locator('[data-pressure-reading="F"]')).toHaveText(
+    "3",
+  );
+  await page.emulateMedia({ reducedMotion: "reduce" });
   const model = page.locator(".weightlessness-figure");
   await expect(model.locator('[data-freefall-force="normal"]')).toHaveCount(1);
   const gravity = await model
@@ -150,6 +202,20 @@ test("lab eight replaces PDF, preserves oriented dimensions, separates load and 
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBeTruthy();
+  const mobileLoads = instrument.getByLabel("Кількість тягарців", {
+    exact: true,
+  });
+  await mobileLoads.scrollIntoViewIfNeeded();
+  const slider = (await mobileLoads.boundingBox())!;
+  await page.touchscreen.tap(
+    slider.x + slider.width - 5,
+    slider.y + slider.height / 2,
+  );
+  await expect(mobileLoads).toHaveValue("3");
+  values = await run(2);
+  expect(values.map(parse)).toEqual([0.0032, 5]);
+  await expect(instrument.locator('[data-pressure-reading="F"]')).toBeVisible();
+  expect(errors).toEqual([]);
   await page.emulateMedia({ media: "print" });
   await expect(instrument).not.toBeVisible();
   await expect(model.locator("svg")).toBeVisible();

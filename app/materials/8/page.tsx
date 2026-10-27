@@ -14,6 +14,7 @@ import { db } from "@/lib/db";
 import { labEightMethod, labEightQuestions } from "@/lib/lab-eight-material";
 import { initialParameters, simulate } from "@/lib/simulation";
 import { Shell } from "@/components/shell";
+import { PRESSURE_SCENE_HEIGHT } from "@/lib/pressure-view";
 import { PressureScene } from "@/components/pressure-scene";
 import { PressurePractice } from "@/components/pressure-practice";
 import { WeightlessnessFigure } from "@/components/weightlessness-figure";
@@ -92,7 +93,7 @@ export default async function LabEightMaterial() {
           </div>
           <div className={styles.heroVisual}>
             <svg
-              viewBox="0 0 600 470"
+              viewBox={`0 0 600 ${PRESSURE_SCENE_HEIGHT}`}
               className="simulation-scene"
               role="img"
               aria-label="Брусок на опорі та опорна грань у спільному масштабі"
@@ -284,9 +285,11 @@ export default async function LabEightMaterial() {
               <div className={styles.sectionNumber}>04 / СПРОБУЙ</div>
               <h2>Грань або навантаження — обери серію</h2>
               <p>
-                Поворот бруска змінює реальну геометрію малюнка та вигляд
-                опорної грані згори. В усіх напрямках використано спільний
-                масштаб; розміри не підганяються під однаковий прямокутник.
+                Об’ємний дерев’яний брусок повертається зі збереженням розмірів.
+                Латунні тягарці стоять на його верхній грані. Окремо показано
+                вигляд опорної грані згори та лінійки з поділкою 1 мм. В усіх
+                напрямках використано спільний масштаб; розміри не підганяються
+                під однаковий прямокутник.
               </p>
               <div className={styles.practiceNotice}>
                 <strong>Тренування без збереження.</strong> Покази не
