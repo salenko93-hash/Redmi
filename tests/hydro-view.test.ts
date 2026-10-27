@@ -4,6 +4,9 @@ import {
   hydroGeometry,
   HYDRO_ZERO,
   HYDRO_PX_PER_NEWTON,
+  HYDRO_GAUGE_END,
+  HYDRO_CM_TO_PX,
+  HYDRO_BODY_OFFSET,
 } from "../lib/hydro-view";
 import { initialParameters, simulate } from "../lib/simulation";
 
@@ -39,8 +42,24 @@ test("hydro view balances partial immersion, stays outside the gauge and fully s
             1e-10,
         );
         assert.ok(
-          g.bodyTop > 180 && g.surface > 180 && g.bottom < 540,
+          g.bodyTop > HYDRO_GAUGE_END && g.rim - 9 > 233 && g.bottom <= 650,
           "sample and water must remain below the instrument and within the scene",
+        );
+        assert.ok(
+          Math.abs(
+            ((g.emptySurface - g.surface) / HYDRO_CM_TO_PX) * g.cupAreaCm2 -
+              volume * wet,
+          ) < 1e-9,
+          "rising liquid must displace exactly the submerged sample volume",
+        );
+        assert.ok(
+          Math.abs(g.bodyTop - g.pointer - HYDRO_BODY_OFFSET) < 1e-10,
+          "the rod, hook and string must have constant total length",
+        );
+        assert.ok(
+          g.pointer + 145 > 233 &&
+            g.pointer < HYDRO_ZERO + 10 * HYDRO_PX_PER_NEWTON,
+          "the moving hook must clear the gauge and the pointer stay within 10 N",
         );
         previous = g.force;
       }
@@ -55,4 +74,15 @@ test("hydro view balances partial immersion, stays outside the gauge and fully s
       );
       assert.equal(r.readings.rho, undefined);
     }
+});
+
+test("hydro lifting clamps animation endpoints without changing final stored readings", () => {
+  const r = simulate(9, "hydro", initialParameters(9, "hydro"));
+  const g = (phase: number) =>
+    hydroGeometry(50, r.values.P1, r.values.P2, phase);
+  assert.deepEqual(g(-1), g(0));
+  assert.deepEqual(g(2), g(1));
+  assert.ok(g(1).emptySurface - g(1).surface > 0);
+  assert.ok(Math.abs(g(1).force - Number(r.readings.P2)) < 1e-10);
+  assert.ok(Math.abs(g(0).force - Number(r.readings.P1)) < 1e-10);
 });

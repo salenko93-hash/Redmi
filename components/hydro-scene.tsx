@@ -1,189 +1,248 @@
 import {
   HYDRO_ZERO,
   HYDRO_PX_PER_NEWTON,
+  HYDRO_BODY_OFFSET,
   hydroGeometry,
+  hydroCoordinate as q,
 } from "@/lib/hydro-view";
 import type { Parameters, SimulationResult } from "@/lib/simulation";
-const fmt = (v: string | number) => String(v).replace(".", ",");
+import {
+  HydroDefinitions,
+  HydroStand,
+  HydroGauge,
+  HydroSample,
+  HydroLift,
+} from "./hydro-equipment";
 export function HydroScene({
   parameters: p,
   result: r,
   phase,
+  id,
 }: {
   parameters: Parameters;
   result: SimulationResult;
   phase: number;
+  id: string;
 }) {
   const water = hydroGeometry(p.volume, r.values.P1, r.values.P2, phase);
   const airPointer = HYDRO_ZERO + r.values.P1 * HYDRO_PX_PER_NEWTON;
-  const bodyColor = ["#a5bcb0", "#c9b995", "#acb8c9"][p.sample];
-  function instrument(x: number, pointer: number, value: string | null) {
-    const spring = Array.from(
-      { length: 16 },
-      (_, i) => `${x + (i % 2 ? -9 : 9)},${60 + (i * (pointer - 60)) / 15}`,
-    ).join(" ");
-    return (
-      <g>
-        <path
-          d={`M${x - 22} 31H${x + 22}M${x} 31V45`}
-          fill="none"
-          stroke="#8ba18c"
-          strokeWidth="3"
-        />
-        <rect
-          x={x - 35}
-          y="45"
-          width="70"
-          height="135"
-          rx="12"
-          fill="#fff"
-          stroke="#86a48d"
-          strokeWidth="2"
-        />
-        <polyline
-          points={`${x},55 ${spring} ${x},${pointer}`}
-          fill="none"
-          stroke="#648575"
-          strokeWidth="2"
-        />
-        <line x1={x} x2={x} y1={pointer} y2="180" stroke="#8b9f8d" />
-        {Array.from({ length: 11 }, (_, n) => (
-          <g key={n}>
-            <line
-              x1={x + 18}
-              x2={x + (n % 2 ? 26 : 29)}
-              y1={HYDRO_ZERO + n * HYDRO_PX_PER_NEWTON}
-              y2={HYDRO_ZERO + n * HYDRO_PX_PER_NEWTON}
-              stroke="#8a9f83"
-            />
-            {n % 2 === 0 && (
-              <text
-                x={x + 41}
-                y={HYDRO_ZERO + n * HYDRO_PX_PER_NEWTON + 3}
-                style={{ fontSize: 9 }}
-              >
-                {n}
-              </text>
-            )}
-          </g>
-        ))}
-        <text x={x + 41} y="67" style={{ fontSize: 10 }}>
-          Н
-        </text>
-        <line
-          data-instrument={
-            x === 135 ? "hydro-air-pointer" : "hydro-water-pointer"
-          }
-          x1={x + 11}
-          x2={x + 30}
-          y1={pointer}
-          y2={pointer}
-          stroke="#b48a40"
-          strokeWidth="2"
-        />
-        <rect x={x - 32} y="158" width="62" height="20" rx="4" fill="#fff" />
-        <text
-          data-instrument={
-            x === 135 ? "hydro-air-reading" : "hydro-water-reading"
-          }
-          x={x}
-          y="172"
-          textAnchor="middle"
-          style={{ fontSize: 14, fontWeight: 650 }}
-        >
-          {value === null ? "—" : `${fmt(value)} Н`}
-        </text>
-      </g>
-    );
-  }
+  const airTop = airPointer + HYDRO_BODY_OFFSET;
+  const waterPath = `M300 ${q(water.surface)}Q405 ${q(water.surface + 10)} 510 ${q(water.surface)}V${q(water.bottom - 6)}Q405 ${q(water.bottom + 9)} 300 ${q(water.bottom - 6)}Z`;
   return (
-    <g>
-      <text x="25" y="21">
-        Зразок {String.fromCharCode(65 + p.sample)} · однакові шкали 0–10 Н
+    <g
+      data-instrument="hydro-installation"
+      data-submerged-fraction={q(water.fraction)}
+    >
+      <HydroDefinitions id={id} />
+      <defs>
+        <clipPath id={`${id}-water-clip`}>
+          <rect
+            x="300"
+            y={q(water.surface)}
+            width="210"
+            height={q(water.bottom - water.surface + 2)}
+          />
+        </clipPath>
+      </defs>
+      <text x="25" y="23" style={{ fontSize: 14, fontWeight: 650 }}>
+        Зразок {String.fromCharCode(65 + p.sample)} · два стани того самого тіла
       </text>
-      <g data-instrument="hydro-beaker">
+      <path d="M23 675H577l13 13H10Z" fill="#ddc49e" />
+      <rect
+        x="10"
+        y="687"
+        width="580"
+        height="12"
+        rx="3"
+        fill={`url(#${id}-wood)`}
+      />
+      <path
+        d="M28 699H572V710H28Z M44 710H64V720H44Z M536 710H556V720H536Z"
+        fill="#9d7b51"
+      />
+      <HydroStand id={id} x={45} axis={135} />
+      <HydroStand id={id} x={565} axis={405} />
+      <HydroLift id={id} water={water} />
+      <g data-instrument="hydro-beaker-back">
+        <path
+          d={`M296 ${q(water.rim)}V${q(water.bottom - 3)}Q405 ${q(water.bottom + 14)} 514 ${q(water.bottom - 3)}V${q(water.rim)}`}
+          fill={`url(#${id}-glass)`}
+          stroke="#98b7b7"
+          strokeWidth="1.2"
+        />
+        <ellipse
+          cx="405"
+          cy={q(water.rim)}
+          rx="109"
+          ry="9"
+          fill="#e8f4ec"
+          fillOpacity=".25"
+          stroke="#9eb8b3"
+          strokeWidth="1.2"
+        />
+        <path d={waterPath} fill={`url(#${id}-water)`} />
+        <ellipse
+          cx="405"
+          cy={q(water.surface)}
+          rx="105"
+          ry="5"
+          fill="#b6dee0"
+          opacity=".8"
+          stroke="#83b3b9"
+          strokeWidth=".8"
+        />
         <rect
           data-instrument="hydro-water"
-          x="309"
-          y={water.surface}
-          width="212"
-          height="165"
-          fill="#bfdfe4"
-          opacity=".75"
+          x="300"
+          y={q(water.surface)}
+          width="210"
+          height={q(water.bottom - water.surface)}
+          fill="none"
         />
         <line
-          x1="309"
-          x2="521"
-          y1={water.surface}
-          y2={water.surface}
-          stroke="#78a9b3"
-        />
-        <path
-          d={`M305 ${water.surface - 16}V${water.bottom}H525V${water.surface - 16}`}
-          fill="none"
-          stroke="#83a3a9"
-          strokeWidth="3"
+          data-instrument="hydro-empty-surface"
+          x1="304"
+          x2="337"
+          y1={q(water.emptySurface)}
+          y2={q(water.emptySurface)}
+          stroke="#a6baba"
+          strokeWidth=".7"
+          strokeDasharray="2 2"
         />
       </g>
-      <line
-        x1="135"
-        x2="135"
-        y1="180"
-        y2={airPointer + 130}
-        stroke="#728b79"
-        strokeWidth="2"
-      />
-      <line
-        data-instrument="hydro-water-string"
-        x1="405"
-        x2="405"
-        y1="180"
-        y2={water.bodyTop}
-        stroke="#728b79"
-        strokeWidth="2"
-      />
-      {instrument(135, airPointer, phase === 1 ? r.readings.P1 : null)}
-      {instrument(405, water.pointer, phase === 1 ? r.readings.P2 : null)}
-      <rect
-        data-instrument="hydro-air-body"
-        x={135 - water.size / 2}
-        y={airPointer + 130}
-        width={water.size}
-        height={water.size}
-        fill={bodyColor}
-        stroke="#648575"
-        strokeWidth="2"
-      />
-      <rect
-        data-instrument="hydro-water-body"
-        x={405 - water.size / 2}
-        y={water.bodyTop}
-        width={water.size}
-        height={water.size}
-        fill={bodyColor}
-        stroke="#648575"
-        strokeWidth="2"
-      />
-      <text x="135" y="386" textAnchor="middle">
+      {[
+        { axis: 135, pointer: airPointer, top: airTop, kind: "air" as const },
+        {
+          axis: 405,
+          pointer: water.pointer,
+          top: water.bodyTop,
+          kind: "water" as const,
+        },
+      ].map((s) => (
+        <g key={s.kind}>
+          <line
+            data-instrument={`hydro-${s.kind}-string`}
+            x1={s.axis - 8}
+            x2={s.axis - 8}
+            y1={q(s.pointer + 157)}
+            y2={q(s.top)}
+            stroke="#62766b"
+            strokeWidth="1.1"
+          />
+          <HydroGauge id={id} x={s.axis} pointer={s.pointer} kind={s.kind} />
+          <HydroSample
+            id={id}
+            x={s.axis}
+            top={s.top}
+            size={water.size}
+            sample={p.sample}
+            kind={s.kind}
+          />
+        </g>
+      ))}
+      <g data-instrument="hydro-beaker" pointerEvents="none">
+        <g clipPath={`url(#${id}-water-clip)`}>
+          <rect
+            x="300"
+            y={q(water.surface)}
+            width="210"
+            height={q(water.bottom - water.surface + 2)}
+            fill="#86bccb"
+            opacity=".18"
+          />
+        </g>
+        <path
+          d={`M297 ${q(water.rim + 2)}V${q(water.bottom - 4)}Q405 ${q(water.bottom + 12)} 513 ${q(water.bottom - 4)}V${q(water.rim + 2)}`}
+          fill="none"
+          stroke="#7fa5a7"
+          strokeWidth="2"
+        />
+        <path
+          d={`M304 ${q(water.rim + 16)}V${q(water.bottom - 19)}`}
+          fill="none"
+          stroke="#fff"
+          strokeWidth="4"
+          opacity=".65"
+        />
+        <path
+          d={`M505 ${q(water.rim + 18)}V${q(water.bottom - 18)}`}
+          fill="none"
+          stroke="#eff9ef"
+          strokeWidth="1.5"
+          opacity=".8"
+        />
+        <path
+          d={`M296 ${q(water.rim)}Q405 ${q(water.rim + 18)} 514 ${q(water.rim)}`}
+          fill="none"
+          stroke="#8caead"
+          strokeWidth="1.5"
+        />
+      </g>
+      <text
+        x="135"
+        y="464"
+        textAnchor="middle"
+        style={{ fontSize: 15, fontWeight: 650 }}
+      >
         P₁ · у повітрі
       </text>
-      <text x="135" y="414" textAnchor="middle" style={{ fontSize: 11 }}>
-        Підвішене тіло у спокої
+      <text x="135" y="486" textAnchor="middle" style={{ fontSize: 11 }}>
+        Порівнюємо з тим самим зразком
       </text>
-      <text
-        x="405"
-        y={water.bottom + 24}
-        textAnchor="middle"
-        style={{ fontSize: 12 }}
-      >
-        {phase === 1
-          ? "P₂ · повністю у воді"
-          : water.fraction === 0
-            ? "Підіймаємо посудину"
-            : "Занурення триває"}
+      <rect
+        x="78"
+        y="520"
+        width="178"
+        height="103"
+        rx="12"
+        fill="#fff"
+        stroke="#dce5d4"
+      />
+      <text x="95" y="544" style={{ fontSize: 12 }}>
+        Маса не змінюється
       </text>
-      <text x="300" y="580" textAnchor="middle" style={{ fontSize: 11 }}>
-        Нитка натягнута · немає контакту з дном і стінками
+      <text x="95" y="572" style={{ fontSize: 19, fontWeight: 650 }}>
+        P₂ + FА = P₁
+      </text>
+      <text x="95" y="599" style={{ fontSize: 11 }}>
+        Густину знайди самостійно
+      </text>
+      {[
+        { x: 135, key: "P1", kind: "air", label: "Показ у повітрі" },
+        { x: 405, key: "P2", kind: "water", label: "Показ після занурення" },
+      ].map((s) => (
+        <g key={s.key}>
+          <text x={s.x} y="740" textAnchor="middle" style={{ fontSize: 11 }}>
+            {s.key === "P1"
+              ? s.label
+              : phase === 1
+                ? "Повністю у воді"
+                : water.fraction === 0
+                  ? "Підіймаємо посудину"
+                  : "Часткове занурення"}
+          </text>
+          <rect
+            x={s.x - 59}
+            y="748"
+            width="118"
+            height="27"
+            rx="8"
+            fill="#fff"
+            stroke="#dce5d4"
+          />
+          <text
+            data-instrument={`hydro-${s.kind}-reading`}
+            x={s.x}
+            y="767"
+            textAnchor="middle"
+            style={{ fontSize: 16, fontWeight: 650 }}
+          >
+            {phase === 1 ? r.readings[s.key].replace(".", ",") + " Н" : "—"}
+          </text>
+        </g>
+      ))}
+      <text x="300" y="796" textAnchor="middle" style={{ fontSize: 10 }}>
+        Шкали 0–10 Н · поділка 0,2 Н · цифрові значення ідеальні
       </text>
     </g>
   );

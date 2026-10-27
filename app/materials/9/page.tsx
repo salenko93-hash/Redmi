@@ -15,6 +15,7 @@ import { labs } from "@/lib/labs";
 import { labNineMethod, labNineQuestions } from "@/lib/lab-nine-material";
 import { initialParameters, simulate } from "@/lib/simulation";
 import { Shell } from "@/components/shell";
+import { HYDRO_SCENE_HEIGHT } from "@/lib/hydro-view";
 import { HydroScene } from "@/components/hydro-scene";
 import { VirtualLab } from "@/components/virtual-lab";
 import { MaterialPrint } from "@/components/material-print";
@@ -22,16 +23,25 @@ import styles from "../guide.module.css";
 export const metadata: Metadata = {
   title: "Лабораторна № 9 — Гідростатичне зважування",
 };
-function Formula() {
+function Formula({ compact = false }: { compact?: boolean }) {
   return (
     <span
       className={styles.formula}
+      style={{
+        whiteSpace: "nowrap",
+        fontSize: compact ? 24 : "clamp(22px, 4vw, 36px)",
+        gap: compact ? 5 : 8,
+      }}
       role="math"
       aria-label="Густина тіла дорівнює густині рідини, помноженій на P один, поділене на різницю P один та P два"
     >
-      <i>ρтіла</i>
+      <i>
+        ρ<sub>тіла</sub>
+      </i>
       <span>=</span>
-      <i>ρрід</i>
+      <i>
+        ρ<sub>рід</sub>
+      </i>
       <span>·</span>
       <span className={styles.fraction}>
         <i>P₁</i>
@@ -94,12 +104,12 @@ export default async function LabNineMaterial() {
           </div>
           <div className={styles.heroVisual}>
             <svg
-              viewBox="0 0 600 590"
+              viewBox={`0 0 600 ${HYDRO_SCENE_HEIGHT}`}
               className="simulation-scene"
               role="img"
               aria-label="Порівняння однакових динамометрів: зразок у повітрі та повністю у воді"
             >
-              <HydroScene parameters={p} result={r} phase={1} />
+              <HydroScene parameters={p} result={r} phase={1} id="hydro-hero" />
             </svg>
             <div className={styles.visualCaption}>
               <span>09 / ЗНАЙДИ РІЗНИЦЮ</span>
@@ -147,7 +157,10 @@ export default async function LabNineMaterial() {
             <section id="guide-theory" className={styles.section}>
               <div className={styles.sectionNumber}>02 / ФІЗИЧНИЙ ЗМІСТ</div>
               <h2>Вода підтримує тіло, а не змінює його масу</h2>
-              <div className={styles.formulaCard}>
+              <div
+                className={styles.formulaCard}
+                style={{ gridTemplateColumns: "minmax(0, 1fr)" }}
+              >
                 <Formula />
                 <dl>
                   <div>
@@ -289,9 +302,10 @@ export default async function LabNineMaterial() {
               <h2>Зніми два покази для того самого зразка</h2>
               <p>
                 Вибери зразок A, B або C та його об’єм. Під час запуску посудина
-                піднімається; зразок залишається на підвісі. Пружина
-                скорочується відповідно до зменшення показу, а після повного
-                занурення він стабілізується.
+                піднімається на лабораторному столику; зразок залишається на
+                підвісі. Два прилади показують два стани того самого тіла.
+                Пружина скорочується відповідно до зменшення показу, а після
+                повного занурення він стабілізується.
               </p>
               <div className={styles.practiceNotice}>
                 <strong>Тренування без збереження.</strong> Покази не
@@ -306,15 +320,17 @@ export default async function LabNineMaterial() {
               <details className={styles.disclosure}>
                 <summary>Межі моделі приладу</summary>
                 <p>
-                  Ідеальні шкали 0–10 Н мають однаковий масштаб. Матеріал
-                  кожного модельного зразка однорідний, об’єм змінює його
-                  лінійний розмір за кубічною залежністю. Вода має густину 1000
-                  кг/м³, g≈10 Н/кг.
+                  Шкали 0–10 Н мають однаковий масштаб і поділку 0,2 Н. Цифрові
+                  покази ідеальні; додаткові цифри не означають такої точності
+                  аналогової шкали. Матеріал кожного модельного зразка
+                  однорідний, об’єм змінює його лінійний розмір за кубічною
+                  залежністю. Вода має густину 1000 кг/м³, g≈10 Н/кг.
                 </p>
                 <p>
                   Під час ілюстрації занурення враховується занурена частина
-                  умовного призматичного зразка; кінцеві покази відповідають
-                  повному зануренню. Це послідовність статичних станів, хвилі та
+                  кубічного зразка та підняття рівня в циліндричній посудині
+                  через витіснений об’єм; кінцеві покази відповідають повному
+                  зануренню. Це послідовність статичних станів, хвилі та
                   коливання не моделюються.
                 </p>
                 <p>
@@ -413,8 +429,11 @@ export default async function LabNineMaterial() {
                   </a>
                 ))}
               </nav>
-              <div className={styles.tocFormula}>
-                <Formula />
+              <div
+                className={styles.tocFormula}
+                style={{ flexDirection: "column", alignItems: "flex-start" }}
+              >
+                <Formula compact />
                 <p>
                   Те саме тіло.
                   <br />

@@ -39,6 +39,8 @@ import { PressureScene } from "./pressure-scene";
 import { PressureReadouts } from "./pressure-readouts";
 import { PRESSURE_SCENE_HEIGHT } from "@/lib/pressure-view";
 import { HydroScene } from "./hydro-scene";
+import { HydroReadouts } from "./hydro-readouts";
+import { HYDRO_SCENE_HEIGHT } from "@/lib/hydro-view";
 import { FloatingScene } from "./floating-scene";
 
 function Scene({
@@ -78,7 +80,7 @@ function Scene({
                   : n === 8
                     ? PRESSURE_SCENE_HEIGHT
                     : n === 9
-                      ? 590
+                      ? HYDRO_SCENE_HEIGHT
                       : 540;
   return (
     <svg
@@ -169,7 +171,9 @@ function Scene({
           id={id}
         />
       )}
-      {n === 9 && <HydroScene parameters={p} result={r} phase={phase} />}
+      {n === 9 && (
+        <HydroScene parameters={p} result={r} phase={phase} id={id} />
+      )}
       {n === 10 && (
         <FloatingScene parameters={p} result={r} phase={phase} id={id} />
       )}
@@ -376,6 +380,9 @@ export function VirtualLab({
               readings={result.readings}
               phase={phase}
             />
+          )}
+          {number === 9 && (
+            <HydroReadouts readings={result.readings} phase={phase} />
           )}
           <div
             className={`virtual-controls${number === 1 ? " ramp-controls" : ""}`}
@@ -622,18 +629,21 @@ export function VirtualLab({
           </section>
         )}
         <p className="muted">
-          {number === 8
-            ? "Відлік показує огляд розмірів нерухомого бруска, а не рух чи зміну сили. "
-            : number === 1 || number === 3
-              ? "Відтворення 1×: рух і відлік використовують фізичний час моделі. "
-              : "Анімацію може бути прискорено. Покази часу нижче — фізичний час моделі, а не тривалість анімації. "}
+          {number === 9
+            ? "Показано повільне підняття посудини як послідовність рівноважних станів. Швидкість підйому не вимірюється. "
+            : number === 8
+              ? "Відлік показує огляд розмірів нерухомого бруска, а не рух чи зміну сили. "
+              : number === 1 || number === 3
+                ? "Відтворення 1×: рух і відлік використовують фізичний час моделі. "
+                : "Анімацію може бути прискорено. Покази часу нижче — фізичний час моделі, а не тривалість анімації. "}
           Усі дані синтетичні; випадкова похибка не додається.
         </p>
         {phase === 1 &&
           number !== 5 &&
           number !== 6 &&
           number !== 7 &&
-          number !== 8 && (
+          number !== 8 &&
+          number !== 9 && (
             <div className="virtual-results">
               <h4>Покази приладів</h4>
               <dl>
