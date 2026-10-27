@@ -19,6 +19,7 @@ import {
   type SimulationResult,
 } from "@/lib/simulation";
 import type { Experiment } from "@/lib/types";
+import { rotationGeometry, type RotationView } from "@/lib/rotation-view";
 import { rampMaterials } from "@/lib/ramp";
 import { RampScene } from "./ramp-scene";
 import { RotationScene } from "./rotation-scene";
@@ -37,12 +38,14 @@ function Scene({
   parameters: p,
   result: r,
   phase,
+  rotationView,
 }: {
   number: number;
   experiment: string;
   parameters: Parameters;
   result: SimulationResult;
   phase: number;
+  rotationView: RotationView;
 }) {
   const id = useId().replace(/:/g, "");
   const v = r.values;
@@ -50,7 +53,7 @@ function Scene({
     n === 1
       ? 410
       : n === 2
-        ? 360
+        ? 460
         : n === 3
           ? 440
           : n === 4
@@ -97,6 +100,7 @@ function Scene({
           phase={phase}
           elapsed={v.t * phase}
           id={id}
+          view={rotationView}
         />
       )}
       {n === 3 && (
@@ -167,6 +171,7 @@ export function VirtualLab({
     ...initialParameters(number, experiment.id),
     ...lastRecord?.parameters,
   }));
+  const [rotationView, setRotationView] = useState<RotationView>("perspective");
   const [row, setRow] = useState(lastRecord?.rowIndex ?? 0),
     [phase, setPhase] = useState(0),
     [running, setRunning] = useState(false),
@@ -181,7 +186,8 @@ export function VirtualLab({
     if (!running) return;
     let frame = 0,
       last = performance.now();
-    const milliseconds = Math.min(6, Math.max(1, result.duration)) * 1000;
+    const milliseconds =
+      Math.min(number === 2 ? 15 : 6, Math.max(1, result.duration)) * 1000;
     const reduced = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
@@ -200,7 +206,7 @@ export function VirtualLab({
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [running, result.duration]);
+  }, [running, result.duration, number]);
   function reset() {
     setRunning(false);
     phaseRef.current = 0;
@@ -239,6 +245,30 @@ export function VirtualLab({
       </summary>
       <div className="virtual-content">
         <p>{setup.instruction}</p>
+        {number === 2 && (
+          <div
+            className="rotation-view-controls"
+            role="group"
+            aria-label="Вигляд установки"
+          >
+            <button
+              type="button"
+              className={`button ${rotationView === "perspective" ? "primary" : "secondary"}`}
+              aria-pressed={rotationView === "perspective"}
+              onClick={() => setRotationView("perspective")}
+            >
+              Об’ємний вигляд
+            </button>
+            <button
+              type="button"
+              className={`button ${rotationView === "top" ? "primary" : "secondary"}`}
+              aria-pressed={rotationView === "top"}
+              onClick={() => setRotationView("top")}
+            >
+              Вигляд зверху
+            </button>
+          </div>
+        )}
         <div className="virtual-instrument">
           <Scene
             number={number}
@@ -246,6 +276,7 @@ export function VirtualLab({
             parameters={parameters}
             result={result}
             phase={phase}
+            rotationView={rotationView}
           />
           <div
             className={`virtual-controls${number === 1 ? " ramp-controls" : ""}`}
@@ -313,6 +344,45 @@ export function VirtualLab({
             )}
           </div>
         </div>
+        {number === 2 && (
+          <section
+            className="rotation-readout"
+            aria-label="Відлік руху по колу"
+          >
+            <dl>
+              <div>
+                <dt>Час моделі</dt>
+                <dd>
+                  <output aria-label="Час моделі" aria-live="off">
+                    {(result.values.t * phase).toFixed(2).replace(".", ",")} с
+                  </output>
+                </dd>
+              </div>
+              <div>
+                <dt>Повних обертів</dt>
+                <dd>
+                  <output aria-label="Повних обертів" aria-live="off">
+                    {
+                      rotationGeometry(
+                        parameters.radius,
+                        parameters.cycles,
+                        phase,
+                        rotationView,
+                      ).completed
+                    }{" "}
+                    / {parameters.cycles}
+                  </output>
+                </dd>
+              </div>
+            </dl>
+            <p>
+              Об’ємний вигляд показує коло під кутом. Для перевірки радіуса
+              оберіть вигляд зверху: його вимірюють від осі до центра кульки.
+              Нитка показана у проєкції; її фізична довжина й натяг не
+              розраховуються.
+            </p>
+          </section>
+        )}
         {number === 1 && (
           <section
             className="ramp-ball-summary"

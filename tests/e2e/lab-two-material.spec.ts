@@ -1,8 +1,14 @@
 import { test, expect } from "@playwright/test";
 const base = process.env.E2E_BASE_URL ?? "http://localhost:3100";
+test.use({ hasTouch: true });
 test("lab two web material replaces the PDF and the circular instrument follows its controls", async ({
   page,
 }) => {
+  const clientErrors: string[] = [];
+  page.on("pageerror", (error) => clientErrors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") clientErrors.push(message.text());
+  });
   await page.goto("/materials/2");
   await expect(page).toHaveURL(base + "/");
   expect(
@@ -103,6 +109,37 @@ test("lab two web material replaces the PDF and the circular instrument follows 
       }),
     ).toBeDisabled();
   }
+  const installation = instrument.locator(
+    '[data-instrument="rotation-installation"]',
+  );
+  const timer = instrument.getByLabel("Час моделі", { exact: true });
+  const countOutput = instrument.getByLabel("Повних обертів", { exact: true });
+  const finalTime = await timer.innerText();
+  await instrument.screenshot({
+    path: test.info().outputPath("rotation-desktop.png"),
+    caret: "initial",
+  });
+  await expect(installation).toHaveAttribute("data-view", "perspective");
+  let shape = await orbit.evaluate((el) => {
+    const rect = el.getBoundingClientRect();
+    return rect.height / rect.width;
+  });
+  expect(shape).toBeCloseTo(0.68, 5);
+  await instrument
+    .getByRole("button", { name: "Вигляд зверху", exact: true })
+    .click();
+  await expect(installation).toHaveAttribute("data-view", "top");
+  shape = await orbit.evaluate((el) => {
+    const rect = el.getBoundingClientRect();
+    return rect.height / rect.width;
+  });
+  expect(shape).toBeCloseTo(1, 5);
+  await expect(timer).toHaveText(finalTime);
+  await expect(countOutput).toHaveText("30 / 30");
+  await instrument
+    .getByRole("button", { name: "Об’ємний вигляд", exact: true })
+    .click();
+  await expect(timer).toHaveText(finalTime);
   expect(writes).toEqual([]);
   expect(await page.evaluate(() => JSON.stringify(localStorage))).toBe(before);
   await page.setViewportSize({ width: 390, height: 844 });
@@ -114,6 +151,72 @@ test("lab two web material replaces the PDF and the circular instrument follows 
   await expect(
     instrument.locator('[data-instrument="rotation-count"]'),
   ).toBeVisible();
+  await radius.scrollIntoViewIfNeeded();
+  const sliderBox = (await radius.boundingBox())!;
+  await radius.tap({
+    position: { x: sliderBox.width * 0.2, y: sliderBox.height / 2 },
+  });
+  expect(await radius.inputValue()).not.toBe("0.3");
+  await expect(timer).toHaveText("0,00 с");
+  await expect(countOutput).toHaveText("0 / 30");
+  await cycles.focus();
+  await cycles.press("Home");
+  const speed = instrument.getByLabel("Лінійна швидкість", { exact: true });
+  await speed.focus();
+  await speed.press("End");
+  await radius.focus();
+  await radius.press("End");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  const ball = instrument.locator('[data-instrument="rotating-ball"]');
+  const beforeX = Number(await ball.getAttribute("cx"));
+  await instrument
+    .getByRole("button", { name: "Запустити дослід", exact: true })
+    .click();
+  await expect(radius).toBeDisabled();
+  await expect
+    .poll(async () => Number(await ball.getAttribute("cx")))
+    .not.toBe(beforeX);
+  await instrument.getByRole("button", { name: "Пауза", exact: true }).click();
+  await expect(
+    instrument.getByRole("button", { name: "Продовжити", exact: true }),
+  ).toBeVisible();
+  const pausedTime = await timer.innerText(),
+    pausedX = await ball.getAttribute("cx");
+  await page.waitForTimeout(120);
+  await expect(timer).toHaveText(pausedTime);
+  await expect(ball).toHaveAttribute("cx", pausedX!);
+  await instrument
+    .getByRole("button", { name: "Вигляд зверху", exact: true })
+    .click();
+  await expect(timer).toHaveText(pausedTime);
+  await expect(ball).toHaveAttribute("cx", pausedX!);
+  const gap = await instrument
+    .locator('[data-instrument="rotation-string"]')
+    .evaluate((el) => {
+      const line = el as SVGLineElement;
+      const ball = line.ownerSVGElement!.querySelector(
+        '[data-instrument="rotating-ball"]',
+      ) as SVGCircleElement;
+      return Math.hypot(
+        line.x2.baseVal.value - ball.cx.baseVal.value,
+        line.y2.baseVal.value - ball.cy.baseVal.value,
+      );
+    });
+  expect(gap).toBeCloseTo(12, 4);
+  await instrument
+    .getByRole("button", { name: "Продовжити", exact: true })
+    .click();
+  await expect.poll(async () => timer.innerText()).not.toBe(pausedTime);
+  await instrument
+    .getByRole("button", { name: "Скинути прилад", exact: true })
+    .click();
+  await expect(timer).toHaveText("0,00 с");
+  await expect(countOutput).toHaveText("0 / 10");
+  await instrument.screenshot({
+    path: test.info().outputPath("rotation-mobile.png"),
+    caret: "initial",
+  });
+  expect(clientErrors).toEqual([]);
   await page.emulateMedia({ media: "print" });
   await expect(instrument).not.toBeVisible();
   await expect(

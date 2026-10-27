@@ -3506,3 +3506,56 @@ td {
     font-size: 15px;
   }
 }
+
+.rotation-view-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0;
+}
+.rotation-view-controls .button {
+  min-height: 42px;
+}
+.rotation-readout {
+  padding: 18px 20px;
+  margin: 18px 0;
+  background: #f3f7ee;
+  border: 1px solid #dbe5d3;
+  border-radius: 12px;
+}
+.rotation-readout dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin: 0 0 12px;
+}
+.rotation-readout dt {
+  color: #657563;
+  font-size: 12px;
+}
+.rotation-readout dd {
+  margin: 6px 0 0;
+  color: #285540;
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.rotation-readout p {
+  color: #657563;
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 0;
+}
+@media (max-width: 600px) {
+  .rotation-view-controls .button {
+    flex: 1;
+    padding: 10px 8px;
+    font-size: 11px;
+  }
+  .rotation-readout {
+    padding: 14px;
+  }
+  .rotation-readout dd {
+    font-size: 21px;
+  }
+}
