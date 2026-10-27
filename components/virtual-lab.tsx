@@ -20,6 +20,7 @@ import {
 import type { Experiment } from "@/lib/types";
 import { rotationGeometry, type RotationView } from "@/lib/rotation-view";
 import { rampMaterials } from "@/lib/ramp";
+import { pendulumGeometry } from "@/lib/pendulum-view";
 import { RampScene } from "./ramp-scene";
 import { RotationScene } from "./rotation-scene";
 import { PendulumScene } from "./pendulum-scene";
@@ -54,7 +55,7 @@ function Scene({
       : n === 2
         ? 460
         : n === 3
-          ? 440
+          ? 500
           : n === 4
             ? 350
             : n === 5
@@ -105,6 +106,7 @@ function Scene({
       )}
       {n === 3 && (
         <PendulumScene
+          series={experiment}
           length={v.length}
           amplitude={v.amplitude}
           mass={v.mass}
@@ -190,7 +192,7 @@ export function VirtualLab({
     let frame = 0,
       last = performance.now();
     const milliseconds =
-      (number === 1
+      (number === 1 || number === 3
         ? result.duration
         : Math.min(number === 2 ? 15 : 6, Math.max(1, result.duration))) * 1000;
     const reduced = window.matchMedia(
@@ -420,6 +422,43 @@ export function VirtualLab({
             </p>
           </section>
         )}
+        {number === 3 && (
+          <section className="pendulum-readout" aria-label="Покази маятника">
+            <dl>
+              <div>
+                <dt>Час моделі</dt>
+                <dd>
+                  <output aria-label="Час маятника" aria-live="off">
+                    {(result.values.t * phase).toFixed(2).replace(".", ",")} с
+                  </output>
+                </dd>
+              </div>
+              <div>
+                <dt>Повних коливань</dt>
+                <dd>
+                  <output aria-label="Лічильник маятника" aria-live="off">
+                    {
+                      pendulumGeometry(
+                        result.values.length,
+                        result.values.amplitude,
+                        parameters.cycles,
+                        phase,
+                      ).completed
+                    }{" "}
+                    / {parameters.cycles}
+                  </output>
+                </dd>
+              </div>
+            </dl>
+            <p>
+              Довжина — від підвісу до центра кульки в положенні рівноваги. На
+              установці довжина й кут мають сталий масштаб; нижня шкала дугової
+              координати збільшена окремо. Розмір кульки схематичний, зовнішній
+              розмір змінних тягарців сталий. Відтворення 1×, без затухання;
+              модель малих кутів.
+            </p>
+          </section>
+        )}
         {number === 1 && (
           <section
             className="ramp-ball-summary"
@@ -522,9 +561,10 @@ export function VirtualLab({
           </section>
         )}
         <p className="muted">
-          Анімацію може бути прискорено. Покази часу нижче — фізичний час
-          моделі, а не тривалість анімації. Усі дані синтетичні; випадкова
-          похибка не додається.
+          {number === 1 || number === 3
+            ? "Відтворення 1×: рух і відлік використовують фізичний час моделі. "
+            : "Анімацію може бути прискорено. Покази часу нижче — фізичний час моделі, а не тривалість анімації. "}
+          Усі дані синтетичні; випадкова похибка не додається.
         </p>
         {phase === 1 && (
           <div className="virtual-results">

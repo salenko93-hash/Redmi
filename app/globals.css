@@ -3885,3 +3885,42 @@ td {
   padding-top: 0;
   border-top: 0;
 }
+
+.pendulum-readout {
+  margin: 18px 0;
+  padding: 18px 20px;
+  border: 1px solid #dbe5d3;
+  border-radius: 12px;
+  background: #f3f7ee;
+}
+.pendulum-readout dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin: 0 0 12px;
+}
+.pendulum-readout dt {
+  color: #657563;
+  font-size: 12px;
+}
+.pendulum-readout dd {
+  margin: 6px 0 0;
+  color: #285540;
+  font-size: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.pendulum-readout p {
+  color: #657563;
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 0;
+}
+@media (max-width: 600px) {
+  .pendulum-readout {
+    padding: 14px;
+  }
+  .pendulum-readout dd {
+    font-size: 21px;
+  }
+}
