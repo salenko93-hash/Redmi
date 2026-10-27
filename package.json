@@ -14,7 +14,8 @@
     "typecheck": "tsc --noEmit",
     "teacher:invite": "tsx scripts/invite-teacher.ts",
     "format": "prettier --write app components lib prisma/*.ts scripts tests *.ts *.json *.yaml *.md",
-    "admin:grant": "tsx scripts/grant-admin.ts"
+    "admin:grant": "tsx scripts/grant-admin.ts",
+    "account:recover": "tsx scripts/recover-account.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^6.19.3",

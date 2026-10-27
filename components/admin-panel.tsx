@@ -8,6 +8,7 @@ type Overview = Awaited<ReturnType<typeof adminOverview>>;
 const date = (value: string) =>
   new Date(value).toLocaleString("uk-UA", { timeZone: "Europe/Kyiv" });
 const actions: Record<string, string> = {
+  RECOVERY_CODE_REISSUED: "Оператор оновив код відновлення",
   ADMIN_GRANTED: "Надано права адміністратора",
   TEACHER_INVITED: "Створено запрошення вчителю",
   INVITATION_REVOKED: "Відкликано запрошення",

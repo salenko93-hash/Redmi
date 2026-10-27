@@ -1,4 +1,6 @@
 import { test, expect } from "@playwright/test";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import type { APIRequestContext } from "@playwright/test";
 const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3100";
 const origin = { Origin: baseURL };
@@ -315,6 +317,64 @@ test("recovery code rotates and revokes existing sessions", async ({
       })
     ).status(),
   ).toBe(200);
+
+  const before = await (await api.get("/api/me")).json();
+  const { stdout } = await promisify(execFile)(
+    process.execPath,
+    ["--import", "tsx", "scripts/recover-account.ts", "--email", email],
+    { cwd: process.cwd(), env: process.env },
+  );
+  const operatorCode = stdout.match(/^[a-f0-9]{64}$/m)?.[0];
+  expect(operatorCode).toHaveLength(64);
+  expect(operatorCode).not.toBe(replacement.recoveryCode);
+  expect((await api.get("/api/me")).status()).toBe(401);
+  expect(
+    (
+      await post(api, "/api/auth/recover", {
+        email,
+        code: replacement.recoveryCode,
+        password: "Replacement2028!",
+      })
+    ).status(),
+  ).toBe(401);
+  expect(
+    (
+      await post(api, "/api/auth/recover", {
+        email,
+        code: operatorCode,
+        password: "Replacement2028!",
+      })
+    ).status(),
+  ).toBe(200);
+  expect(
+    (
+      await post(api, "/api/auth/recover", {
+        email,
+        code: operatorCode,
+        password: "Replacement2029!",
+      })
+    ).status(),
+  ).toBe(401);
+  expect(
+    (
+      await post(api, "/api/auth/login", {
+        email,
+        password: "Replacement2026!",
+      })
+    ).status(),
+  ).toBe(401);
+  expect(
+    (
+      await post(api, "/api/auth/login", {
+        email,
+        password: "Replacement2028!",
+      })
+    ).status(),
+  ).toBe(200);
+  const after = await (await api.get("/api/me")).json();
+  expect(after.id).toBe(before.id);
+  expect(after.role).toBe(before.role);
+  expect(after.isAdmin).toBe(before.isAdmin);
   await api.dispose();
 });
 test("two devices cannot silently overwrite each other and pending local data can be exported", async ({
