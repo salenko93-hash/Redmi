@@ -19,6 +19,7 @@ import {
   type SimulationResult,
 } from "@/lib/simulation";
 import type { Experiment } from "@/lib/types";
+import { rampMaterials } from "@/lib/ramp";
 import { RampScene } from "./ramp-scene";
 import { RotationScene } from "./rotation-scene";
 import { PendulumScene } from "./pendulum-scene";
@@ -83,6 +84,8 @@ function Scene({
         <RampScene
           distance={p.distance}
           angle={p.angle}
+          material={p.material}
+          diameter={p.diameter}
           phase={phase}
           id={id}
         />
@@ -160,9 +163,10 @@ export function VirtualLab({
   lastRecord?: SimulationRecord;
 }) {
   const setup = simulationSetup(number, experiment.id);
-  const [parameters, setParameters] = useState<Parameters>(
-    lastRecord?.parameters ?? initialParameters(number, experiment.id),
-  );
+  const [parameters, setParameters] = useState<Parameters>(() => ({
+    ...initialParameters(number, experiment.id),
+    ...lastRecord?.parameters,
+  }));
   const [row, setRow] = useState(lastRecord?.rowIndex ?? 0),
     [phase, setPhase] = useState(0),
     [running, setRunning] = useState(false),
@@ -309,6 +313,47 @@ export function VirtualLab({
             )}
           </div>
         </div>
+        {number === 1 && (
+          <section
+            className="ramp-ball-summary"
+            aria-label="Властивості кульки"
+          >
+            <div>
+              <strong>{rampMaterials[parameters.material].name}</strong>
+              <p>Суцільна однорідна кулька</p>
+            </div>
+            <dl>
+              <div>
+                <dt>Діаметр</dt>
+                <dd>{parameters.diameter} мм</dd>
+              </div>
+              <div>
+                <dt>Маса кульки</dt>
+                <dd>
+                  <output
+                    aria-label="Маса кульки"
+                    data-mass-grams={result.values.mass * 1000}
+                  >
+                    {(result.values.mass * 1000).toLocaleString("uk-UA", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}{" "}
+                    г
+                  </output>
+                </dd>
+              </div>
+              <div>
+                <dt>Густина матеріалу</dt>
+                <dd>{result.values.density.toLocaleString("uk-UA")} кг/м³</dd>
+              </div>
+            </dl>
+            <p>
+              m = ρ·π·d³/6. Подвоєння діаметра збільшує масу у 8 разів. У цій
+              моделі без опору матеріал і діаметр не змінюють час кочення за
+              однакових нахилу та шляху.
+            </p>
+          </section>
+        )}
         {number === 4 && (
           <section
             className="balance-selection"

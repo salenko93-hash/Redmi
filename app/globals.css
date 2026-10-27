@@ -3461,3 +3461,48 @@ td {
     break-inside: avoid;
   }
 }
+
+.ramp-ball-summary {
+  margin: 18px 0;
+  padding: 18px 20px;
+  border: 1px solid #dbe5d3;
+  background: #f3f7ee;
+  border-radius: 12px;
+}
+.ramp-ball-summary > div > strong {
+  font-size: 15px;
+  color: #285540;
+}
+.ramp-ball-summary p {
+  font-size: 12px;
+  line-height: 1.7;
+  color: #657563;
+  margin: 6px 0 0;
+}
+.ramp-ball-summary dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+.ramp-ball-summary dt {
+  font-size: 11px;
+  color: #657563;
+}
+.ramp-ball-summary dd {
+  margin: 6px 0 0;
+  font-size: 17px;
+  color: #285540;
+  font-weight: 600;
+}
+@media (max-width: 600px) {
+  .ramp-ball-summary {
+    padding: 14px;
+  }
+  .ramp-ball-summary dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .ramp-ball-summary dd {
+    font-size: 15px;
+  }
+}

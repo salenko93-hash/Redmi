@@ -1,4 +1,5 @@
 "use client";
+import { rampCreativeInstruction } from "@/lib/lab-one-material";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -653,16 +654,20 @@ export function Workspace({
                         міг змінити вручну.
                       </p>
                       <dl className="model-parameters">
-                        {simulationSetup(number, e.id).controls.map((c) => (
-                          <div key={c.key}>
-                            <dt>{c.label}</dt>
-                            <dd>
-                              {c.options
-                                ? c.options[r.parameters[c.key]]
-                                : `${r.parameters[c.key]} ${c.unit ?? ""}`}
-                            </dd>
-                          </div>
-                        ))}
+                        {simulationSetup(number, e.id)
+                          .controls.filter(
+                            (c) => r.parameters[c.key] !== undefined,
+                          )
+                          .map((c) => (
+                            <div key={c.key}>
+                              <dt>{c.label}</dt>
+                              <dd>
+                                {c.options
+                                  ? c.options[r.parameters[c.key]]
+                                  : `${r.parameters[c.key]} ${c.unit ?? ""}`}
+                              </dd>
+                            </div>
+                          ))}
                       </dl>
                       <h4>Покази під час перенесення</h4>
                       <dl className="model-parameters">
@@ -785,7 +790,11 @@ export function Workspace({
               {comments("conclusion")}
               <details className="creative">
                 <summary>✦ Творче завдання · необов’язково</summary>
-                <p>{content.creative}</p>
+                <p>
+                  {number === 1
+                    ? rampCreativeInstruction(content.creative)
+                    : content.creative}
+                </p>
                 <textarea
                   aria-label="Творче завдання"
                   rows={4}

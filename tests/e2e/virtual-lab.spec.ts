@@ -197,6 +197,12 @@ test("virtual readings persist, clear stale calculations, enforce mode and survi
     .getByRole("button", { name: "2 Експеримент", exact: true })
     .click();
   const instrument = page.locator(".virtual-lab").first();
+  await instrument
+    .getByLabel("Матеріал кульки", { exact: true })
+    .selectOption("1");
+  const diameter = instrument.getByLabel("Діаметр кульки", { exact: true });
+  await diameter.focus();
+  for (let i = 0; i < 4; i++) await diameter.press("ArrowRight");
   for (let i = 0; i < 3; i++) {
     await page
       .getByLabel("Рядок для Скочування кульки")
@@ -236,6 +242,10 @@ test("virtual readings persist, clear stale calculations, enforce mode and survi
     await student.get(`/api/assignments/${a.id}/submission`)
   ).json();
   expect(stored.answers.simulationRecords).toHaveLength(3);
+  for (const record of stored.answers.simulationRecords) {
+    expect(record.parameters.material).toBe(1);
+    expect(record.parameters.diameter).toBe(24);
+  }
   expect(
     (
       await teacher.patch(`/api/assignments/${a.id}/mode`, {

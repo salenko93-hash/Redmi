@@ -35,6 +35,26 @@ for (const touch of [false, true]) {
       const ramp = instrument.locator('[data-instrument="ramp"]');
       const path = instrument.locator('[data-instrument="path"]');
       const ball = instrument.locator('[data-instrument="ball"]');
+      const material = instrument.getByLabel("Матеріал кульки", {
+        exact: true,
+      });
+      const diameter = instrument.getByLabel("Діаметр кульки", { exact: true });
+      const mass = instrument.getByLabel("Маса кульки", { exact: true });
+      const massInGrams = async () =>
+        Number(await mass.getAttribute("data-mass-grams"));
+      await expect(diameter).toHaveValue("20");
+      const steelMass = await massInGrams();
+      const radius20 = Number(await ball.getAttribute("r"));
+      await diameter.focus();
+      for (let i = 0; i < 20; i++) await diameter.press("ArrowRight");
+      expect(await massInGrams()).toBeCloseTo(steelMass * 8, 8);
+      expect(Number(await ball.getAttribute("r"))).toBeCloseTo(radius20 * 2, 8);
+      await material.selectOption("1");
+      expect(await massInGrams()).toBeCloseTo((steelMass * 8 * 900) / 7800, 8);
+      await expect(ball).toHaveAttribute("data-material", "1");
+      await diameter.press("End");
+      await expect(diameter).toHaveValue("50");
+
       const pathLength = () =>
         path.evaluate((el) => (el as SVGLineElement).getTotalLength());
       async function geometry() {
@@ -77,6 +97,11 @@ for (const touch of [false, true]) {
         }
       }
 
+      const beforeDiameter = await diameter.inputValue();
+      await pointAt(diameter, 0.4);
+      expect(await diameter.inputValue()).not.toBe(beforeDiameter);
+      await diameter.focus();
+      await diameter.press("End");
       // Exercise native pointer/touch events, not just programmatic state changes.
       const left = (await angle.boundingBox())!,
         right = (await distance.boundingBox())!;
@@ -177,6 +202,63 @@ for (const touch of [false, true]) {
       );
       expect(shortTime).toBeLessThan(slow);
       expect(Number(await ball.getAttribute("cx"))).toBeCloseTo(short, 5);
+      await material.selectOption("0");
+      await expect(instrument.locator(".virtual-results")).toHaveCount(0);
+      await expect(ball).toHaveAttribute("cx", "0");
+      await instrument
+        .getByRole("button", { name: "Запустити дослід", exact: true })
+        .click();
+      await expect(instrument.locator(".virtual-results")).toBeVisible();
+      expect(
+        Number(
+          (
+            await instrument.locator(".virtual-results dd").nth(1).innerText()
+          ).replace(",", "."),
+        ),
+      ).toBeCloseTo(shortTime, 5);
+      expect(
+        Number(
+          await instrument
+            .locator('[data-instrument="ball-mark"]')
+            .getAttribute("data-rotations"),
+        ),
+      ).toBeCloseTo(Number(await distance.inputValue()) / (Math.PI * 0.05), 6);
+
+      await page.emulateMedia({ reducedMotion: "no-preference" });
+      await angle.focus();
+      await angle.press("Home");
+      await distance.focus();
+      await distance.press("End");
+      await diameter.focus();
+      await diameter.press("Home");
+      await instrument
+        .getByRole("button", { name: "Запустити дослід", exact: true })
+        .click();
+      await expect(diameter).toBeDisabled();
+      await expect
+        .poll(async () => Number(await ball.getAttribute("cx")))
+        .toBeGreaterThan(0);
+      const marker = instrument.locator('[data-instrument="ball-mark"]');
+      const beforeRotation = await marker.getAttribute("transform");
+      await expect
+        .poll(async () => marker.getAttribute("transform"))
+        .not.toBe(beforeRotation);
+      await instrument
+        .getByRole("button", { name: "Пауза", exact: true })
+        .click();
+      await expect(
+        instrument.getByRole("button", { name: "Продовжити", exact: true }),
+      ).toBeVisible();
+      const pausedPosition = Number(await ball.getAttribute("cx"));
+      await page.waitForTimeout(120);
+      expect(Number(await ball.getAttribute("cx"))).toBeCloseTo(
+        pausedPosition,
+        5,
+      );
+      await expect(diameter).toBeEnabled();
+      await material.selectOption("1");
+      await expect(ball).toHaveAttribute("cx", "0");
+      await expect(marker).toHaveAttribute("data-rotations", "0");
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= innerWidth,

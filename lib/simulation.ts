@@ -1,3 +1,5 @@
+import { rampBallProperties, rampMaterials } from "./ramp";
+
 /** Deterministic educational models. SI inside each model; displayed units match the worksheet. */
 export const MODEL_VERSION = 1 as const;
 export const G = 10; // Same classroom approximation as the worksheets.
@@ -87,11 +89,17 @@ export function simulationSetup(
         controls: [
           c("angle", "Нахил жолоба", 5, 35, 1, 15, "°"),
           c("distance", "Довжина шляху", 0.2, 2, 0.1, 1.2, "м"),
+          select(
+            "material",
+            "Матеріал кульки",
+            rampMaterials.map((material) => material.name),
+          ),
+          c("diameter", "Діаметр кульки", 10, 50, 1, 20, "мм"),
         ],
         assumption:
-          "Суцільна кулька котиться без проковзування: a = (5/7)g sin α. Опір руху не враховано; g = 10 м/с².",
+          "Суцільна однорідна кулька котиться без проковзування: a = (5/7)g sin α; g = 10 м/с². Маса m = ρπd³/6: сталь — 7800 кг/м³, поліпропілен — 900 кг/м³. Маса й радіус скорочуються у рівнянні руху, тому матеріал і діаметр не змінюють час за сталих шляху й нахилу. Опір повітря, деформації та особливості профілю жолоба не враховано.",
         instruction:
-          "Зліва встановіть нахил жолоба, справа — шлях до фінішу. Довжина лінійки — 2 м. Запустіть кульку, зніміть шлях і час. Для наступних рядків зменшуйте шлях за сталого нахилу.",
+          "Зліва встановіть нахил жолоба, справа — шлях до фінішу. Довжина лінійки — 2 м. Запустіть кульку, зніміть шлях і час. Оберіть сталеву або пластмасову кульку, змініть діаметр і спостерігайте за масою. Для трьох рядків основного досліду зберігайте кульку, її діаметр і нахил сталими; зменшуйте тільки шлях.",
       };
     case 2:
       return {
@@ -260,7 +268,10 @@ export function validateParameters(n: number, e: string, p: Parameters) {
   const controls = simulationSetup(n, e).controls;
   if (Object.keys(p).some((k) => !controls.some((c) => c.key === k)))
     return false;
+  const legacyRamp =
+    n === 1 && !Object.hasOwn(p, "material") && !Object.hasOwn(p, "diameter");
   return controls.every((c) => {
+    if (legacyRamp && ["material", "diameter"].includes(c.key)) return true;
     const v = p[c.key];
     return (
       Number.isFinite(v) &&
@@ -288,7 +299,15 @@ export function simulate(
       const a = (5 / 7) * G * Math.sin((p.angle * Math.PI) / 180),
         t = Math.sqrt((2 * p.distance) / a);
       readings = { l: fmt(p.distance), t: fmt(t) };
-      values = { a, t, distance: p.distance, angle: p.angle };
+      const ball = rampBallProperties(p.material ?? 0, p.diameter ?? 20);
+      values = {
+        a,
+        t,
+        distance: p.distance,
+        angle: p.angle,
+        ...ball,
+        material: p.material ?? 0,
+      };
       duration = t;
       break;
     }
