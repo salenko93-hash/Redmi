@@ -1,5 +1,6 @@
 "use client";
 import { useId, useRef, useState } from "react";
+import { FloatingDefinitions } from "./floating-equipment";
 import { Maximize2 } from "lucide-react";
 function BodiesPlot({ active }: { active: number | null }) {
   const id = useId();
@@ -18,7 +19,25 @@ function BodiesPlot({ active }: { active: number | null }) {
         у 2 найменша, у 3 проміжна. Усі перебувають у рівновазі без сторонніх
         опор.
       </desc>
-      <rect x="54" y="145" width="492" height="150" fill="#bedee5" />
+      <FloatingDefinitions id={id} />
+      <defs>
+        <clipPath id={`${id}-wet`}>
+          <rect x="54" y="145" width="492" height="150" />
+        </clipPath>
+      </defs>
+      <path
+        d="M50 125V295Q50 307 64 307H536Q550 307 550 295V125"
+        fill={`url(#${id}-glass)`}
+        stroke="#92b1ad"
+      />
+      <rect
+        x="54"
+        y="145"
+        width="492"
+        height="150"
+        fill={`url(#${id}-water)`}
+      />
+      <ellipse cx="300" cy="145" rx="246" ry="5" fill="#b7ddde" opacity=".6" />
       <path
         d="M50 125V295Q50 307 64 307H536Q550 307 550 295V125"
         fill="none"
@@ -31,6 +50,18 @@ function BodiesPlot({ active }: { active: number | null }) {
           data-body-number={i + 1}
           opacity={active === null || active === i + 1 ? 1 : 0.25}
         >
+          <path
+            d={`M${105 + i * 160} ${145 - (1 - fraction) * 70}l13-7h70l-13 7Z`}
+            fill={["#eddbac", "#d3e3c3", "#c6dce7"][i]}
+            stroke="#91a184"
+            strokeWidth=".8"
+          />
+          <path
+            d={`M${175 + i * 160} ${145 - (1 - fraction) * 70}l13-7v70l-13 7Z`}
+            fill={["#ab965c", "#7d9c72", "#7297ac"][i]}
+            stroke="#819582"
+            strokeWidth=".8"
+          />
           <rect
             x={105 + i * 160}
             y={145 - (1 - fraction) * 70}
@@ -40,6 +71,16 @@ function BodiesPlot({ active }: { active: number | null }) {
             stroke={["#a78945", "#668663", "#638aab"][i]}
             strokeWidth="2"
           />
+          <g clipPath={`url(#${id}-wet)`}>
+            <rect
+              x={105 + i * 160}
+              y={145 - (1 - fraction) * 70}
+              width="83"
+              height="70"
+              fill="#73b3c7"
+              opacity=".2"
+            />
+          </g>
           <text
             x={140 + i * 160}
             y={190 - (1 - fraction) * 70}
@@ -51,6 +92,13 @@ function BodiesPlot({ active }: { active: number | null }) {
         </g>
       ))}
       <line x1="54" x2="546" y1="145" y2="145" stroke="#77a9b4" />
+      <path
+        d="M58 154V286M542 154V286"
+        stroke="#fff"
+        strokeWidth="3"
+        opacity=".6"
+      />
+      <path d="M50 125Q300 141 550 125" stroke="#9ab8b3" fill="none" />
       <text x="300" y="335" textAnchor="middle" style={{ fontSize: 12 }}>
         Якісне відтворення рисунка · числових часток не задано
       </text>

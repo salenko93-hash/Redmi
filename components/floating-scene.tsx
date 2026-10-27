@@ -1,11 +1,13 @@
 import {
-  FLOATING_SURFACE as surface,
   FLOATING_FLOOR as floor,
+  FLOATING_FORCE_ORIGIN as forceOrigin,
+  FLOATING_CUP_RADIUS,
+  FLOATING_PIXEL_VOLUME,
   floatingGeometry,
-  tubePath,
+  floatingCoordinate as q,
 } from "@/lib/floating-view";
 import type { Parameters, SimulationResult } from "@/lib/simulation";
-const fmt = (v: string | number) => String(v).replace(".", ",");
+import { FloatingDefinitions, FloatingTube } from "./floating-equipment";
 export function FloatingScene({
   parameters: p,
   result: r,
@@ -19,9 +21,7 @@ export function FloatingScene({
 }) {
   const v = r.values,
     g = floatingGeometry(p.volume, v.fraction, v.state, phase);
-  const path = tubePath(175, g.top, g.radius, g.height);
-  const fullBuoyancy = (p.liquid === 0 ? 1 : 1.03) * p.volume * 0.01;
-  const buoyancy = fullBuoyancy * g.immersed;
+  const buoyancy = (p.liquid === 0 ? 1 : 1.03) * p.volume * 0.01 * g.immersed;
   const support = g.onBottom ? Math.max(0, v.weight - buoyancy) : 0;
   const state =
     v.state > 0
@@ -34,171 +34,296 @@ export function FloatingScene({
           ? "На поверхні · рівновага"
           : "Спливає до поверхні";
   return (
-    <g>
+    <g data-instrument="floating-installation">
+      <FloatingDefinitions id={id} />
       <defs>
-        <clipPath id={`${id}-tube`}>
-          <path d={path} />
-        </clipPath>
         <marker
           id={`${id}-arrow`}
-          markerWidth="7"
-          markerHeight="7"
-          refX="6"
-          refY="3.5"
+          markerWidth="6"
+          markerHeight="6"
+          refX="5"
+          refY="3"
           orient="auto"
           markerUnits="userSpaceOnUse"
         >
-          <path d="M0 0L7 3.5L0 7Z" fill="context-stroke" />
+          <path d="M0 0L6 3L0 6Z" fill="context-stroke" />
         </marker>
       </defs>
-      <text x="25" y="25">
+      <text x="25" y="28" style={{ fontWeight: 650 }}>
         {p.liquid === 0
           ? "Вода · основний дослід"
           : "Солона вода · додатковий дослід"}
       </text>
+      <text x="25" y="51" style={{ fontSize: 12 }}>
+        Корок закритий · зовнішній об’єм сталий
+      </text>
+      <path d="M50 408H291l16 19H34Z" fill="#ddc5a1" />
+      <rect
+        x="34"
+        y="426"
+        width="273"
+        height="10"
+        rx="2"
+        fill={`url(#${id}-wood)`}
+      />
+      <path
+        d="M47 436H294V446H47Z M60 446H76V461H60Z M263 446H279V461H263Z"
+        fill="#9d7a50"
+      />
+      <ellipse
+        cx="175"
+        cy="405"
+        rx="87"
+        ry="6"
+        fill="#b7cdca"
+        fillOpacity=".35"
+        stroke="#93b0ae"
+      />
+      <path
+        d={`M91 110V${floor}Q175 ${floor + 18} 259 ${floor}V110`}
+        fill={`url(#${id}-glass)`}
+        stroke="#8caaa9"
+        strokeWidth="1.4"
+      />
+      <ellipse
+        cx="175"
+        cy="110"
+        rx="84"
+        ry="8"
+        fill="#e7f4ed"
+        fillOpacity=".3"
+        stroke="#98b2af"
+      />
+      <path
+        d={`M95 ${q(g.surface)}V${floor - 3}Q175 ${floor + 10} 255 ${floor - 3}V${q(g.surface)}Z`}
+        fill={`url(#${id}-water)`}
+      />
+      <ellipse
+        cx="175"
+        cy={q(g.surface)}
+        rx="80"
+        ry="5"
+        fill="#b8dedf"
+        opacity=".8"
+        stroke="#81abb1"
+        strokeWidth=".8"
+      />
       <rect
         data-instrument="floating-water"
-        x="49"
-        y={surface}
-        width="262"
-        height={floor - surface}
-        fill={p.liquid === 0 ? "#c0dfe5" : "#b3d8da"}
-      />
-      <path
-        d={`M45 110V${floor}H315V110`}
+        x="95"
+        y={q(g.surface)}
+        width="160"
+        height={q(floor - g.surface)}
         fill="none"
-        stroke="#83a3a9"
-        strokeWidth="3"
       />
-      <line x1="49" x2="311" y1={surface} y2={surface} stroke="#7baab4" />
+      <FloatingTube
+        id={id}
+        top={g.top}
+        radius={g.radius}
+        height={g.height}
+        volume={p.volume}
+        sand={p.sand}
+      />
+      <rect
+        x="95"
+        y={q(g.surface)}
+        width="160"
+        height={q(floor - g.surface)}
+        fill="#7cb9c7"
+        opacity=".12"
+        pointerEvents="none"
+      />
       <path
-        data-instrument="floating-tube"
-        d={path}
-        fill="#f4f2dd"
-        stroke="#718f79"
+        d={`M92 112V${floor}Q175 ${floor + 17} 258 ${floor}V112`}
+        fill="none"
+        stroke="#83a7a6"
         strokeWidth="2"
       />
-      {p.sand > 0 && (
-        <rect
-          x={175 - g.radius + 3}
-          y={g.bottom - 7 - (p.sand / 80) * g.height * 0.65}
-          width={2 * g.radius - 6}
-          height={g.height}
-          fill="#c4ae80"
-          clipPath={`url(#${id}-tube)`}
-        />
-      )}
-      <rect
-        x={175 - g.radius}
-        y={g.top}
-        width={2 * g.radius}
-        height="8"
-        rx="2"
-        fill="#8fa08b"
+      <path d="M98 121V378" stroke="#fff" strokeWidth="3" opacity=".65" />
+      <path d="M251 122V377" stroke="#edf6ed" strokeWidth="1.4" opacity=".8" />
+      <path
+        d="M91 110Q175 126 259 110"
+        fill="none"
+        stroke="#8daead"
+        strokeWidth="1.2"
       />
+      {Array.from({ length: 26 }, (_, i) => {
+        const y =
+          floor -
+          (i * 100 * FLOATING_PIXEL_VOLUME) /
+            (Math.PI * FLOATING_CUP_RADIUS ** 2);
+        return (
+          <g key={i}>
+            <line
+              x1="101"
+              x2={i % 5 === 0 ? 116 : 110}
+              y1={q(y)}
+              y2={q(y)}
+              stroke="#6d9290"
+              strokeWidth=".6"
+            />
+            {i % 5 === 0 && (
+              <text x="120" y={q(y + 3)} style={{ fontSize: 7 }}>
+                {i * 100}
+              </text>
+            )}
+          </g>
+        );
+      })}
+      <text x="111" y="101" style={{ fontSize: 9 }}>
+        мл
+      </text>
       {g.onBottom && (
-        <line
-          x1="151"
-          x2="199"
-          y1={floor + 3}
-          y2={floor + 3}
-          stroke="#76856c"
-          strokeWidth="4"
+        <ellipse
+          data-instrument="floating-contact"
+          cx="175"
+          cy={floor + 2}
+          rx="8"
+          ry="1.5"
+          fill="#5c7961"
         />
       )}
-      <text
-        data-instrument="floating-status"
-        x="175"
-        y="426"
-        textAnchor="middle"
-        style={{ fontSize: 13 }}
-      >
-        {state}
-      </text>
-      <text x="175" y="451" textAnchor="middle" style={{ fontSize: 11 }}>
-        {v.state === 0
-          ? "Початково в спокої · зовнішніх опор немає"
-          : "Пробірка закрита · нитка не натягнута"}
-      </text>
       <rect
         x="349"
-        y="65"
+        y="70"
         width="227"
-        height="403"
+        height="404"
         rx="14"
         fill="#fff"
         stroke="#dbe5d2"
       />
-      <text x="368" y="96">
-        Закрита система
+      <text x="368" y="98" style={{ fontSize: 13, fontWeight: 650 }}>
+        ЗАКРИТА СИСТЕМА
       </text>
-      <text data-instrument="floating-mass-reading" x="368" y="126">
-        m = {fmt(r.readings.m)} г
+      <text
+        data-instrument="floating-mass-reading"
+        x="368"
+        y="130"
+        style={{ fontSize: 21, fontWeight: 650 }}
+      >
+        m = {r.readings.m} г
       </text>
-      <text data-instrument="floating-volume-reading" x="368" y="154">
-        V = {fmt(r.readings.V)} см³
+      <text
+        data-instrument="floating-volume-reading"
+        x="368"
+        y="161"
+        style={{ fontSize: 17 }}
+      >
+        V = {r.readings.V} см³
       </text>
-      <text x="368" y="181" style={{ fontSize: 12 }}>
+      <text x="368" y="189" style={{ fontSize: 12 }}>
         ρрідини = {p.liquid === 0 ? "1" : "1,03"} г/см³
       </text>
-      <line x1="368" x2="557" y1="200" y2="200" stroke="#dbe5d2" />
-      <text x="368" y="225" style={{ fontSize: 12 }}>
-        Сили · спільний умовний масштаб
+      <text x="368" y="215" style={{ fontSize: 11 }}>
+        20 г — пробірка з корком
       </text>
-      <rect x="400" y="315" width="110" height="30" rx="8" fill="#f1f4e7" />
-      <line
-        data-floating-force="gravity"
-        x1="455"
-        x2="455"
-        y1="330"
-        y2={330 + v.weight * 100}
-        stroke="#a8533c"
-        strokeWidth="2"
-        markerEnd={`url(#${id}-arrow)`}
+      <line x1="368" x2="557" y1="236" y2="236" stroke="#dbe5d2" />
+      <text x="368" y="262" style={{ fontSize: 12 }}>
+        Сили · спільний масштаб
+      </text>
+      <rect
+        x="400"
+        y={forceOrigin - 15}
+        width="110"
+        height="30"
+        rx="8"
+        fill="#f1f4e7"
       />
-      <line
-        data-floating-force="buoyancy"
-        x1="420"
-        x2="420"
-        y1="330"
-        y2={330 - buoyancy * 100}
-        stroke="#297788"
-        strokeWidth="2"
-        markerEnd={`url(#${id}-arrow)`}
-      />
-      {support > 1e-10 && (
+      {[
+        {
+          key: "gravity",
+          x: 455,
+          end: forceOrigin + v.weight * 100,
+          color: "#a8533c",
+        },
+        {
+          key: "buoyancy",
+          x: 420,
+          end: forceOrigin - buoyancy * 100,
+          color: "#297788",
+        },
+        ...(support > 1e-10
+          ? [
+              {
+                key: "support",
+                x: 490,
+                end: forceOrigin - support * 100,
+                color: "#84509b",
+              },
+            ]
+          : []),
+      ].map((f) => (
         <line
-          data-floating-force="support"
-          x1="490"
-          x2="490"
-          y1="330"
-          y2={330 - support * 100}
-          stroke="#84509b"
+          key={f.key}
+          data-floating-force={f.key}
+          x1={f.x}
+          x2={f.x}
+          y1={forceOrigin}
+          y2={q(f.end)}
+          stroke={f.color}
           strokeWidth="2"
           markerEnd={`url(#${id}-arrow)`}
         />
-      )}
-      <text x="468" y={345 + v.weight * 50} style={{ fontSize: 13 }}>
+      ))}
+      <text
+        x="468"
+        y={q(forceOrigin + 15 + v.weight * 50)}
+        style={{ fontSize: 13 }}
+      >
         mg
       </text>
       <text
         x="408"
-        y={325 - buoyancy * 50}
+        y={q(forceOrigin - 5 - buoyancy * 50)}
         textAnchor="end"
         style={{ fontSize: 13 }}
       >
         FА
       </text>
       {support > 1e-10 && (
-        <text x="502" y={325 - support * 50} style={{ fontSize: 13 }}>
+        <text
+          x="502"
+          y={q(forceOrigin - 5 - support * 50)}
+          style={{ fontSize: 13 }}
+        >
           N
         </text>
       )}
-      <text x="300" y="496" textAnchor="middle" style={{ fontSize: 11 }}>
-        Рух схематичний · точки прикладання сил спрощено
+      <rect
+        x="25"
+        y="495"
+        width="550"
+        height="101"
+        rx="14"
+        fill="#fff"
+        stroke="#dbe5d2"
+      />
+      <text
+        data-instrument="floating-status"
+        x="45"
+        y="523"
+        style={{ fontSize: 16, fontWeight: 650 }}
+      >
+        {state}
       </text>
-      <text x="300" y="518" textAnchor="middle" style={{ fontSize: 11 }}>
-        Числові сили та середню густину обчисли самостійно
+      <text x="45" y="551" style={{ fontSize: 12 }}>
+        {g.onBottom
+          ? "Додалася реакція опори: FА + N = mg"
+          : v.state === 0
+            ? "Початково у спокої · зовнішніх опор немає"
+            : v.state < 0 && phase === 1
+              ? "FА = mg · занурена лише частина об’єму"
+              : "Опору води не показано · рух схематичний"}
+      </text>
+      <text x="45" y="578" style={{ fontSize: 11 }}>
+        Пісок всередині · вода не потрапляє у пробірку
+      </text>
+      <text x="300" y="620" textAnchor="middle" style={{ fontSize: 11 }}>
+        Середню густину та числові сили обчисли самостійно
+      </text>
+      <text x="300" y="637" textAnchor="middle" style={{ fontSize: 10 }}>
+        Вертикальну орієнтацію задано · стійкість і точний закон руху не
+        моделюються
       </text>
     </g>
   );

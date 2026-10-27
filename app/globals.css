@@ -3946,7 +3946,8 @@ td {
 .elastic-readouts,
 .friction-readouts,
 .pressure-readouts,
-.hydro-readouts {
+.hydro-readouts,
+.floating-readouts {
   margin: 14px 0;
   padding: 15px;
   border: 1px solid #dce6d3;
@@ -3957,7 +3958,8 @@ td {
 .elastic-readouts dl,
 .friction-readouts dl,
 .pressure-readouts dl,
-.hydro-readouts dl {
+.hydro-readouts dl,
+.floating-readouts dl {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 10px;
@@ -3967,7 +3969,8 @@ td {
 .elastic-readouts dl > div,
 .friction-readouts dl > div,
 .pressure-readouts dl > div,
-.hydro-readouts dl > div {
+.hydro-readouts dl > div,
+.floating-readouts dl > div {
   padding: 10px 12px;
   border-radius: 8px;
   background: #f2f6ed;
@@ -3976,7 +3979,8 @@ td {
 .elastic-readouts dt,
 .friction-readouts dt,
 .pressure-readouts dt,
-.hydro-readouts dt {
+.hydro-readouts dt,
+.floating-readouts dt {
   font-size: 12px;
   color: #5a715b;
 }
@@ -3984,7 +3988,8 @@ td {
 .elastic-readouts dd,
 .friction-readouts dd,
 .pressure-readouts dd,
-.hydro-readouts dd {
+.hydro-readouts dd,
+.floating-readouts dd {
   margin: 8px 0 0;
   font-size: 20px;
   font-weight: 650;
@@ -3995,8 +4000,14 @@ td {
 .elastic-readouts p,
 .friction-readouts p,
 .pressure-readouts p,
-.hydro-readouts p {
+.hydro-readouts p,
+.floating-readouts p {
   margin: 12px 0 0;
   font-size: 12px;
   color: #60735b;
+}
+
+.floating-readouts dd.floating-observation {
+  font-size: 14px;
+  line-height: 1.6;
 }

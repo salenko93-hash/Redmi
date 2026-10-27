@@ -15,6 +15,7 @@ import { labs } from "@/lib/labs";
 import { labTenMethod, labTenQuestions } from "@/lib/lab-ten-material";
 import { initialParameters, simulate } from "@/lib/simulation";
 import { Shell } from "@/components/shell";
+import { FLOATING_SCENE_HEIGHT } from "@/lib/floating-view";
 import { FloatingScene } from "@/components/floating-scene";
 import { FloatingBodiesFigure } from "@/components/floating-bodies-figure";
 import { VirtualLab } from "@/components/virtual-lab";
@@ -30,7 +31,9 @@ function Formula() {
       role="math"
       aria-label="Середня густина дорівнює масі всієї закритої системи, поділеній на її повний зовнішній об’єм"
     >
-      <i>ρсер</i>
+      <i>
+        ρ<sub>сер</sub>
+      </i>
       <span>=</span>
       <span className={styles.fraction}>
         <i>m</i>
@@ -93,7 +96,7 @@ export default async function LabTenMaterial() {
           </div>
           <div className={styles.heroVisual}>
             <svg
-              viewBox="0 0 600 540"
+              viewBox={`0 0 600 ${FLOATING_SCENE_HEIGHT}`}
               className="simulation-scene"
               role="img"
               aria-label="Пробірка з піском у воді та схема сил для її поточного положення"
@@ -346,10 +349,11 @@ export default async function LabTenMaterial() {
                   поверхню.
                 </p>
                 <p>
-                  Рівень рідини в широкій посудині вважається сталим; це не
-                  симуляція відліків мірного циліндра. V задано моделі, а
-                  реальні V₁,V₂ визначають за методикою. Внутрішня геометрія не
-                  обчислюється, зображення піску умовне.
+                  Рівень рідини змінюється відповідно до витісненого об’єму. V
+                  задано моделі, а реальні V₁,V₂ визначають за методикою.
+                  Вільний внутрішній об’єм задано як V−10 см³; насипна густина
+                  піску — 1,6 г/см³. Повзунок обмежений місткістю. За зменшення
+                  V надлишок піску прибирається — це налаштування іншого зразка.
                 </p>
                 <p>
                   Точна нейтральність у моделі є ідеальним випадком. Цифрові

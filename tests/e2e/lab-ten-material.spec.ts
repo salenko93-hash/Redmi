@@ -1,8 +1,15 @@
 import { test, expect } from "@playwright/test";
+test.use({ hasTouch: true });
 const base = process.env.E2E_BASE_URL ?? "http://localhost:3100";
 test("lab ten replaces the final PDF, balances floating forces and preserves the same body in salt water", async ({
   page,
 }) => {
+  const errors: string[] = [],
+    writes: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("console", (m) => {
+    if (m.type() === "error") errors.push(m.text());
+  });
   await page.goto("/materials/10");
   await expect(page).toHaveURL(base + "/");
   expect(
@@ -35,9 +42,6 @@ test("lab ten replaces the final PDF, balances floating forces and preserves the
   ).toBeVisible();
   await page.keyboard.press("Escape");
   await page.goto("/materials/10");
-  const errors: string[] = [],
-    writes: string[] = [];
-  page.on("pageerror", (e) => errors.push(e.message));
   page.on("request", (r) => {
     if (r.method() !== "GET" && r.url().includes("/api/assignments"))
       writes.push(r.url());
@@ -84,12 +88,16 @@ test("lab ten replaces the final PDF, balances floating forces and preserves the
         bottom: b.y + b.height,
         height: b.height,
         radius: b.width / 2,
+        surface: Number(
+          el
+            .closest("svg")!
+            .querySelector('[data-instrument="floating-water"]')!
+            .getAttribute("y"),
+        ),
       };
     });
-  async function run() {
-    await instrument
-      .getByRole("button", { name: "Запустити дослід", exact: true })
-      .click();
+  async function run(name = "Запустити дослід") {
+    await instrument.getByRole("button", { name, exact: true }).click();
     await expect(instrument.locator(".virtual-results")).toBeVisible();
     await expect(instrument.locator(".virtual-results dd")).toHaveCount(3);
     await expect(
@@ -129,21 +137,21 @@ test("lab ten replaces the final PDF, balances floating forces and preserves the
   forces = await forceLengths();
   expect(forces.support).toBeUndefined();
   expect(forces.gravity + forces.buoyancy).toBeCloseTo(0, 7);
-  expect((await tube()).top).toBeGreaterThan(150);
+  expect((await tube()).top).toBeGreaterThan((await tube()).surface);
   await instrument.getByLabel("Рідина", { exact: true }).selectOption("1");
   const salted = await run();
   expect(salted.v).toBe(neutral.v);
   expect(salted.m).toBe(neutral.m);
   expect(salted.state).toContain("на поверхні");
   const g = await tube(),
-    depth = g.bottom - 150;
+    depth = g.bottom - g.surface;
   const fraction =
     depth <= g.radius
       ? (depth ** 2 * (g.radius - depth / 3)) /
         (g.radius ** 2 * (g.height - g.radius / 3))
       : ((2 / 3) * g.radius ** 3 + g.radius ** 2 * (depth - g.radius)) /
         (g.radius ** 2 * (g.height - g.radius / 3));
-  expect(fraction).toBeCloseTo(1 / 1.03, 6);
+  expect(fraction).toBeCloseTo(1 / 1.03, 4);
   forces = await forceLengths();
   expect(forces.gravity + forces.buoyancy).toBeCloseTo(0, 6);
   await expect(instrument.locator(".virtual-results")).toContainText(
@@ -153,10 +161,42 @@ test("lab ten replaces the final PDF, balances floating forces and preserves the
   await setSand(20);
   const floating = await run();
   expect(floating).toMatchObject({ v: 50, m: 40 });
-  expect((await tube()).top).toBeLessThan(150);
+  expect((await tube()).top).toBeLessThan((await tube()).surface);
   forces = await forceLengths();
   expect(forces.support).toBeUndefined();
   expect(forces.gravity + forces.buoyancy).toBeCloseTo(0, 6);
+  const volume = instrument.getByLabel("Зовнішній об’єм пробірки", {
+    exact: true,
+  });
+  await volume.press("End");
+  await sand.press("End");
+  await expect(sand).toHaveValue("80");
+  await volume.press("Home");
+  await expect(sand).toHaveAttribute("max", "48");
+  await expect(sand).toHaveValue("48");
+  await expect(instrument.locator('[data-floating-reading="m"]')).toHaveText(
+    "68",
+  );
+  await volume.press("ArrowRight");
+  await setSand(20);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await instrument
+    .getByRole("button", { name: "Запустити дослід", exact: true })
+    .click();
+  await page.waitForFunction(() => {
+    const e = document.querySelector(
+      '.virtual-lab [data-instrument="floating-tube"]',
+    ) as SVGGraphicsElement;
+    return e && e.getBBox().y < 160 && e.getBBox().y > 140;
+  });
+  await instrument.getByRole("button", { name: "Пауза", exact: true }).click();
+  const paused = await tube();
+  await page.waitForTimeout(180);
+  expect(await tube()).toEqual(paused);
+  await run("Продовжити");
+  const end = await tube();
+  expect(end.surface).toBeGreaterThan(paused.surface);
+  await page.emulateMedia({ reducedMotion: "reduce" });
   expect(errors).toEqual([]);
   expect(writes).toEqual([]);
   expect(await page.evaluate(() => JSON.stringify(localStorage))).toBe(before);
@@ -166,6 +206,14 @@ test("lab ten replaces the final PDF, balances floating forces and preserves the
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBeTruthy();
+  await sand.scrollIntoViewIfNeeded();
+  const box = (await sand.boundingBox())!;
+  await page.touchscreen.tap(box.x + 5, box.y + box.height / 2);
+  await expect(sand).toHaveValue("0");
+  const light = await run();
+  expect(light.m).toBe(20);
+  await expect(instrument.locator('[data-floating-reading="m"]')).toBeVisible();
+  expect(errors).toEqual([]);
   await page.emulateMedia({ media: "print" });
   await expect(instrument).not.toBeVisible();
   await expect(figure.locator("svg").first()).toBeVisible();

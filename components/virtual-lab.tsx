@@ -42,6 +42,11 @@ import { HydroScene } from "./hydro-scene";
 import { HydroReadouts } from "./hydro-readouts";
 import { HYDRO_SCENE_HEIGHT } from "@/lib/hydro-view";
 import { FloatingScene } from "./floating-scene";
+import { FloatingReadouts } from "./floating-readouts";
+import {
+  FLOATING_SCENE_HEIGHT,
+  floatingSandCapacity,
+} from "@/lib/floating-view";
 
 function Scene({
   number: n,
@@ -81,7 +86,7 @@ function Scene({
                     ? PRESSURE_SCENE_HEIGHT
                     : n === 9
                       ? HYDRO_SCENE_HEIGHT
-                      : 540;
+                      : FLOATING_SCENE_HEIGHT;
   return (
     <svg
       className="simulation-scene"
@@ -258,7 +263,12 @@ export function VirtualLab({
         : 0;
     reset();
     if (number === 6 && key === "mass") setElasticStart(previousExtension);
-    setParameters((p) => ({ ...p, [key]: value }));
+    setParameters((p) => {
+      const next = { ...p, [key]: value };
+      if (number === 10)
+        next.sand = Math.min(next.sand, floatingSandCapacity(next.volume));
+      return next;
+    });
   }
   function record() {
     const readings = Object.fromEntries(
@@ -384,6 +394,13 @@ export function VirtualLab({
           {number === 9 && (
             <HydroReadouts readings={result.readings} phase={phase} />
           )}
+          {number === 10 && (
+            <FloatingReadouts
+              readings={result.readings}
+              phase={phase}
+              message={result.message}
+            />
+          )}
           <div
             className={`virtual-controls${number === 1 ? " ramp-controls" : ""}`}
           >
@@ -414,7 +431,11 @@ export function VirtualLab({
                       disabled={running}
                       type="range"
                       min={c.min}
-                      max={c.max}
+                      max={
+                        number === 10 && c.key === "sand"
+                          ? floatingSandCapacity(parameters.volume)
+                          : c.max
+                      }
                       step={c.step}
                       value={parameters[c.key]}
                       onChange={(e) => adjust(c.key, Number(e.target.value))}
@@ -628,14 +649,23 @@ export function VirtualLab({
             </p>
           </section>
         )}
+        {number === 10 && (
+          <p className="muted">
+            Місткість: до {floatingSandCapacity(parameters.volume)} г піску для
+            обраної пробірки. При зменшенні об’єму надлишок піску прибирається.
+            Насипна густина — 1,6 г/см³; вільний об’єм — V − 10 см³.
+          </p>
+        )}
         <p className="muted">
-          {number === 9
-            ? "Показано повільне підняття посудини як послідовність рівноважних станів. Швидкість підйому не вимірюється. "
-            : number === 8
-              ? "Відлік показує огляд розмірів нерухомого бруска, а не рух чи зміну сили. "
-              : number === 1 || number === 3
-                ? "Відтворення 1×: рух і відлік використовують фізичний час моделі. "
-                : "Анімацію може бути прискорено. Покази часу нижче — фізичний час моделі, а не тривалість анімації. "}
+          {number === 10
+            ? "Показано напрям руху, а не точний розрахунок часу. На дні з’являється реакція опори. "
+            : number === 9
+              ? "Показано повільне підняття посудини як послідовність рівноважних станів. Швидкість підйому не вимірюється. "
+              : number === 8
+                ? "Відлік показує огляд розмірів нерухомого бруска, а не рух чи зміну сили. "
+                : number === 1 || number === 3
+                  ? "Відтворення 1×: рух і відлік використовують фізичний час моделі. "
+                  : "Анімацію може бути прискорено. Покази часу нижче — фізичний час моделі, а не тривалість анімації. "}
           Усі дані синтетичні; випадкова похибка не додається.
         </p>
         {phase === 1 &&
@@ -643,7 +673,8 @@ export function VirtualLab({
           number !== 6 &&
           number !== 7 &&
           number !== 8 &&
-          number !== 9 && (
+          number !== 9 &&
+          number !== 10 && (
             <div className="virtual-results">
               <h4>Покази приладів</h4>
               <dl>
