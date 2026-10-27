@@ -93,7 +93,8 @@ async function handle(
           user?.passwordHash ??
             "$2b$12$R9h/cIPz0gi.URNNX3kh2OPST9/PgBkqquzi.Ss7KIUgO2t0jWMUW",
         );
-        if (!user || !valid) return fail("Неправильна пошта або пароль.", 401);
+        if (!user || !valid || !user.isActive)
+          return fail("Неправильна пошта або пароль.", 401);
         await createSession(user.id);
         return json({ ok: true });
       }
@@ -108,6 +109,7 @@ async function handle(
               tokenHash: hashToken(input.invite),
               usedAt: null,
               expiresAt: { gt: new Date() },
+              OR: [{ email: null }, { email: input.email }],
             },
             data: { usedAt: new Date() },
           });
@@ -907,6 +909,8 @@ async function handle(
         "Дані змінилися на іншому пристрої або роботу вже здано. Завантажте серверну версію.",
         409,
       );
+    if (err instanceof Error && err.message === "ACCOUNT_DISABLED")
+      return fail("Неправильна пошта або пароль.", 401);
     if (err instanceof Error && err.message === "INVALID_INVITE")
       return fail("Запрошення недійсне або вже використане.");
     if (

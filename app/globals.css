@@ -2161,6 +2161,9 @@ td {
     z-index: 40;
   }
   .mobile-nav a {
+    min-width: 0;
+    text-align: center;
+    overflow-wrap: anywhere;
     display: flex;
     flex-direction: column;
     justify-content: center;

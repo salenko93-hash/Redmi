@@ -1,0 +1,133 @@
+.root {
+  min-width: 0;
+}
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
+}
+.metrics > div {
+  background: #eef3e7;
+  border: 1px solid #dce5d1;
+  border-radius: 16px;
+  padding: 24px;
+  display: grid;
+  gap: 10px;
+}
+.metrics small {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: #657a57;
+  font-weight: 700;
+}
+.metrics strong {
+  font-size: 36px;
+  color: #285540;
+  line-height: 1;
+}
+.metrics span {
+  color: #68756c;
+  font-size: 13px;
+}
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+.columns > * {
+  min-width: 0;
+}
+.heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+.heading h2 {
+  margin-top: 0;
+}
+.root table {
+  min-width: 580px;
+}
+.root td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.email {
+  display: block;
+  font-size: 12px;
+  color: #6b796f;
+  margin: 6px 0;
+}
+.active {
+  color: #285540;
+  font-weight: 600;
+}
+.blocked {
+  color: #9b563f;
+  font-weight: 600;
+}
+.notice,
+.invite {
+  padding: 18px;
+  border: 1px solid #dce5d1;
+  background: #f1f6e9;
+  border-radius: 12px;
+  overflow-wrap: anywhere;
+}
+.notice {
+  margin: 0 0 22px;
+}
+.invite {
+  margin-top: 20px;
+}
+.invite p {
+  font-size: 13px;
+  line-height: 1.7;
+}
+.invite textarea {
+  font-family: monospace;
+  font-size: 14px;
+}
+.root form {
+  display: grid;
+  gap: 14px;
+}
+.root form label,
+.invite label {
+  display: grid;
+  gap: 8px;
+}
+.root form input,
+.invite textarea {
+  width: 100%;
+  min-width: 0;
+}
+@media (max-width: 1150px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+}
+@media (max-width: 600px) {
+  .metrics {
+    gap: 8px;
+  }
+  .metrics > div {
+    padding: 14px 10px;
+  }
+  .metrics strong {
+    font-size: 28px;
+  }
+  .metrics small {
+    font-size: 8px;
+    letter-spacing: 0.6px;
+  }
+  .metrics span {
+    font-size: 11px;
+  }
+  .root table {
+    min-width: 560px;
+  }
+}

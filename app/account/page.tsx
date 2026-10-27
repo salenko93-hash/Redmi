@@ -12,7 +12,12 @@ export default async function Account() {
           <div className="eyebrow">МІЙ ПРОФІЛЬ</div>
           <h1>{u.name}</h1>
           <p>
-            {u.email} · {u.role === "TEACHER" ? "Учитель" : "Учень / учениця"}
+            {u.email} ·{" "}
+            {u.isAdmin
+              ? "Учитель · адміністратор"
+              : u.role === "TEACHER"
+                ? "Учитель"
+                : "Учень / учениця"}
           </p>
         </div>
       </div>

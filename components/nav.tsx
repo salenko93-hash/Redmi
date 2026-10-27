@@ -9,8 +9,17 @@ import {
   LogOut,
   Atom,
   ArrowUpRight,
+  ShieldCheck,
 } from "lucide-react";
-export function Navigation({ name, role }: { name: string; role: string }) {
+export function Navigation({
+  name,
+  role,
+  isAdmin = false,
+}: {
+  name: string;
+  role: string;
+  isAdmin?: boolean;
+}) {
   const path = usePathname();
   const router = useRouter();
   const items = [
@@ -20,6 +29,7 @@ export function Navigation({ name, role }: { name: string; role: string }) {
     ...(role === "TEACHER"
       ? [["/journal", "Журнал оцінок", NotebookPen] as const]
       : []),
+    ...(isAdmin ? [["/admin", "Адміністрування", ShieldCheck] as const] : []),
   ] as const;
   return (
     <>
@@ -65,7 +75,13 @@ export function Navigation({ name, role }: { name: string; role: string }) {
           </span>
           <div>
             <strong>{name}</strong>
-            <small>{role === "TEACHER" ? "Учитель" : "Учень / учениця"}</small>
+            <small>
+              {isAdmin
+                ? "Учитель · адміністратор"
+                : role === "TEACHER"
+                  ? "Учитель"
+                  : "Учень / учениця"}
+            </small>
           </div>
           <button
             className="icon-button"

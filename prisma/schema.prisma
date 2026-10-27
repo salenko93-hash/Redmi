@@ -23,6 +23,8 @@ model User {
   recoveryHash String?
   passwordHash String
   role Role @default(STUDENT)
+  isActive Boolean @default(true)
+  isAdmin Boolean @default(false)
   createdAt DateTime @default(now())
   sessions Session[]
   ownedClasses Classroom[]
@@ -30,6 +32,7 @@ model User {
   submissions Submission[]
   comments Comment[]
   claimedStudentInvites StudentInvite[]
+  adminActions AdminAudit[]
 }
 model Session {
   tokenHash String @id
@@ -47,6 +50,10 @@ model TeacherInvite {
   tokenHash String @id
   expiresAt DateTime
   usedAt DateTime?
+  email String?
+  createdById String?
+  createdAt DateTime @default(now())
+  @@index([email,expiresAt])
 }
 model Classroom {
   id String @id @default(cuid())
@@ -149,4 +156,15 @@ model Comment {
   createdAt DateTime @default(now())
   submission Submission @relation(fields:[submissionId], references:[id], onDelete:Cascade)
   author User @relation(fields:[authorId], references:[id])
+}
+
+model AdminAudit {
+  id String @id @default(cuid())
+  actorId String?
+  targetId String?
+  action String
+  detail Json
+  createdAt DateTime @default(now())
+  actor User? @relation(fields:[actorId], references:[id], onDelete:SetNull)
+  @@index([createdAt])
 }

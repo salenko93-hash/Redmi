@@ -14,7 +14,7 @@ export async function Shell({
   if (!user) redirect("/");
   return (
     <div className="app-shell">
-      <Navigation name={user.name} role={user.role} />
+      <Navigation name={user.name} role={user.role} isAdmin={user.isAdmin} />
       <div className="main-wrapper">
         <header className="topbar">
           <span>{title}</span>

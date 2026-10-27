@@ -11,20 +11,30 @@ export async function currentUser() {
     where: { tokenHash: hashToken(token) },
     include: { user: true },
   });
-  return s && s.expiresAt > new Date()
+  return s && s.expiresAt > new Date() && s.user.isActive
     ? {
         id: s.user.id,
         name: s.user.name,
         email: s.user.email,
         role: s.user.role,
+        isAdmin: s.user.isAdmin,
       }
     : null;
 }
 export async function createSession(userId: string) {
   const token = newToken();
   const expiresAt = new Date(Date.now() + 7 * 86400000);
-  await db.session.create({
-    data: { tokenHash: hashToken(token), userId, expiresAt },
+  await db.$transaction(async (tx) => {
+    // Share the user-row lock with access changes so a blocked login cannot leave a live session.
+    await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${userId} FOR UPDATE`;
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { isActive: true },
+    });
+    if (!user?.isActive) throw new Error("ACCOUNT_DISABLED");
+    await tx.session.create({
+      data: { tokenHash: hashToken(token), userId, expiresAt },
+    });
   });
   (await cookies()).set("fizlab_session", token, {
     httpOnly: true,
