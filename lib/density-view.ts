@@ -1,6 +1,27 @@
-/** Geometry of a schematic prism-shaped rock and a calibrated cylinder. */
-export const CYLINDER_BASE = 300;
-export const ML_TO_PIXELS = 0.75;
+/** Geometry only: displayed dimensions do not change the recorded physics model. */
+export const CYLINDER_BASE = 350;
+export const ML_TO_PIXELS = 0.9;
+export const CYLINDER_CAPACITY = 250;
+export const densitySceneHeight = (experiment: string) =>
+  experiment === "liquid" ? 540 : 460;
+export const cylinderLevel = (volume: number) =>
+  CYLINDER_BASE - volume * ML_TO_PIXELS;
+export function densityBlockGeometry(
+  length: number,
+  width: number,
+  height: number,
+) {
+  return {
+    x: 70,
+    base: 356,
+    length: length * 32,
+    height: height * 32,
+    depthX: width * 12,
+    depthY: width * 8,
+  };
+}
+/** Stable SVG attributes across server and browser math libraries. */
+export const densityCoordinate = (value: number) => Number(value.toFixed(4));
 export const rockOutline: readonly (readonly [number, number])[] = [
   [-0.9, -1],
   [0.7, -0.95],
@@ -50,7 +71,7 @@ export function densityImmersion(
 ) {
   const radius = 22 * size;
   const centerY =
-    73 + radius + phase * (CYLINDER_BASE - radius - 5 - (73 + radius));
+    145 + radius + phase * (CYLINDER_BASE - radius - 5 - (145 + radius));
   let low = water,
     high = water + volume;
   for (let i = 0; i < 40; i++) {

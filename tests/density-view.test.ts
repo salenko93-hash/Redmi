@@ -2,6 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   CYLINDER_BASE,
+  CYLINDER_CAPACITY,
+  cylinderLevel,
+  densityBlockGeometry,
   densityImmersion,
   rockOutline,
 } from "../lib/density-view";
@@ -15,6 +18,11 @@ test("displacement view stays monotonic and fully submerges every supported samp
       const size = 0.5 + step * 0.1,
         volume = 20 * size ** 3;
       let previous = water;
+      const initial = densityImmersion(water, volume, size, 0);
+      assert.ok(
+        initial.centerY + initial.radius < initial.surface,
+        "sample starts above the water for every allowed size",
+      );
       for (let frame = 0; frame <= 20; frame++) {
         const state = densityImmersion(water, volume, size, frame / 20);
         assert.ok(state.reading >= previous - 1e-7);
@@ -38,6 +46,30 @@ test("displacement view stays monotonic and fully submerges every supported samp
         );
       }
     }
+});
+
+test("graduated cylinders share one linear scale and fit the full volume range", () => {
+  assert.equal(cylinderLevel(0), CYLINDER_BASE);
+  for (let volume = 0; volume <= CYLINDER_CAPACITY; volume += 10) {
+    assert.ok(cylinderLevel(volume) >= 125);
+    if (volume > 0)
+      assert.ok(
+        Math.abs(cylinderLevel(volume - 10) - cylinderLevel(volume) - 9) < 1e-9,
+      );
+  }
+  assert.ok(150 + 20 * 1.5 ** 3 < CYLINDER_CAPACITY);
+});
+
+test("block dimensions preserve fixed scales while all allowed specimens fit the measurement scene", () => {
+  const first = densityBlockGeometry(4, 2, 2),
+    last = densityBlockGeometry(8, 5, 5);
+  assert.equal(last.length / first.length, 2);
+  assert.equal(last.height / first.height, 2.5);
+  assert.equal(last.depthX / first.depthX, 2.5);
+  assert.equal(last.depthY / first.depthY, 2.5);
+  assert.equal(first.length / 4, first.height / 2);
+  assert.ok(last.x + last.length + last.depthX < 420);
+  assert.ok(last.base - last.height - last.depthY > 60);
 });
 
 test("density series convert independently calculated density to SI without returning it as a reading", () => {

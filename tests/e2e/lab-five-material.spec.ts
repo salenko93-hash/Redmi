@@ -1,9 +1,16 @@
 import { test, expect } from "@playwright/test";
+import { CYLINDER_BASE } from "../../lib/density-view";
 const base = process.env.E2E_BASE_URL ?? "http://localhost:3100";
 test.use({ hasTouch: true });
 test("lab five replaces PDF and preserves dimensions, displaced volume, tare and independent calculations", async ({
   page,
-}) => {
+}, testInfo) => {
+  const errors: string[] = [],
+    writes: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("console", (m) => {
+    if (m.type() === "error") errors.push(m.text());
+  });
   await page.goto("/materials/5");
   await expect(page).toHaveURL(base + "/");
   expect(
@@ -24,6 +31,10 @@ test("lab five replaces PDF and preserves dimensions, displaced volume, tare and
   await page.getByRole("button", { name: "3 Запитання", exact: true }).click();
   await expect(page.locator(".oil-label-figure")).toBeVisible();
   await expect(page.locator(".oil-label-figure img")).toHaveCount(0);
+  await page.locator(".oil-label-figure").screenshot({
+    path: testInfo.outputPath("realistic-oil-label.png"),
+    caret: "initial",
+  });
   await page
     .getByRole("button", { name: "Збільшити етикетку", exact: true })
     .click();
@@ -89,9 +100,6 @@ test("lab five replaces PDF and preserves dimensions, displaced volume, tare and
   await page.setViewportSize({ width: 1280, height: 900 });
 
   await page.goto("/materials/5");
-  const errors: string[] = [],
-    writes: string[] = [];
-  page.on("pageerror", (e) => errors.push(e.message));
   page.on("request", (r) => {
     if (r.method() !== "GET" && r.url().includes("/api/assignments"))
       writes.push(r.url());
@@ -115,6 +123,13 @@ test("lab five replaces PDF and preserves dimensions, displaced volume, tare and
   await expect(tabs.getByRole("tab")).toHaveCount(3);
   const instrument = page.locator(".virtual-lab");
   await expect(instrument).toHaveCount(1);
+  await expect(
+    instrument.getByRole("region", { name: "Покази приладів" }),
+  ).toContainText("11,2");
+  await instrument.screenshot({
+    path: testInfo.outputPath("realistic-density-block.png"),
+    caret: "initial",
+  });
   const toolbarPosition = await instrument.evaluate((el) => {
     const scene = el
       .querySelector("svg.simulation-scene")!
@@ -175,6 +190,9 @@ test("lab five replaces PDF and preserves dimensions, displaced volume, tare and
   await page.keyboard.press("ArrowRight");
   await expect(tabs.getByRole("tab").nth(1)).toBeFocused();
   await expect(instrument.locator(".virtual-results")).toHaveCount(0);
+  await expect(instrument.locator('[data-density-reading="V2"]')).toHaveText(
+    "—",
+  );
   await instrument
     .getByLabel("Початковий об’єм води", { exact: true })
     .press("Home");
@@ -195,14 +213,23 @@ test("lab five replaces PDF and preserves dimensions, displaced volume, tare and
     return { y: b.y, bottom: b.y + b.height, width: b.width };
   });
   const surface = Number(
-    await instrument.locator('[data-cylinder="after"] rect').getAttribute("y"),
+    await instrument
+      .locator('[data-cylinder="after"] [data-instrument="cylinder-water"]')
+      .getAttribute("y"),
   );
   expect(rockBox.y).toBeGreaterThan(surface);
-  expect(rockBox.bottom).toBeLessThan(300);
+  expect(rockBox.bottom).toBeLessThan(CYLINDER_BASE);
   await expect(instrument).toContainText("Тонка спиця");
   await expect(
     instrument.locator('[data-instrument="density-mass"]'),
   ).toHaveText(readings[0].replace(".", ",") + " г");
+  await expect(instrument.locator('[data-density-reading="V2"]')).toHaveText(
+    readings[2].replace(".", ","),
+  );
+  await instrument.screenshot({
+    path: testInfo.outputPath("realistic-density-immersion.png"),
+    caret: "initial",
+  });
   await instrument.getByLabel("Масштаб зразка", { exact: true }).press("Home");
   await run(3);
   expect(await displacement()).toBeCloseTo(2.5, 5);
@@ -213,11 +240,45 @@ test("lab five replaces PDF and preserves dimensions, displaced volume, tare and
   await tabs.getByRole("tab").nth(1).focus();
   await page.keyboard.press("End");
   await expect(tabs.getByRole("tab").last()).toBeFocused();
+  await expect(instrument.locator('[data-density-reading="m2"]')).toHaveText(
+    "—",
+  );
   await instrument.getByLabel("Об’єм рідини", { exact: true }).press("Home");
   const parse = (s: string) => Number(s.replace(",", "."));
   const small = (await run(3)).map(parse);
   await instrument.getByLabel("Об’єм рідини", { exact: true }).press("End");
-  readings = await run(3);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await instrument
+    .getByRole("button", { name: "Запустити дослід", exact: true })
+    .click();
+  await expect(
+    instrument.locator('[data-instrument="density-pouring"]'),
+  ).toBeVisible();
+  await instrument.getByRole("button", { name: "Пауза", exact: true }).click();
+  const pouringVolume = () =>
+    instrument
+      .locator('[data-cylinder="liquid"] [data-instrument="cylinder-water"]')
+      .getAttribute("data-volume");
+  const paused = Number(await pouringVolume());
+  expect(paused).toBeGreaterThan(0);
+  expect(paused).toBeLessThan(150);
+  const mass = parse(
+    (await instrument
+      .locator('[data-instrument="liquid-total-mass"]')
+      .textContent())!.replace(" г", ""),
+  );
+  expect(mass).toBeCloseTo(60 + paused, 3);
+  await page.waitForTimeout(180);
+  expect(Number(await pouringVolume())).toBe(paused);
+  await expect(instrument.locator('[data-density-reading="m2"]')).toHaveText(
+    "—",
+  );
+  await instrument
+    .getByRole("button", { name: "Продовжити", exact: true })
+    .click();
+  await expect(instrument.locator(".virtual-results dd")).toHaveCount(3);
+  readings = await instrument.locator(".virtual-results dd").allTextContents();
+  await page.emulateMedia({ reducedMotion: "reduce" });
   const large = readings.map(parse);
   expect(large[0]).toBe(small[0]);
   expect((large[1] - large[0]) / (small[1] - small[0])).toBeCloseTo(3, 5);
@@ -226,12 +287,48 @@ test("lab five replaces PDF and preserves dimensions, displaced volume, tare and
     instrument.locator('[data-instrument="liquid-total-mass"]'),
   ).toHaveText(readings[1].replace(".", ",") + " г");
   await expect(
-    instrument.locator('[data-instrument="cylinder-water"]'),
+    instrument.locator(
+      '[data-cylinder="liquid"] [data-instrument="cylinder-water"]',
+    ),
   ).toHaveAttribute("data-volume", "150");
+  await expect(
+    instrument.locator(
+      '[data-cylinder="empty"] [data-instrument="cylinder-water"]',
+    ),
+  ).toHaveAttribute("data-volume", "0");
+  await expect(
+    instrument.locator('[data-instrument="liquid-empty-mass"]'),
+  ).toHaveText(readings[0].replace(".", ",") + " г");
+  await instrument.screenshot({
+    path: testInfo.outputPath("realistic-density-liquid.png"),
+    caret: "initial",
+  });
   expect(writes).toEqual([]);
   expect(errors).toEqual([]);
   expect(await page.evaluate(() => JSON.stringify(localStorage))).toBe(before);
   await page.setViewportSize({ width: 390, height: 844 });
+  await instrument
+    .getByRole("button", { name: "Скинути прилад", exact: true })
+    .tap();
+  await expect(instrument.locator('[data-density-reading="m2"]')).toHaveText(
+    "—",
+  );
+  await expect(
+    instrument.locator(
+      '[data-cylinder="liquid"] [data-instrument="cylinder-water"]',
+    ),
+  ).toHaveAttribute("data-volume", "0");
+  await instrument
+    .getByRole("button", { name: "Запустити дослід", exact: true })
+    .tap();
+  await expect(instrument.locator('[data-density-reading="V"]')).toHaveText(
+    "150",
+  );
+  await instrument.evaluate((el) => el.scrollIntoView({ block: "start" }));
+  await page.screenshot({
+    path: testInfo.outputPath("realistic-density-mobile.png"),
+    caret: "initial",
+  });
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
@@ -266,4 +363,5 @@ test("lab five replaces PDF and preserves dimensions, displaced volume, tare and
   ).not.toBeVisible();
   await expect(instrument).not.toBeVisible();
   await expect(label).toBeVisible();
+  expect(errors).toEqual([]);
 });

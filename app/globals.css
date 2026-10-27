@@ -3941,3 +3941,38 @@ td {
   overflow-wrap: anywhere;
   margin: 5px 0;
 }
+
+.density-readouts {
+  margin: 14px 0;
+  padding: 15px;
+  border: 1px solid #dce6d3;
+  border-radius: 12px;
+  background: #fff;
+}
+.density-readouts dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+.density-readouts dl > div {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f2f6ed;
+}
+.density-readouts dt {
+  font-size: 12px;
+  color: #5a715b;
+}
+.density-readouts dd {
+  margin: 8px 0 0;
+  font-size: 20px;
+  font-weight: 650;
+  color: #294d3b;
+  font-variant-numeric: tabular-nums;
+}
+.density-readouts p {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: #60735b;
+}

@@ -98,12 +98,13 @@ export default async function LabFiveMaterial() {
           </div>
           <div className={styles.heroVisual}>
             <svg
-              viewBox="0 0 600 400"
+              viewBox="0 0 600 460"
               className="simulation-scene"
               role="img"
               aria-label="Брусок із вимірюваними довжиною, шириною, висотою та масою"
             >
               <DensityScene
+                id="material-five-density"
                 experiment="regular"
                 parameters={p}
                 result={r}

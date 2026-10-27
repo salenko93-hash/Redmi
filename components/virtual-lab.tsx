@@ -26,6 +26,9 @@ import { RotationScene } from "./rotation-scene";
 import { PendulumScene } from "./pendulum-scene";
 import { BalanceScene } from "./balance-scene";
 import { DensityScene } from "./density-scene";
+import { DensityReadouts } from "./density-readouts";
+import { densitySceneHeight } from "@/lib/density-view";
+import { advanceSimulationClock } from "@/lib/simulation-time";
 import { ElasticScene } from "./elastic-scene";
 import { FrictionScene } from "./friction-scene";
 import { PressureScene } from "./pressure-scene";
@@ -59,7 +62,7 @@ function Scene({
           : n === 4
             ? 450
             : n === 5
-              ? 400
+              ? densitySceneHeight(experiment)
               : n === 6
                 ? 440
                 : n === 7
@@ -130,6 +133,7 @@ function Scene({
       )}
       {n === 5 && (
         <DensityScene
+          id={id + "-density"}
           experiment={experiment}
           parameters={p}
           result={r}
@@ -200,11 +204,14 @@ export function VirtualLab({
       "(prefers-reduced-motion: reduce)",
     ).matches;
     const tick = (now: number) => {
-      phaseRef.current = Math.min(
-        1,
-        phaseRef.current + (now - last) / milliseconds,
+      const next = advanceSimulationClock(
+        phaseRef.current,
+        last,
+        now,
+        milliseconds,
       );
-      last = now;
+      phaseRef.current = next.phase;
+      last = next.last;
       if (reduced) {
         phaseRef.current = 1;
       }
@@ -318,6 +325,13 @@ export function VirtualLab({
                   : "Готово до досліду"}
             </span>
           </div>
+          {number === 5 && (
+            <DensityReadouts
+              experiment={experiment.id}
+              readings={result.readings}
+              phase={phase}
+            />
+          )}
           <div
             className={`virtual-controls${number === 1 ? " ramp-controls" : ""}`}
           >
@@ -568,7 +582,7 @@ export function VirtualLab({
             : "Анімацію може бути прискорено. Покази часу нижче — фізичний час моделі, а не тривалість анімації. "}
           Усі дані синтетичні; випадкова похибка не додається.
         </p>
-        {phase === 1 && (
+        {phase === 1 && number !== 5 && (
           <div className="virtual-results">
             <h4>Покази приладів</h4>
             <dl>
