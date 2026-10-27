@@ -43,7 +43,8 @@ test("lab five replaces PDF and preserves dimensions, displaced volume, tare and
   await reference.getByLabel("Знайти речовину").fill("водень");
   await expect(reference.locator("tbody tr:visible")).toHaveCount(1);
   await expect(reference.locator("tbody tr:visible")).toContainText("0,00009");
-  await page.locator(".tools > summary").click();
+  await expect(page.locator(".tools summary")).toHaveCount(0);
+  await expect(page.locator(".tools .stopwatch")).toHaveCount(0);
   const calculator = page.getByRole("region", {
     name: "Калькулятор",
     exact: true,

@@ -1211,29 +1211,17 @@ td {
   overflow: hidden;
   margin-bottom: 15px;
 }
-.tools summary {
+.tools-heading {
   display: flex;
   align-items: center;
   gap: 9px;
   padding: 17px;
   font-size: 11px;
-  cursor: pointer;
   color: #71895c;
   font-weight: 600;
 }
 .tools-content {
   padding: 0 17px 17px;
-}
-.stopwatch {
-  font-size: 32px;
-  font-variant-numeric: tabular-nums;
-  color: #4b673e;
-  text-align: center;
-  margin: 15px 0;
-}
-.stopwatch small {
-  font-size: 13px;
-  color: #9fac91;
 }
 .button-row {
   display: flex;
@@ -2349,7 +2337,7 @@ td {
   .work-aside .button {
     font-size: 11px;
   }
-  .tools summary {
+  .tools-heading {
     min-height: 48px;
   }
   .text-button {
@@ -3856,4 +3844,44 @@ td {
   .density-reference-table tr {
     break-inside: avoid;
   }
+}
+
+.ramp-controls label:last-child {
+  grid-column: 1 / -1;
+}
+.ramp-time-readout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 14px 0;
+  padding: 14px 16px;
+  border: 1px solid #dbe5d3;
+  border-radius: 10px;
+  background: #f3f7ee;
+}
+.ramp-time-readout > span {
+  font-size: 12px;
+  color: #536e46;
+}
+.ramp-time-readout label {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12px;
+  color: #657563;
+}
+.ramp-time-readout output {
+  color: #285540;
+  font-size: 23px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tools-content > .research-calculator:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
 }

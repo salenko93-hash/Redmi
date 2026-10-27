@@ -34,6 +34,19 @@ test("all ten virtual laboratories operate on a touch-sized screen", async ({
     await page
       .getByRole("button", { name: "2 Експеримент", exact: true })
       .click();
+    const calculator = page.getByRole("region", {
+      name: "Калькулятор",
+      exact: true,
+    });
+    await expect(calculator).toBeVisible();
+    await expect(page.locator(".tools summary, .tools .stopwatch")).toHaveCount(
+      0,
+    );
+    await calculator.getByLabel("Арифметичний вираз").fill("2+3");
+    await calculator.getByLabel("Арифметичний вираз").press("Enter");
+    await expect(calculator.getByLabel("Результат калькулятора")).toHaveText(
+      "5",
+    );
     const instruments = page.locator(".virtual-lab");
     expect(await instruments.count()).toBe(
       labs[n - 1].content.experiments.length,
@@ -149,6 +162,7 @@ test("virtual readings persist, clear stale calculations, enforce mode and survi
     ).status(),
   ).toBe(403);
   const p = initialParameters(1, "speed");
+  delete p.airResistance; // Previously saved v1 record with material and diameter, before air drag existed.
   const record: SimulationRecord = {
     modelVersion: 1,
     labNumber: 1,
@@ -189,6 +203,21 @@ test("virtual readings persist, clear stale calculations, enforce mode and survi
       })
     ).status(),
   ).toBe(422);
+  // Save a genuine legacy record, then verify the instrument restores ideal conditions.
+  expect(
+    (
+      await student.put(`/api/assignments/${a.id}/submission`, {
+        headers,
+        data: {
+          revision: 0,
+          answers: {
+            simulationRecords: [record],
+            experiments: { speed: [record.readings, {}, {}] },
+          },
+        },
+      })
+    ).status(),
+  ).toBe(200);
   await page.goto("/work/" + a.id);
   await page
     .getByPlaceholder("Я припускаю, що… тому що…")
@@ -200,6 +229,10 @@ test("virtual readings persist, clear stale calculations, enforce mode and survi
   await instrument
     .getByLabel("Матеріал кульки", { exact: true })
     .selectOption("1");
+  await expect(
+    instrument.getByLabel("Умови руху", { exact: true }),
+  ).toHaveValue("0");
+  await instrument.getByLabel("Умови руху", { exact: true }).selectOption("1");
   const diameter = instrument.getByLabel("Діаметр кульки", { exact: true });
   await diameter.focus();
   for (let i = 0; i < 4; i++) await diameter.press("ArrowRight");
@@ -243,6 +276,8 @@ test("virtual readings persist, clear stale calculations, enforce mode and survi
   ).json();
   expect(stored.answers.simulationRecords).toHaveLength(3);
   for (const record of stored.answers.simulationRecords) {
+    expect(record.modelVersion).toBe(2);
+    expect(record.parameters.airResistance).toBe(1);
     expect(record.parameters.material).toBe(1);
     expect(record.parameters.diameter).toBe(24);
   }
@@ -259,6 +294,9 @@ test("virtual readings persist, clear stale calculations, enforce mode and survi
     .getByRole("button", { name: "2 Експеримент", exact: true })
     .click();
   await expect(page.locator(".model-source")).toHaveCount(3);
+  await expect(
+    instrument.getByLabel("Умови руху", { exact: true }),
+  ).toHaveValue("1");
   const answers = stored.answers;
   answers.questions = [
     "На ділянках швидкість стала.",
@@ -314,6 +352,9 @@ test("virtual readings persist, clear stale calculations, enforce mode and survi
   ).toBe(200);
   await page.reload();
   await expect(page.locator(".model-source")).toHaveCount(3);
+  await expect(
+    instrument.getByLabel("Умови руху", { exact: true }),
+  ).toHaveValue("1");
   await expect(page.locator(".virtual-transfer button").first()).toBeDisabled();
   await teacher.dispose();
 });

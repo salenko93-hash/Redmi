@@ -1,7 +1,11 @@
-import { rampBallProperties, rampMaterials } from "./ramp";
+import { rampBallProperties, rampMaterials, rampMotion } from "./ramp";
 
 /** Deterministic educational models. SI inside each model; displayed units match the worksheet. */
+// Unchanged models keep v1. Air resistance on the ramp is explicitly versioned as v2.
 export const MODEL_VERSION = 1 as const;
+export function simulationModelVersion(n: number, p: Parameters): 1 | 2 {
+  return n === 1 && p.airResistance === 1 ? 2 : MODEL_VERSION;
+}
 export const G = 10; // Same classroom approximation as the worksheets.
 export type Parameters = Record<string, number>;
 export type SimulationControl = {
@@ -20,6 +24,7 @@ export type SimulationSetup = {
   instruction: string;
 };
 export type SimulationResult = {
+  modelVersion: 1 | 2;
   readings: Record<string, string>;
   duration: number;
   canRecord: boolean;
@@ -27,7 +32,7 @@ export type SimulationResult = {
   values: Record<string, number>;
 };
 export type SimulationRecord = {
-  modelVersion: 1;
+  modelVersion: 1 | 2;
   labNumber: number;
   experimentId: string;
   rowIndex: number;
@@ -95,11 +100,17 @@ export function simulationSetup(
             rampMaterials.map((material) => material.name),
           ),
           c("diameter", "Діаметр кульки", 10, 50, 1, 20, "мм"),
+          select(
+            "airResistance",
+            "Умови руху",
+            ["Ідеальні умови · без опору", "У повітрі · з опором"],
+            1,
+          ),
         ],
         assumption:
-          "Суцільна однорідна кулька котиться без проковзування: a = (5/7)g sin α; g = 10 м/с². Маса m = ρπd³/6: сталь — 7800 кг/м³, поліпропілен — 900 кг/м³. Маса й радіус скорочуються у рівнянні руху, тому матеріал і діаметр не змінюють час за сталих шляху й нахилу. Опір повітря, деформації та особливості профілю жолоба не враховано.",
+          "Обидві кульки суцільні й однорідні, котяться без проковзування; g = 10 м/с². В ідеальному режимі a₀ = (5/7)g sin α, час не залежить від матеріалу й діаметра. У режимі повітря Fоп = ½ρпов Cd S v²; ρпов = 1,2 кг/м³, Cd = 0,47, S = πd²/4. Прискорення dv/dt = a₀ − bv², b = ρпов Cd S/(2·1,4m). Маса m = ρπd³/6; сталь — 7800 кг/м³, поліпропілен — 900 кг/м³. Cd сталий: це навчальне наближення. Опір коченню, деформації, підйомна сила повітря та профіль жолоба не враховані.",
         instruction:
-          "Зліва встановіть нахил жолоба, справа — шлях до фінішу. Довжина лінійки — 2 м. Запустіть кульку, зніміть шлях і час. Оберіть сталеву або пластмасову кульку, змініть діаметр і спостерігайте за масою. Для трьох рядків основного досліду зберігайте кульку, її діаметр і нахил сталими; зменшуйте тільки шлях.",
+          "Зліва встановіть нахил жолоба, справа — шлях до фінішу. Довжина лінійки — 2 м. Запустіть кульку, зніміть шлях і час. Оберіть сталеву або пластмасову кульку, змініть діаметр і спостерігайте за масою. Порівняйте ідеальний режим та опір повітря. Для трьох рядків основного досліду зберігайте умови руху, кульку, її діаметр і нахил сталими; зменшуйте тільки шлях.",
       };
     case 2:
       return {
@@ -270,7 +281,19 @@ export function validateParameters(n: number, e: string, p: Parameters) {
     return false;
   const legacyRamp =
     n === 1 && !Object.hasOwn(p, "material") && !Object.hasOwn(p, "diameter");
+  if (
+    n === 1 &&
+    Object.hasOwn(p, "airResistance") &&
+    (!Object.hasOwn(p, "material") || !Object.hasOwn(p, "diameter"))
+  )
+    return false;
   return controls.every((c) => {
+    if (
+      n === 1 &&
+      c.key === "airResistance" &&
+      !Object.hasOwn(p, "airResistance")
+    )
+      return true;
     if (legacyRamp && ["material", "diameter"].includes(c.key)) return true;
     const v = p[c.key];
     return (
@@ -296,8 +319,16 @@ export function simulate(
     message = "Покази приладів готові. Розрахункові поля заповніть самостійно.";
   switch (n) {
     case 1: {
-      const a = (5 / 7) * G * Math.sin((p.angle * Math.PI) / 180),
-        t = Math.sqrt((2 * p.distance) / a);
+      const motion = rampMotion(
+          p.distance,
+          p.angle,
+          p.material ?? 0,
+          p.diameter ?? 20,
+          p.airResistance ?? 0,
+          G,
+        ),
+        a = motion.a,
+        t = motion.time;
       readings = { l: fmt(p.distance), t: fmt(t) };
       const ball = rampBallProperties(p.material ?? 0, p.diameter ?? 20);
       values = {
@@ -307,6 +338,9 @@ export function simulate(
         angle: p.angle,
         ...ball,
         material: p.material ?? 0,
+        airResistance: p.airResistance ?? 0,
+        b: motion.b,
+        idealTime: motion.idealTime,
       };
       duration = t;
       break;
@@ -479,7 +513,14 @@ export function simulate(
       break;
     }
   }
-  return { readings, values, duration, canRecord, message };
+  return {
+    modelVersion: simulationModelVersion(n, p),
+    readings,
+    values,
+    duration,
+    canRecord,
+    message,
+  };
 }
 /** Validate provenance, not authenticity: these remain synthetic model data. */
 export function validateSimulationRecords(
@@ -497,7 +538,7 @@ export function validateSimulationRecords(
       key = r.experimentId + ":" + r.rowIndex;
     if (
       r.labNumber !== labNumber ||
-      r.modelVersion !== MODEL_VERSION ||
+      r.modelVersion !== simulationModelVersion(labNumber, r.parameters) ||
       !e ||
       !Number.isInteger(r.rowIndex) ||
       r.rowIndex < 0 ||

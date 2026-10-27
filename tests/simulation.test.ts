@@ -25,6 +25,7 @@ test("every experiment has a valid model and finite readings", () => {
 });
 test("rolling sphere, rotation and pendulum follow their stated models", () => {
   let p = initialParameters(1, "speed");
+  p.airResistance = 0;
   p.angle = 30;
   p.distance = 1;
   let r = simulate(1, "speed", p);
@@ -56,6 +57,7 @@ test("small-angle pendulum accepts worksheet amplitudes and preserves prior mode
 });
 test("the two-metre ramp accepts its full scale and preserves earlier readings", () => {
   const p = initialParameters(1, "speed");
+  p.airResistance = 0;
   p.distance = 1.5;
   const old = simulate(1, "speed", p);
   p.distance = 2;
@@ -157,7 +159,7 @@ test("provenance rejects tampered outputs, duplicates and invalid parameters", (
     p = initialParameters(1, e.id),
     r = simulate(1, e.id, p);
   const record: SimulationRecord = {
-    modelVersion: 1,
+    modelVersion: r.modelVersion,
     labNumber: 1,
     experimentId: e.id,
     rowIndex: 0,

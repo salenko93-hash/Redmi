@@ -30,6 +30,9 @@ for (const touch of [false, true]) {
         .click();
 
       const instrument = page.locator(".virtual-lab").first();
+      const conditions = instrument.getByLabel("Умови руху", { exact: true });
+      await expect(conditions).toHaveValue("1");
+      await conditions.selectOption("0");
       const distance = instrument.getByLabel("Довжина шляху", { exact: true });
       const angle = instrument.getByLabel("Нахил жолоба", { exact: true });
       const ramp = instrument.locator('[data-instrument="ramp"]');
@@ -259,6 +262,39 @@ for (const touch of [false, true]) {
       await material.selectOption("1");
       await expect(ball).toHaveAttribute("cx", "0");
       await expect(marker).toHaveAttribute("data-rotations", "0");
+      await conditions.selectOption("1");
+      await distance.focus();
+      await distance.press("End");
+      await diameter.focus();
+      await diameter.press("Home");
+      async function measure() {
+        await instrument
+          .getByRole("button", { name: "Запустити дослід", exact: true })
+          .click();
+        await expect(instrument.locator(".virtual-results")).toBeVisible();
+        return Number(
+          (
+            await instrument.locator(".virtual-results dd").nth(1).innerText()
+          ).replace(",", "."),
+        );
+      }
+      await material.selectOption("0");
+      const steelAir = await measure();
+      const clock = instrument.getByLabel("Час скочування", { exact: true });
+      await expect(clock).toHaveText(
+        steelAir.toFixed(3).replace(".", ",") + " с",
+      );
+      await material.selectOption("1");
+      await expect(clock).toHaveText("0,000 с");
+      const plasticAir = await measure();
+      expect(plasticAir).toBeGreaterThan(steelAir);
+      await conditions.selectOption("0");
+      const plasticIdeal = await measure();
+      await material.selectOption("0");
+      const steelIdeal = await measure();
+      expect(steelIdeal).toBe(plasticIdeal);
+      expect(steelAir).toBeGreaterThan(steelIdeal);
+      expect(plasticAir / steelAir).toBeLessThan(1.1);
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= innerWidth,

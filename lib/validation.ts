@@ -4,7 +4,7 @@ export const answersSchema = z.object({
   simulationRecords: z
     .array(
       z.object({
-        modelVersion: z.literal(1),
+        modelVersion: z.union([z.literal(1), z.literal(2)]),
         labNumber: z.number().int().min(1).max(10),
         experimentId: z.string().max(80),
         rowIndex: z.number().int().min(0).max(29),

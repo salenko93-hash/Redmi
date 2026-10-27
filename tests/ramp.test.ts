@@ -16,6 +16,7 @@ import {
 import { labs } from "../lib/labs";
 import {
   legacyRampCreative,
+  previousRampCreative,
   rampCreative,
   rampCreativeInstruction,
 } from "../lib/lab-one-material";
@@ -115,8 +116,31 @@ test("enlarged spheres remain tangent to the track, fit the scene and meet the a
 });
 test("updated stock creative guidance keeps teacher wording and explains changing material and diameter", () => {
   assert.equal(rampCreativeInstruction(legacyRampCreative), rampCreative);
+  assert.equal(rampCreativeInstruction(previousRampCreative), rampCreative);
   assert.equal(
     rampCreativeInstruction("Авторський дослід учителя"),
     "Авторський дослід учителя",
   );
+});
+
+test("air drag slows a lighter solid sphere more without changing its density, and disappears in ideal mode", () => {
+  for (const angle of [5, 15, 35])
+    for (const distance of [0.2, 1.2, 2])
+      for (const diameter of [10, 20, 50]) {
+        const base = { angle, distance, diameter, airResistance: 1 };
+        const steel = simulate(1, "speed", { ...base, material: 0 }),
+          plastic = simulate(1, "speed", { ...base, material: 1 });
+        const ideal = simulate(1, "speed", {
+          ...base,
+          material: 1,
+          airResistance: 0,
+        });
+        assert.ok(
+          plastic.values.t > steel.values.t && steel.values.t > ideal.values.t,
+        );
+        assert.ok(plastic.values.t / steel.values.t < 1.1); // No artificial visual slowdown multiplier.
+        assert.equal(steel.modelVersion, 2);
+        assert.equal(ideal.modelVersion, 1);
+        close(plastic.values.b / steel.values.b, 7800 / 900);
+      }
 });

@@ -222,14 +222,14 @@ test("mobile student interface and local draft survive offline and synchronize",
   await page
     .getByPlaceholder("Я припускаю, що… тому що…")
     .fill("Початкова чернетка");
-  await expect(page.getByRole("status")).toContainText("Збережено");
+  await expect(page.locator(".save-state")).toContainText("Збережено");
   await context.setOffline(true);
   await page
     .getByPlaceholder("Я припускаю, що… тому що…")
     .fill("Мій прогноз збережено без інтернету.");
-  await expect(page.getByRole("status")).toContainText("Немає з’єднання");
+  await expect(page.locator(".save-state")).toContainText("Немає з’єднання");
   await context.setOffline(false);
-  await expect(page.getByRole("status")).toHaveText(/Збережено/, {
+  await expect(page.locator(".save-state")).toHaveText(/Збережено/, {
     timeout: 15000,
   });
   const url = page.url();
@@ -337,11 +337,11 @@ test("two devices cannot silently overwrite each other and pending local data ca
   await p1
     .getByPlaceholder("Я припускаю, що… тому що…")
     .fill("Дані першого пристрою");
-  await expect(p1.getByRole("status")).toHaveText(/Збережено/);
+  await expect(p1.locator(".save-state")).toHaveText(/Збережено/);
   await p2
     .getByPlaceholder("Я припускаю, що… тому що…")
     .fill("Незбережені дані другого пристрою");
-  await expect(p2.getByRole("status")).toContainText("Конфлікт");
+  await expect(p2.locator(".save-state")).toContainText("Конфлікт");
   await expect(p2.getByPlaceholder("Я припускаю, що… тому що…")).toHaveValue(
     "Незбережені дані другого пристрою",
   );

@@ -654,6 +654,13 @@ export function Workspace({
                         . Це покази під час перенесення; поточні клітинки учень
                         міг змінити вручну.
                       </p>
+                      {number === 1 && (
+                        <p className="muted">
+                          {r.modelVersion === 2
+                            ? "Умови: опір повітря; суцільна кулька, модель v2."
+                            : "Умови: ідеальне кочення без опору, модель v1."}
+                        </p>
+                      )}
                       <dl className="model-parameters">
                         {simulationSetup(number, e.id)
                           .controls.filter(
@@ -927,6 +934,7 @@ export function Workspace({
           )}
         </div>
         <aside className="work-aside no-print">
+          <LabTools number={number} />
           <div className="panel">
             <span className="eyebrow">ВАШ МАРШРУТ</span>
             <h3>{steps[step]}</h3>
@@ -970,7 +978,6 @@ export function Workspace({
               {materialHref ? "Вебпам’ятка до роботи" : "Оригінальний PDF"}
             </a>
           </div>
-          <LabTools number={number} />
           {!readOnly && !sandbox && (
             <button
               className={"help-button " + (answers.help ? "requested" : "")}

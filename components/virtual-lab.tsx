@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import {
   initialParameters,
-  MODEL_VERSION,
   simulate,
   simulationSetup,
   weights,
@@ -88,6 +87,7 @@ function Scene({
           distance={p.distance}
           angle={p.angle}
           material={p.material}
+          airResistance={p.airResistance ?? 0}
           diameter={p.diameter}
           phase={phase}
           id={id}
@@ -170,6 +170,9 @@ export function VirtualLab({
   const [parameters, setParameters] = useState<Parameters>(() => ({
     ...initialParameters(number, experiment.id),
     ...lastRecord?.parameters,
+    ...(number === 1 && lastRecord
+      ? { airResistance: lastRecord.parameters.airResistance ?? 0 }
+      : {}),
   }));
   const [rotationView, setRotationView] = useState<RotationView>("perspective");
   const [row, setRow] = useState(lastRecord?.rowIndex ?? 0),
@@ -187,7 +190,9 @@ export function VirtualLab({
     let frame = 0,
       last = performance.now();
     const milliseconds =
-      Math.min(number === 2 ? 15 : 6, Math.max(1, result.duration)) * 1000;
+      (number === 1
+        ? result.duration
+        : Math.min(number === 2 ? 15 : 6, Math.max(1, result.duration))) * 1000;
     const reduced = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
@@ -225,7 +230,7 @@ export function VirtualLab({
         .map((f) => [f.key, result.readings[f.key]]),
     );
     onRecord?.({
-      modelVersion: MODEL_VERSION,
+      modelVersion: result.modelVersion,
       labNumber: number,
       experimentId: experiment.id,
       rowIndex: row,
@@ -424,6 +429,19 @@ export function VirtualLab({
               <strong>{rampMaterials[parameters.material].name}</strong>
               <p>Суцільна однорідна кулька</p>
             </div>
+            <div className="ramp-time-readout">
+              <span>
+                {parameters.airResistance === 1
+                  ? "У повітрі · модель v2"
+                  : "Ідеальні умови · модель v1"}
+              </span>
+              <label>
+                Час моделі{" "}
+                <output aria-label="Час скочування" aria-live="off">
+                  {(result.values.t * phase).toFixed(3).replace(".", ",")} с
+                </output>
+              </label>
+            </div>
             <dl>
               <div>
                 <dt>Діаметр</dt>
@@ -450,9 +468,10 @@ export function VirtualLab({
               </div>
             </dl>
             <p>
-              m = ρ·π·d³/6. Подвоєння діаметра збільшує масу у 8 разів. У цій
-              моделі без опору матеріал і діаметр не змінюють час кочення за
-              однакових нахилу та шляху.
+              m = ρ·π·d³/6. Подвоєння діаметра збільшує масу у 8 разів.
+              {parameters.airResistance === 1
+                ? " Опір повітря сильніше впливає на легшу пластмасову кульку: вона котиться дещо повільніше за сталеву такого самого діаметра. На короткому жолобі різниця невелика. Це модель лише опору повітря, а не всіх властивостей реального жолоба."
+                : " В ідеальних умовах обидві суцільні кульки мають однаковий час кочення за сталих шляху й нахилу."}
             </p>
           </section>
         )}

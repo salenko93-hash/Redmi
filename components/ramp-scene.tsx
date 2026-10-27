@@ -1,6 +1,7 @@
 import {
   rampBallProperties,
   rampGeometry,
+  rampMotion,
   rampMaterials,
   RAMP_BALL_MAGNIFICATION,
   RAMP_SCALE,
@@ -11,6 +12,7 @@ export function RampScene({
   angle,
   diameter = 20,
   material = 0,
+  airResistance = 0,
   phase,
   id,
 }: {
@@ -18,10 +20,13 @@ export function RampScene({
   angle: number;
   diameter?: number;
   material?: number;
+  airResistance?: number;
   phase: number;
   id: string;
 }) {
-  const v = rampGeometry(distance, angle, diameter, phase),
+  const motion = rampMotion(distance, angle, material, diameter, airResistance);
+  const fraction = motion.position(motion.time * phase) / distance;
+  const v = rampGeometry(distance, angle, diameter, phase, fraction),
     ball = rampBallProperties(material, diameter),
     finish = v.stopTop;
   const selected = rampMaterials[material],
