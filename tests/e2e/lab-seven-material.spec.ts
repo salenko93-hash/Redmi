@@ -1,8 +1,18 @@
 import { test, expect } from "@playwright/test";
+import {
+  FRICTION_ROPE_LENGTH,
+  FRICTION_METER_PX_PER_N,
+} from "../../lib/friction-view";
 const base = process.env.E2E_BASE_URL ?? "http://localhost:3100";
+test.use({ hasTouch: true });
 test("lab seven replaces PDF, controls load and face, keeps the rope attached and balances forces", async ({
   page,
-}) => {
+}, testInfo) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("console", (m) => {
+    if (m.type() === "error") errors.push(m.text());
+  });
   await page.goto("/materials/7");
   await expect(page).toHaveURL(base + "/");
   expect(
@@ -21,9 +31,7 @@ test("lab seven replaces PDF, controls load and face, keeps the rope attached an
   ).toHaveAttribute("href", "/materials/7");
   await expect(page.locator('a[href="/originals/lab-7.pdf"]')).toHaveCount(0);
   await page.goto("/materials/7");
-  const errors: string[] = [],
-    writes: string[] = [];
-  page.on("pageerror", (e) => errors.push(e.message));
+  const writes: string[] = [];
   page.on("request", (r) => {
     if (r.method() !== "GET" && r.url().includes("/api/assignments"))
       writes.push(r.url());
@@ -46,10 +54,8 @@ test("lab seven replaces PDF, controls load and face, keeps the rope attached an
   const instrument = page.locator(".virtual-lab");
   const parse = (s: string) => Number(s.replace(",", "."));
   await page.emulateMedia({ reducedMotion: "reduce" });
-  async function run() {
-    await instrument
-      .getByRole("button", { name: "Запустити дослід", exact: true })
-      .click();
+  async function run(button = "Запустити дослід") {
+    await instrument.getByRole("button", { name: button, exact: true }).click();
     await expect(instrument.locator(".virtual-results")).toBeVisible();
     await expect(instrument.locator(".virtual-results dd")).toHaveCount(2);
     await expect(
@@ -82,7 +88,7 @@ test("lab seven replaces PDF, controls load and face, keeps the rope attached an
         return { right: b.right, width: b.width, height: b.height };
       });
     expect(rope.y1).toBe(rope.y2);
-    expect(rope.x2 - rope.x1).toBe(28);
+    expect(rope.x2 - rope.x1).toBeCloseTo(FRICTION_ROPE_LENGTH, 5);
     const aligned = await instrument
       .locator('[data-instrument="friction-rope"]')
       .evaluate(
@@ -96,21 +102,43 @@ test("lab seven replaces PDF, controls load and face, keeps the rope attached an
           ) < 1,
       );
     expect(aligned).toBeTruthy();
-    const forces = await instrument
-      .locator("[data-force]")
-      .evaluateAll((els) =>
-        Object.fromEntries(
-          els.map((el) => [
-            el.getAttribute("data-force"),
-            {
-              x1: Number(el.getAttribute("x1")),
-              x2: Number(el.getAttribute("x2")),
-              y1: Number(el.getAttribute("y1")),
-              y2: Number(el.getAttribute("y2")),
-            },
-          ]),
-        ),
-      );
+    const gauge = await instrument
+      .locator('[data-instrument="friction-meter-assembly"]')
+      .evaluate((el) => {
+        const housing = el.querySelector(
+          '[data-instrument="friction-meter-case"]',
+        ) as SVGGraphicsElement;
+        const zero = [...housing.querySelectorAll("text")].find(
+          (e) => e.textContent === "0",
+        )!;
+        const pointer = el.querySelector(
+          '[data-instrument="friction-meter-pointer"]',
+        ) as SVGGraphicsElement;
+        const box = pointer.getBBox();
+        return {
+          zero:
+            housing.transform.baseVal.getItem(0).matrix.e +
+            Number(zero.getAttribute("x")),
+          pointer: box.x + box.width / 2,
+        };
+      });
+    expect((gauge.zero - gauge.pointer) / FRICTION_METER_PX_PER_N).toBeCloseTo(
+      parse(readings[1]),
+      5,
+    );
+    const forces = await instrument.locator("[data-force]").evaluateAll((els) =>
+      Object.fromEntries(
+        els.map((el) => [
+          el.getAttribute("data-force"),
+          {
+            x1: Number(el.getAttribute("x1")),
+            x2: Number(el.getAttribute("x2")),
+            y1: Number(el.getAttribute("y1")),
+            y2: Number(el.getAttribute("y2")),
+          },
+        ]),
+      ),
+    );
     expect(forces.normal.y2).toBeLessThan(forces.normal.y1);
     expect(forces.weight.y2).toBeGreaterThan(forces.weight.y1);
     expect(forces.pull.x2).toBeGreaterThan(forces.pull.x1);
@@ -128,6 +156,12 @@ test("lab seven replaces PDF, controls load and face, keeps the rope attached an
   await loads.press("End");
   await expect(instrument.locator(".virtual-results")).toHaveCount(0);
   const heavy = await run();
+  await instrument
+    .locator(".simulation-scene")
+    .screenshot({
+      path: testInfo.outputPath("realistic-friction-wide.png"),
+      caret: "initial",
+    });
   expect(heavy.n).toBe(5);
   expect(first.n).toBe(3);
   expect(heavy.f / heavy.n).toBeCloseTo(first.f / first.n, 6);
@@ -138,6 +172,12 @@ test("lab seven replaces PDF, controls load and face, keeps the rope attached an
     .getByLabel("Положення бруска", { exact: true })
     .selectOption("1");
   const narrow = await run();
+  await instrument
+    .locator(".simulation-scene")
+    .screenshot({
+      path: testInfo.outputPath("realistic-friction-narrow.png"),
+      caret: "initial",
+    });
   expect(narrow.f).toBe(heavy.f);
   expect(narrow.n).toBe(heavy.n);
   expect(narrow.block.width).toBeLessThan(heavy.block.width);
@@ -151,10 +191,58 @@ test("lab seven replaces PDF, controls load and face, keeps the rope attached an
   const smooth = await run();
   expect(smooth.n).toBe(narrow.n);
   expect(smooth.f).toBeLessThan(narrow.f);
+  await instrument
+    .getByRole("button", { name: "Скинути прилад", exact: true })
+    .click();
+  await expect(instrument.locator('[data-friction-reading="F"]')).toHaveText(
+    "—",
+  );
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await instrument
+    .getByRole("button", { name: "Запустити дослід", exact: true })
+    .click();
+  await page.waitForFunction(() => {
+    const body = document.querySelector(
+      '[data-instrument="friction-body"]',
+    ) as SVGGraphicsElement;
+    return body.transform.baseVal.getItem(0).matrix.e > 90;
+  });
+  await instrument.getByRole("button", { name: "Пауза", exact: true }).click();
+  const position = () =>
+    instrument
+      .locator('[data-instrument="friction-body"]')
+      .evaluate(
+        (el) =>
+          (el as SVGGraphicsElement).transform.baseVal.getItem(0).matrix.e,
+      );
+  const paused = await position();
+  expect(paused).toBeGreaterThan(80);
+  expect(paused).toBeLessThan(205);
+  await page.waitForTimeout(180);
+  expect(await position()).toBe(paused);
+  const resumed = await run("Продовжити");
+  expect(resumed.f).toBe(smooth.f);
   expect(errors).toEqual([]);
   expect(writes).toEqual([]);
   expect(await page.evaluate(() => JSON.stringify(localStorage))).toBe(before);
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await loads.focus();
+  await loads.press("Home");
+  await instrument
+    .getByLabel("Положення бруска", { exact: true })
+    .selectOption("0");
+  await instrument
+    .getByRole("button", { name: "Запустити дослід", exact: true })
+    .tap();
+  await expect(instrument.locator('[data-friction-reading="N"]')).toHaveText(
+    "3",
+  );
+  await instrument.evaluate((el) => el.scrollIntoView({ block: "start" }));
+  await page.screenshot({
+    path: testInfo.outputPath("realistic-friction-mobile.png"),
+    caret: "initial",
+  });
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
@@ -163,4 +251,5 @@ test("lab seven replaces PDF, controls load and face, keeps the rope attached an
   await page.emulateMedia({ media: "print" });
   await expect(instrument).not.toBeVisible();
   await expect(page.locator("#guide-method table")).toBeVisible();
+  expect(errors).toEqual([]);
 });

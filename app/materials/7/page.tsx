@@ -92,7 +92,7 @@ export default async function LabSevenMaterial() {
           </div>
           <div className={styles.heroVisual}>
             <svg
-              viewBox="0 0 600 460"
+              viewBox="0 0 600 630"
               className="simulation-scene"
               role="img"
               aria-label="Брусок на дошці, горизонтальний динамометр і схема сил за рівномірного ковзання"

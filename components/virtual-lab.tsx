@@ -33,6 +33,8 @@ import { ElasticScene } from "./elastic-scene";
 import { ElasticReadouts } from "./elastic-readouts";
 import { ELASTIC_SCENE_HEIGHT, elasticTransition } from "@/lib/elastic-view";
 import { FrictionScene } from "./friction-scene";
+import { FrictionReadouts } from "./friction-readouts";
+import { FRICTION_SCENE_HEIGHT } from "@/lib/friction-view";
 import { PressureScene } from "./pressure-scene";
 import { HydroScene } from "./hydro-scene";
 import { FloatingScene } from "./floating-scene";
@@ -70,7 +72,7 @@ function Scene({
               : n === 6
                 ? ELASTIC_SCENE_HEIGHT
                 : n === 7
-                  ? 460
+                  ? FRICTION_SCENE_HEIGHT
                   : n === 8
                     ? 470
                     : n === 9
@@ -359,6 +361,13 @@ export function VirtualLab({
               message={result.message}
             />
           )}
+          {number === 7 && (
+            <FrictionReadouts
+              readings={result.readings}
+              phase={phase}
+              message={result.message}
+            />
+          )}
           <div
             className={`virtual-controls${number === 1 ? " ramp-controls" : ""}`}
           >
@@ -609,7 +618,7 @@ export function VirtualLab({
             : "Анімацію може бути прискорено. Покази часу нижче — фізичний час моделі, а не тривалість анімації. "}
           Усі дані синтетичні; випадкова похибка не додається.
         </p>
-        {phase === 1 && number !== 5 && number !== 6 && (
+        {phase === 1 && number !== 5 && number !== 6 && number !== 7 && (
           <div className="virtual-results">
             <h4>Покази приладів</h4>
             <dl>
