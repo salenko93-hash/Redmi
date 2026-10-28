@@ -8,6 +8,7 @@
     "start": "next start --hostname 0.0.0.0",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:doctor": "tsx scripts/db-doctor.ts",
+    "learning:prune": "tsx scripts/prune-learning.ts",
     "db:seed": "tsx prisma/seed.ts",
     "db:generate": "prisma generate",
     "test": "tsx --test tests/*.test.ts",

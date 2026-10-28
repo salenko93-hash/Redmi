@@ -56,6 +56,12 @@ export default async function Review({
           </p>
         </div>
       </div>
+      <Link
+        className="button secondary no-print"
+        href={`/progress?class=${s.assignment.classroomId}&student=${s.studentId}`}
+      >
+        Навчальний поступ учня →
+      </Link>
       <ReviewForm
         id={s.id}
         revision={s.revision}

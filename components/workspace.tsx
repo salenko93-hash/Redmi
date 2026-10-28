@@ -1,5 +1,7 @@
 "use client";
 import { rampCreativeInstruction } from "@/lib/lab-one-material";
+import { useLearningJournal } from "./use-learning-journal";
+import { LearningJournal } from "./learning-journal";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -85,6 +87,7 @@ export function Workspace({
   sandbox?: boolean;
 }) {
   const router = useRouter();
+  const learning = useLearningJournal(assignmentId, !preview && !sandbox);
   const materialHref = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].includes(number)
     ? `/materials/${number}`
     : null;
@@ -194,6 +197,7 @@ export function Workspace({
       setState("Зберігається…");
       const task = (async () => {
         try {
+          if (submit) await learning.flush();
           const r = await fetch(`/api/assignments/${assignmentId}/submission`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
@@ -220,6 +224,7 @@ export function Workspace({
           persist();
           setState(dirty.current ? "Є незбережені зміни" : "Збережено");
           setError("");
+          void learning.refresh();
           if (submit) {
             dirty.current = false;
             try {
@@ -553,6 +558,9 @@ export function Workspace({
                   experiment={e}
                   allowTransfer={!readOnly && experimentMode === "SIMULATION"}
                   onRecord={recordSimulation}
+                  onLearningAction={
+                    !readOnly && !sandbox ? learning.emit : undefined
+                  }
                   lastRecord={answers.simulationRecords
                     ?.filter((r) => r.experimentId === e.id)
                     .at(-1)}
@@ -935,6 +943,7 @@ export function Workspace({
         </div>
         <aside className="work-aside no-print">
           <LabTools number={number} />
+          {!preview && !sandbox && <LearningJournal journal={learning} />}
           <div className="panel">
             <span className="eyebrow">ВАШ МАРШРУТ</span>
             <h3>{steps[step]}</h3>
@@ -981,7 +990,11 @@ export function Workspace({
           {!readOnly && !sandbox && (
             <button
               className={"help-button " + (answers.help ? "requested" : "")}
-              onClick={() => change({ ...answers, help: !answers.help })}
+              onClick={() => {
+                if (!answers.help)
+                  learning.emit({ kind: "HELP_REQUESTED", payload: {} });
+                change({ ...answers, help: !answers.help });
+              }}
             >
               <HelpCircle size={18} />
               {answers.help

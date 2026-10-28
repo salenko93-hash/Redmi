@@ -34,6 +34,8 @@ model User {
   comments Comment[]
   claimedStudentInvites StudentInvite[]
   adminActions AdminAudit[]
+  learningTracking LearningTracking[]
+  learningEvents LearningEvent[]
 }
 model Session {
   tokenHash String @id
@@ -120,7 +122,36 @@ model Assignment {
   classroom Classroom @relation(fields:[classroomId], references:[id], onDelete:Cascade)
   labVersion LabVersion @relation(fields:[labVersionId], references:[id])
   submissions Submission[]
+  learningTracking LearningTracking[]
+  learningEvents LearningEvent[]
   @@unique([classroomId,labVersionId])
+}
+
+model LearningTracking {
+  assignmentId String
+  studentId String
+  enabled Boolean @default(false)
+  updatedAt DateTime @updatedAt
+  assignment Assignment @relation(fields:[assignmentId], references:[id], onDelete:Cascade)
+  student User @relation(fields:[studentId], references:[id], onDelete:Cascade)
+  @@id([assignmentId,studentId])
+}
+
+model LearningEvent {
+  id String @id @default(cuid())
+  eventId String
+  assignmentId String
+  studentId String
+  kind String
+  experimentId String?
+  payload Json
+  occurredAt DateTime
+  createdAt DateTime @default(now())
+  assignment Assignment @relation(fields:[assignmentId], references:[id], onDelete:Cascade)
+  student User @relation(fields:[studentId], references:[id], onDelete:Cascade)
+  @@unique([assignmentId,studentId,eventId])
+  @@index([assignmentId,studentId,createdAt])
+  @@index([createdAt])
 }
 model Submission {
   id String @id @default(cuid())

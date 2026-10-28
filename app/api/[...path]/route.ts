@@ -1,4 +1,6 @@
 import { validateSimulationRecords } from "@/lib/simulation";
+import { learningApi } from "@/lib/learning-api";
+import { recordCalculationCorrections } from "@/lib/learning-store";
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { compare, hash } from "bcryptjs";
@@ -205,6 +207,12 @@ async function handle(
     }
     const user = await currentUser();
     if (!user) return fail("Увійдіть у свій обліковий запис.", 401);
+    if (
+      path.length === 3 &&
+      path[0] === "assignments" &&
+      path[2] === "learning"
+    )
+      return await learningApi(req, user, path[1]);
     if (
       path[0] === "classes" &&
       path[2] === "students" &&
@@ -819,6 +827,16 @@ async function handle(
             },
           });
           if (!updated.count) throw new Error("CONFLICT");
+          await recordCalculationCorrections(
+            tx,
+            assignment.id,
+            user.id,
+            existing.id,
+            input.revision + 1,
+            content,
+            existing.answers as Answers,
+            input.answers,
+          );
           if (input.submit)
             await tx.attempt.create({
               data: {

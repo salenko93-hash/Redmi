@@ -11,6 +11,7 @@ import {
   Atom,
   ChevronDown,
   ShieldCheck,
+  ChartNoAxesCombined,
 } from "lucide-react";
 export function Navigation({
   name,
@@ -27,6 +28,7 @@ export function Navigation({
     ["/dashboard", "Мій простір", LayoutDashboard],
     ["/library", "Лабораторні роботи", BookOpen],
     ["/classes", role === "TEACHER" ? "Мої класи" : "Мій клас", Users],
+    ["/progress", "Навчальний поступ", ChartNoAxesCombined],
     ...(role === "TEACHER"
       ? [["/journal", "Журнал оцінок", NotebookPen] as const]
       : []),

@@ -79,7 +79,14 @@ export default async function ClassPage({
             · {c.assignments.length} призначених робіт
           </p>
         </div>
-        {teacher && <CopyCode code={c.code} />}
+        {teacher && (
+          <div className="button-row">
+            <Link className="button secondary" href={`/progress?class=${c.id}`}>
+              Навчальний поступ
+            </Link>
+            <CopyCode code={c.code} />
+          </div>
+        )}
       </div>
       <div className={teacher ? "two-column" : "single-column"}>
         <section>

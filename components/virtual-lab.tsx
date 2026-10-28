@@ -2,6 +2,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { SimulationControl } from "./simulation-control";
+import type { LearningAction } from "@/lib/learning-progress";
 import {
   FlaskConical,
   Play,
@@ -195,12 +196,14 @@ export function VirtualLab({
   allowTransfer,
   onRecord,
   lastRecord,
+  onLearningAction,
 }: {
   number: number;
   experiment: Experiment;
   allowTransfer: boolean;
   onRecord?: (record: SimulationRecord) => void;
   lastRecord?: SimulationRecord;
+  onLearningAction?: (event: LearningAction) => void;
 }) {
   const setup = simulationSetup(number, experiment.id);
   const [parameters, setParameters] = useState<Parameters>(() => ({
@@ -238,6 +241,8 @@ export function VirtualLab({
     };
   }, [expanded]);
   const phaseRef = useRef(0);
+  const actionRef = useRef(onLearningAction);
+  actionRef.current = onLearningAction;
   useEffect(() => {
     if (!running) return;
     let frame = 0,
@@ -263,7 +268,14 @@ export function VirtualLab({
       }
       setPhase(phaseRef.current);
       if (phaseRef.current < 1) frame = requestAnimationFrame(tick);
-      else setRunning(false);
+      else {
+        setRunning(false);
+        actionRef.current?.({
+          kind: "RUN_COMPLETED",
+          experimentId: experiment.id,
+          payload: { parameters: { ...parameters } },
+        });
+      }
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
@@ -291,6 +303,11 @@ export function VirtualLab({
     });
   }
   function record() {
+    onLearningAction?.({
+      kind: "READING_RECORDED",
+      experimentId: experiment.id,
+      payload: {},
+    });
     const readings = Object.fromEntries(
       experiment.fields
         .filter((f) => !f.calculated && result.readings[f.key] !== undefined)
@@ -335,6 +352,11 @@ export function VirtualLab({
               type="button"
               className="button primary"
               onClick={() => {
+                onLearningAction?.({
+                  kind: running ? "RUN_PAUSED" : "RUN_STARTED",
+                  experimentId: experiment.id,
+                  payload: {},
+                });
                 setRecorded(false);
                 if (phase >= 1) {
                   phaseRef.current = 0;
@@ -353,7 +375,14 @@ export function VirtualLab({
             <button
               type="button"
               className="button secondary"
-              onClick={reset}
+              onClick={() => {
+                onLearningAction?.({
+                  kind: "RESET",
+                  experimentId: experiment.id,
+                  payload: {},
+                });
+                reset();
+              }}
               aria-label="Скинути прилад"
             >
               <RotateCcw size={16} />
