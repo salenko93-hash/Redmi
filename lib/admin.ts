@@ -198,7 +198,6 @@ export async function setTeacherAccess(
   actorId: string,
   id: string,
   active: boolean,
-  remove = false,
 ) {
   if (id === actorId)
     throw new AdminActionError(
@@ -225,22 +224,72 @@ export async function setTeacherAccess(
       throw new AdminActionError(
         "Потрібен хоча б один активний адміністратор.",
       );
-    if (teacher.isActive === active && !teacher.removedAt && !remove) return;
+    if (teacher.isActive === active && !teacher.removedAt) return;
     await tx.user.update({
       where: { id },
-      data: { isActive: active, removedAt: remove ? new Date() : null },
+      data: { isActive: active, removedAt: null },
     });
     await tx.session.deleteMany({ where: { userId: id } });
     await tx.adminAudit.create({
       data: {
         actorId,
         targetId: id,
-        action: remove
-          ? "TEACHER_REMOVED"
-          : active
-            ? "TEACHER_ENABLED"
-            : "TEACHER_BLOCKED",
+        action: active ? "TEACHER_ENABLED" : "TEACHER_BLOCKED",
         detail: { email: teacher.email },
+      },
+    });
+  });
+}
+
+// Delete the account, keeping pupils' class history under the acting administrator.
+export async function deleteTeacher(actorId: string, id: string) {
+  if (id === actorId)
+    throw new AdminActionError("Не можна видалити власний обліковий запис.");
+  await db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('fizlab-staff-access'))`;
+    await requireActiveAdmin(tx, actorId);
+    await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${id} FOR UPDATE`;
+    const teacher = await tx.user.findFirst({ where: { id, role: "TEACHER" } });
+    if (!teacher) throw new AdminActionError("Учителя не знайдено.", 404);
+    if (
+      teacher.isAdmin &&
+      !(await tx.user.count({
+        where: {
+          role: "TEACHER",
+          isAdmin: true,
+          isActive: true,
+          id: { not: id },
+        },
+      }))
+    )
+      throw new AdminActionError(
+        "Потрібен хоча б один активний адміністратор.",
+      );
+    const classes = await tx.classroom.updateMany({
+      where: { teacherId: id },
+      data: { teacherId: actorId },
+    });
+    await tx.labVersion.updateMany({
+      where: { authorId: id },
+      data: { authorId: actorId },
+    });
+    // A teacher may previously have been a pupil. Remove those personal answers too.
+    await tx.submission.deleteMany({ where: { studentId: id } });
+    await tx.comment.deleteMany({ where: { authorId: id } });
+    await tx.studentInvite.deleteMany({
+      where: { OR: [{ claimedById: id }, { email: teacher.email }] },
+    });
+    // Invalidate all old teacher invitations for the email and invitations issued by this account.
+    await tx.teacherInvite.deleteMany({
+      where: { OR: [{ email: teacher.email }, { createdById: id }] },
+    });
+    await tx.user.delete({ where: { id } });
+    await tx.adminAudit.create({
+      data: {
+        actorId,
+        targetId: id,
+        action: "TEACHER_DELETED",
+        detail: { transferredClasses: classes.count },
       },
     });
   });

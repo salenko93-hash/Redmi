@@ -15,6 +15,7 @@ const actions: Record<string, string> = {
   TEACHER_INVITED: "Створено запрошення вчителю",
   INVITATION_REVOKED: "Відкликано запрошення",
   TEACHER_BLOCKED: "Призупинено доступ учителя",
+  TEACHER_DELETED: "Остаточно видалено обліковий запис учителя",
   TEACHER_REMOVED: "Видалено вчителя з команди (дані збережено)",
   TEACHER_ENABLED: "Відновлено доступ учителя",
   TEACHER_ROLE_GRANTED: "Учнівську роль змінено на вчительську",
@@ -180,23 +181,21 @@ export function AdminPanel({
                       <button
                         type="button"
                         className="button secondary"
-                        disabled={
-                          busy ||
-                          teacher.id === userId ||
-                          Boolean(teacher.removedAt)
-                        }
-                        aria-label={`Видалити з команди: ${teacher.name}`}
+                        disabled={busy || teacher.id === userId}
+                        aria-label={`Видалити назавжди: ${teacher.name}`}
                         onClick={() => {
                           if (
                             !window.confirm(
-                              `Видалити ${teacher.name} з команди? Доступ буде закрито. Класи, роботи й оцінки залишаться; учителя можна відновити.`,
+                              `Назавжди видалити обліковий запис ${teacher.name} (${teacher.email}) з бази? Відновити його неможливо. Класи та учнівські роботи перейдуть до вас. Особисті відповіді, коментарі та запрошення цього вчителя буде видалено. Старі пароль і коди перестануть діяти. Для повторної реєстрації на цю пошту створіть нове запрошення.`,
                             )
                           )
                             return;
                           run(async () => {
-                            await request("teachers/" + teacher.id, "DELETE");
+                            await request("teachers/" + teacher.id, "DELETE", {
+                              confirmed: true,
+                            });
                             setMessage(
-                              "Учителя видалено з команди. Навчальні дані збережено; доступ можна відновити.",
+                              "Обліковий запис учителя остаточно видалено. Класи передано вам. Тепер можна створити нове запрошення на цю пошту.",
                             );
                           });
                         }}

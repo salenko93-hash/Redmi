@@ -4,7 +4,7 @@ const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3100";
 const headers = { Origin: baseURL };
 const password = "LabDemo2026!";
 
-test("teacher and class access can be suspended, removed and restored without losing work", async ({
+test("teacher deletion frees the email for a new invitation; class access remains recoverable", async ({
   playwright,
   page,
 }) => {
@@ -95,7 +95,22 @@ test("teacher and class access can be suspended, removed and restored without lo
     ).toBeTruthy();
     expect(
       (
-        await admin.delete(`/api/admin/teachers/${target.id}`, { headers })
+        await admin.delete(`/api/admin/teachers/${target.id}`, {
+          headers,
+          data: {},
+        })
+      ).status(),
+    ).toBe(400);
+    await db.query(
+      'UPDATE "User" SET "isActive"=false, "removedAt"=NOW() WHERE id=$1',
+      [target.id],
+    );
+    expect(
+      (
+        await admin.delete(`/api/admin/teachers/${target.id}`, {
+          headers,
+          data: { confirmed: true },
+        })
       ).ok(),
     ).toBeTruthy();
     expect((await colleague.get("/api/me")).status()).toBe(401);
@@ -112,25 +127,76 @@ test("teacher and class access can be suspended, removed and restored without lo
         .rowCount,
     ).toBe(1);
     expect(
+      (await db.query('SELECT id FROM "User" WHERE id=$1', [target.id]))
+        .rowCount,
+    ).toBe(0);
+    expect(
+      (
+        await db.query('SELECT "teacherId" FROM "Classroom" WHERE id=$1', [
+          owned.id,
+        ])
+      ).rows[0].teacherId,
+    ).not.toBe(target.id);
+    expect(
       (
         await admin.patch(`/api/admin/teachers/${target.id}`, {
           headers,
           data: { active: true },
         })
-      ).ok(),
-    ).toBeTruthy();
+      ).status(),
+    ).toBe(404);
     expect(
       (
-        await colleague.post("/api/auth/login", {
+        await colleague.post("/api/auth/register", {
           headers,
-          data: { email, password },
+          data: {
+            email,
+            password,
+            name: "Старий код",
+            role: "TEACHER",
+            invite: invite.token,
+          },
         })
       ).ok(),
-    ).toBeTruthy();
+    ).toBeFalsy();
+    const fresh = await admin.post("/api/admin/invites", {
+      headers,
+      data: { email },
+    });
+    expect(fresh.status()).toBe(201);
+    const freshInvite = await fresh.json();
+    const newPassword = "NewAccount2026!";
+    expect(
+      (
+        await colleague.post("/api/auth/register", {
+          headers,
+          data: {
+            email,
+            password: newPassword,
+            name: "Новий обліковий запис",
+            role: "TEACHER",
+            invite: freshInvite.token,
+          },
+        })
+      ).status(),
+    ).toBe(201);
+    const replacement = await (await colleague.get("/api/me")).json();
+    expect(replacement.id).not.toBe(target.id);
+    expect(replacement.isAdmin).toBe(false);
+    expect(
+      (
+        await db.query('SELECT id FROM "Classroom" WHERE "teacherId"=$1', [
+          replacement.id,
+        ])
+      ).rowCount,
+    ).toBe(0);
     const self = await (await admin.get("/api/me")).json();
     expect(
       (
-        await admin.delete(`/api/admin/teachers/${self.id}`, { headers })
+        await admin.delete(`/api/admin/teachers/${self.id}`, {
+          headers,
+          data: { confirmed: true },
+        })
       ).status(),
     ).toBe(409);
 
@@ -228,13 +294,28 @@ test("teacher and class access can be suspended, removed and restored without lo
     await expect(
       row.getByText("Активний доступ", { exact: true }),
     ).toBeVisible();
+    await page.goto("/admin");
+    const teacherRow = page.locator(`[data-admin-teacher="${replacement.id}"]`);
+    await expect(teacherRow).toBeVisible();
+    page.once("dialog", (dialog) => dialog.dismiss());
+    await teacherRow.getByRole("button", { name: /Видалити назавжди/ }).click();
+    await expect(teacherRow).toBeVisible();
+    page.once("dialog", (dialog) => dialog.accept());
+    await teacherRow.getByRole("button", { name: /Видалити назавжди/ }).click();
+    await expect(teacherRow).toHaveCount(0);
+    expect(
+      (await db.query('SELECT id FROM "User" WHERE id=$1', [replacement.id]))
+        .rowCount,
+    ).toBe(0);
   } finally {
     await Promise.all([
       admin.dispose(),
       student.dispose(),
       colleague.dispose(),
     ]);
-    await db.query('UPDATE "User" SET "isAdmin" = false WHERE email = $1', ["teacher@demo.test"]);
+    await db.query('UPDATE "User" SET "isAdmin" = false WHERE email = $1', [
+      "teacher@demo.test",
+    ]);
     await db.end();
   }
 });
