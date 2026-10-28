@@ -5,6 +5,10 @@ import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { databaseConfig } from "../lib/postgres";
+import {
+  isKnownLegacyAccess,
+  ACCESS_BRIDGE,
+} from "../lib/access-lifecycle-compatibility";
 
 // Diagnostics only: never rewrite migration history or modify application data.
 const hash = (sql: string) => createHash("sha256").update(sql).digest("hex");
@@ -72,6 +76,9 @@ try {
       "\uFEFF" + lf,
       "\uFEFF" + lf.replace(/\n/g, "\r\n"),
     ].map(hash);
+    const recognizedLegacy =
+      storedChecksum !== null &&
+      isKnownLegacyAccess(name, storedChecksum, currentChecksum);
     migrations.push({
       name,
       state:
@@ -79,13 +86,16 @@ try {
           ? "pending"
           : storedChecksum === currentChecksum
             ? "applied"
-            : "checksum_mismatch",
+            : recognizedLegacy
+              ? "recognized_legacy"
+              : "checksum_mismatch",
       storedChecksum,
       currentChecksum,
       formattingOnly:
         storedChecksum !== null &&
         storedChecksum !== currentChecksum &&
         variants.includes(storedChecksum),
+      recognizedLegacy,
     });
   }
   const lifecycle = migrations.find((m) => m.name === lifecycleName);
@@ -107,9 +117,13 @@ try {
         readOnly: meta.read_only === "on",
         schema: meta.schema,
         missingColumns,
-        migrations: migrations.filter((m) => m.state !== "applied"),
+        migrations: migrations.filter(
+          (m) => m.state !== "applied" && m.state !== "recognized_legacy",
+        ),
         accessLifecycle: {
           ...lifecycle,
+          reconciliation:
+            migrations.find((m) => m.name === ACCESS_BRIDGE) ?? null,
           localFileMatchesPublished:
             lifecycle?.currentChecksum === publishedLifecycleHash,
           userDeletedAt:

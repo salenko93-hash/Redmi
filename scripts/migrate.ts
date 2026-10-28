@@ -4,6 +4,10 @@ import { Client } from "pg";
 import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
+import {
+  isKnownLegacyAccess,
+  validateLegacyAccess,
+} from "../lib/access-lifecycle-compatibility";
 // Transactional SQL migrations avoid the experimental WASM introspector's handling of PostgreSQL's `name` type.
 // Files are generated from schema.prisma; an applied migration is immutable and verified by SHA-256.
 const client = new Client(databaseConfig());
@@ -26,10 +30,18 @@ try {
       [name],
     );
     if (found.rowCount) {
-      if (found.rows[0].checksum !== checksum)
+      if (found.rows[0].checksum !== checksum) {
+        if (isKnownLegacyAccess(name, found.rows[0].checksum, checksum)) {
+          await validateLegacyAccess(client, root);
+          console.log(
+            `${name}: recognized legacy version; original checksum preserved`,
+          );
+          continue;
+        }
         throw new Error(
           `Applied migration ${name} changed. Restore it and create a new migration.`,
         );
+      }
       console.log(`${name}: already applied`);
       continue;
     }
