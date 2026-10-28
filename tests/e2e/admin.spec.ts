@@ -14,7 +14,14 @@ async function register(
 ) {
   return api.post("/api/auth/register", {
     headers,
-    data: { email, name, password, invite, isAdmin: true, role: "ADMIN" },
+    data: {
+      email,
+      name,
+      password,
+      invite,
+      isAdmin: true,
+      role: invite ? "TEACHER" : undefined,
+    },
   });
 }
 function grant(email: string) {

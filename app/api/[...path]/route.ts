@@ -13,7 +13,11 @@ import {
   rateLimit,
   newToken,
 } from "@/lib/auth";
-import { answersSchema, credentials } from "@/lib/validation";
+import {
+  answersSchema,
+  credentials,
+  registrationCredentials,
+} from "@/lib/validation";
 import { parseRosterCsv, planRoster, rosterCsvCell } from "@/lib/roster";
 import {
   invitationMailConfig,
@@ -83,7 +87,9 @@ async function handle(
       (route === "auth/login" || route === "auth/register") &&
       method === "POST"
     ) {
-      const input = credentials.parse(await req.json());
+      const input = (
+        route === "auth/register" ? registrationCredentials : credentials
+      ).parse(await req.json());
       if (!(await rateLimit("auth:" + hashToken(input.email), 10)))
         return fail("Забагато спроб. Спробуйте через 15 хвилин.", 429);
       if (route === "auth/login") {
@@ -102,10 +108,44 @@ async function handle(
         return json({ ok: true });
       }
       if (!input.name) return fail("Вкажіть ім’я.");
+      const requestedRole = "role" in input ? input.role : undefined;
+      const studentCode =
+        "studentCode" in input
+          ? (input.studentCode as string | undefined)
+          : undefined;
+      if (requestedRole === "TEACHER" && studentCode)
+        return fail(
+          "Код учня не підходить для ролі «Учитель». Потрібне запрошення адміністратора.",
+        );
+      if (input.invite && studentCode)
+        return fail("Використайте лише код, який відповідає обраній ролі.");
+      if (requestedRole === "TEACHER" && !input.invite)
+        return fail(
+          "Для реєстрації вчителя введіть код запрошення від адміністратора.",
+        );
+      if (requestedRole === "STUDENT" && input.invite)
+        return fail(
+          "Код запрошення вчителя можна використати лише з роллю «Учитель».",
+        );
+      if (requestedRole === "STUDENT" && !studentCode)
+        return fail("Для реєстрації учня введіть особистий код від учителя.");
       const passwordHash = await hash(input.password, 12);
       const recoveryCode = newToken();
       const user = await db.$transaction(async (tx) => {
         let role: "STUDENT" | "TEACHER" = "STUDENT";
+        // A pending staff invitation must not silently become a pupil account.
+        if (
+          !input.invite &&
+          (await tx.teacherInvite.findFirst({
+            where: {
+              email: input.email,
+              usedAt: null,
+              expiresAt: { gt: new Date() },
+            },
+            select: { tokenHash: true },
+          }))
+        )
+          throw new Error("TEACHER_INVITE_REQUIRED");
         if (input.invite) {
           const used = await tx.teacherInvite.updateMany({
             where: {
@@ -119,7 +159,18 @@ async function handle(
           if (!used.count) throw new Error("INVALID_INVITE");
           role = "TEACHER";
         }
-        return tx.user.create({
+        const studentInvite = studentCode
+          ? await tx.studentInvite.findUnique({ where: { code: studentCode } })
+          : null;
+        if (
+          studentCode &&
+          (!studentInvite ||
+            studentInvite.claimedAt ||
+            studentInvite.claimedById ||
+            (studentInvite.email && studentInvite.email !== input.email))
+        )
+          throw new Error("INVALID_STUDENT_INVITE");
+        const created = await tx.user.create({
           data: {
             email: input.email,
             name: input.name!,
@@ -128,6 +179,21 @@ async function handle(
             recoveryHash: hashToken(recoveryCode),
           },
         });
+        if (studentInvite) {
+          const claimed = await tx.studentInvite.updateMany({
+            where: { id: studentInvite.id, claimedAt: null, claimedById: null },
+            data: { claimedById: created.id, claimedAt: new Date() },
+          });
+          if (!claimed.count) throw new Error("INVALID_STUDENT_INVITE");
+          await tx.membership.create({
+            data: {
+              userId: created.id,
+              classroomId: studentInvite.classroomId,
+              rosterName: studentInvite.name,
+            },
+          });
+        }
+        return created;
       });
       await createSession(user.id);
       return json({ ok: true, recoveryCode }, 201);
@@ -915,7 +981,17 @@ async function handle(
     if (err instanceof Error && err.message === "ACCOUNT_DISABLED")
       return fail("Неправильна пошта або пароль.", 401);
     if (err instanceof Error && err.message === "INVALID_INVITE")
-      return fail("Запрошення недійсне або вже використане.");
+      return fail(
+        "Запрошення недійсне, прострочене, вже використане або видане на іншу пошту. Перевірте код і адресу запрошення.",
+      );
+    if (err instanceof Error && err.message === "TEACHER_INVITE_REQUIRED")
+      return fail(
+        "Для цієї адреси є запрошення вчителя. Оберіть «Учитель» і введіть код від адміністратора.",
+      );
+    if (err instanceof Error && err.message === "INVALID_STUDENT_INVITE")
+      return fail(
+        "Код учня недійсний, уже використаний або виданий на іншу пошту. Використайте особистий код від учителя; код адміністратора для цієї ролі не підходить.",
+      );
     if (
       err instanceof Prisma.PrismaClientKnownRequestError &&
       err.code === "P2002"

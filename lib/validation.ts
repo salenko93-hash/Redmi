@@ -52,5 +52,14 @@ export const credentials = z.object({
     .transform((s) => s.toLowerCase()),
   password: z.string().min(10).max(128),
   name: z.string().trim().min(2).max(100).optional(),
-  invite: z.string().max(100).optional(),
+  invite: z.string().trim().max(100).optional(),
+});
+export const registrationCredentials = credentials.extend({
+  role: z.enum(["STUDENT", "TEACHER"]).optional(),
+  studentCode: z
+    .string()
+    .trim()
+    .max(40)
+    .transform((s) => s.replace(/[\s-]/g, "").toUpperCase())
+    .optional(),
 });

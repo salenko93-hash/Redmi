@@ -1,7 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, LoaderCircle, KeyRound } from "lucide-react";
+import {
+  ArrowRight,
+  LoaderCircle,
+  KeyRound,
+  GraduationCap,
+  Presentation,
+} from "lucide-react";
 export function AuthForm({
   initialMode = "login",
   expectedOrigin,
@@ -24,6 +30,7 @@ export function AuthForm({
     ),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
+    [role, setRole] = useState<"STUDENT" | "TEACHER" | "">(""),
     [recoveryCode, setRecoveryCode] = useState("");
   const router = useRouter();
   const register = mode === "register",
@@ -35,6 +42,13 @@ export function AuthForm({
           <KeyRound />
         </span>
         <h2>Збережіть код відновлення</h2>
+        {register && (
+          <p role="status">
+            {role === "TEACHER"
+              ? "Обліковий запис учителя створено. Вас додано до команди вчителів."
+              : "Обліковий запис учня / учениці створено. Вас приєднано до класу за особистим кодом."}
+          </p>
+        )}
         <p>
           Це ваш запасний ключ до облікового запису. Збережіть його у безпечному
           місці. Старий код після відновлення більше не працює.
@@ -71,7 +85,11 @@ export function AuthForm({
       </h2>
       <p>
         {register
-          ? "Приєднуйтеся до класу та досліджуйте світ."
+          ? role === "TEACHER"
+            ? "Створіть кабінет учителя за запрошенням адміністратора."
+            : role === "STUDENT"
+              ? "Створіть кабінет учня за особистим кодом від учителя."
+              : "Оберіть, як ви працюватимете у ФізЛаб."
           : recover
             ? "Використайте особистий резервний код або новий код із PowerShell."
             : "Увійдіть, щоб продовжити дослідження."}
@@ -113,6 +131,37 @@ export function AuthForm({
           }
         }}
       >
+        {register && (
+          <fieldset className="registration-roles" disabled={busy}>
+            <legend>Я реєструюся як</legend>
+            <div className="registration-role-options">
+              {(
+                [
+                  ["STUDENT", "Учень / учениця", GraduationCap],
+                  ["TEACHER", "Учитель", Presentation],
+                ] as const
+              ).map(([value, label, Icon]) => (
+                <label className="registration-role" key={value}>
+                  <input
+                    type="radio"
+                    name="role"
+                    value={value}
+                    checked={role === value}
+                    required
+                    onChange={() => {
+                      setRole(value);
+                      setError("");
+                    }}
+                  />
+                  <span>
+                    <Icon size={22} aria-hidden="true" />
+                    {label}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
         {register && (
           <label>
             Ім’я та прізвище
@@ -163,14 +212,47 @@ export function AuthForm({
             placeholder="Щонайменше 10 символів"
           />
         </label>
-        {register && (
-          <details>
-            <summary>Маєте запрошення вчителя?</summary>
+        {register && role === "TEACHER" && (
+          <div className="registration-invite">
             <label>
-              Код запрошення
-              <input name="invite" autoComplete="off" />
+              Код запрошення вчителя
+              <input
+                name="invite"
+                required
+                maxLength={100}
+                autoComplete="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                aria-describedby="teacher-invite-help"
+                placeholder="Вставте код від адміністратора"
+              />
             </label>
-          </details>
+            <p id="teacher-invite-help">
+              Використайте пошту, на яку видано запрошення. Код діє 24 години;
+              після реєстрації доступ учителя не обмежений цим строком.
+            </p>
+          </div>
+        )}
+        {register && role === "STUDENT" && (
+          <div className="registration-invite">
+            <label>
+              Особистий код учня
+              <input
+                name="studentCode"
+                required
+                maxLength={40}
+                autoComplete="off"
+                autoCapitalize="characters"
+                spellCheck={false}
+                aria-describedby="student-invite-help"
+                placeholder="Вставте код від учителя"
+              />
+            </label>
+            <p id="student-invite-help">
+              Код видає вчитель для вас і вашого класу. Укажіть пошту зі списку
+              вчителя. Запрошення адміністратора тут не працює.
+            </p>
+          </div>
         )}
         {error && (
           <p role="alert" className="error">

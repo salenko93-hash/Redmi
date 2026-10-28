@@ -1646,6 +1646,74 @@ td {
   margin-top: 3px;
   padding: 13px;
 }
+.registration-roles {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.registration-roles legend {
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.registration-role-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.registration-role {
+  position: relative;
+  cursor: pointer;
+  min-width: 0;
+}
+.registration-role input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  padding: 0;
+}
+.registration-role > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 88px;
+  padding: 12px 6px;
+  border: 1px solid #d9e1d1;
+  border-radius: 12px;
+  background: white;
+  color: #4d6357;
+  font-size: 12px;
+  text-align: center;
+}
+.registration-role input:checked + span {
+  border-color: #295640;
+  background: #eaf0e2;
+  color: #234c39;
+  box-shadow: inset 0 0 0 1px #295640;
+}
+.registration-role input:focus-visible + span {
+  outline: 3px solid #8ba66f;
+  outline-offset: 3px;
+}
+.registration-roles:disabled {
+  opacity: 0.7;
+}
+.registration-invite {
+  padding: 14px;
+  border: 1px solid #d9e1d1;
+  border-radius: 12px;
+  background: #eff3e8;
+}
+.registration-invite p {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #52624c;
+  margin: 10px 0 0;
+}
 .auth-switch {
   margin-top: 25px;
   text-align: center;
