@@ -8,7 +8,8 @@ import {
   CopyCode,
   AssignmentMode,
 } from "@/components/class-actions";
-import { statuses } from "@/components/lab-grid";
+import { statuses } from "@/lib/submission-status";
+import { ClassMembers } from "@/components/class-members";
 import { StudentImport } from "@/components/student-import";
 export default async function ClassPage({
   params,
@@ -22,7 +23,7 @@ export default async function ClassPage({
       id: (await params).id,
       ...(u.role === "TEACHER"
         ? { teacherId: u.id }
-        : { memberships: { some: { userId: u.id } } }),
+        : { memberships: { some: { userId: u.id, status: "ACTIVE" } } }),
     },
     include: {
       memberships: {
@@ -45,6 +46,8 @@ export default async function ClassPage({
       "uk",
     ),
   );
+  const currentMembers = c.memberships.filter((m) => m.status !== "LEFT");
+  const activeCount = c.memberships.filter((m) => m.status === "ACTIVE").length;
   const invites = teacher
     ? await db.studentInvite.findMany({
         where: { classroomId: c.id, claimedAt: null },
@@ -69,7 +72,7 @@ export default async function ClassPage({
         <div>
           <h1>{c.name}</h1>
           <p>
-            {c.memberships.length} учнів
+            {activeCount} активних учнів
             {teacher && invites.length > 0
               ? ` · ${invites.length} очікують приєднання`
               : ""}{" "}
@@ -84,15 +87,15 @@ export default async function ClassPage({
             <div className="panel">
               <h2>Учні класу</h2>
               <StudentImport classroomId={c.id} invites={invites} />
-              {c.memberships.length > 0 && (
-                <h3>Приєдналися · {c.memberships.length}</h3>
-              )}
-              {c.memberships.map((m) => (
-                <p key={m.id} data-roster-member={m.user.id}>
-                  {m.rosterName ?? m.user.name}{" "}
-                  <small className="muted">· {m.user.email}</small>
-                </p>
-              ))}
+              <ClassMembers
+                classroomId={c.id}
+                members={c.memberships.map((m) => ({
+                  userId: m.user.id,
+                  name: m.rosterName ?? m.user.name,
+                  email: m.user.email,
+                  status: m.status,
+                }))}
+              />
               {!c.memberships.length && !invites.length && (
                 <p className="muted">Поділіться кодом класу з учнями.</p>
               )}
@@ -155,7 +158,7 @@ export default async function ClassPage({
                 )}
                 {teacher && (
                   <div className="student-list">
-                    {c.memberships.map((m) => {
+                    {currentMembers.map((m) => {
                       const s = a.submissions.find(
                         (s) => s.studentId === m.user.id,
                       );
@@ -163,6 +166,9 @@ export default async function ClassPage({
                         <div key={m.id}>
                           <span>
                             {m.rosterName ?? m.user.name}{" "}
+                            {m.status === "SUSPENDED" && (
+                              <small> · Доступ призупинено</small>
+                            )}
                             {s && (s.answers as { help?: boolean }).help && (
                               <span title="Потребує допомоги">🙋</span>
                             )}
@@ -186,6 +192,42 @@ export default async function ClassPage({
                     })}
                   </div>
                 )}
+                {teacher &&
+                  c.memberships.some(
+                    (m) =>
+                      m.status === "LEFT" &&
+                      a.submissions.some((s) => s.studentId === m.userId),
+                  ) && (
+                    <details>
+                      <summary>Роботи вибулих учнів</summary>
+                      <div className="student-list">
+                        {c.memberships
+                          .filter((m) => m.status === "LEFT")
+                          .map((m) => {
+                            const s = a.submissions.find(
+                              (s) => s.studentId === m.userId,
+                            );
+                            return s ? (
+                              <div key={m.id}>
+                                <span>
+                                  {m.rosterName ?? m.user.name} · Вибув / вибула
+                                </span>
+                                <Link
+                                  href={"/review/" + s.id}
+                                  className="review-link"
+                                >
+                                  {statuses[s.status]}
+                                  {s.score !== null
+                                    ? " · " + s.score + "/12"
+                                    : ""}{" "}
+                                  →
+                                </Link>
+                              </div>
+                            ) : null;
+                          })}
+                      </div>
+                    </details>
+                  )}
               </div>
             ))}
           </div>

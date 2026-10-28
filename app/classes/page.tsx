@@ -12,9 +12,14 @@ export default async function Classes() {
   const classes = await db.classroom.findMany({
     where: teacher
       ? { teacherId: u.id }
-      : { memberships: { some: { userId: u.id } } },
+      : { memberships: { some: { userId: u.id, status: "ACTIVE" } } },
     include: {
-      _count: { select: { memberships: true, assignments: true } },
+      _count: {
+        select: {
+          memberships: { where: { status: "ACTIVE" } },
+          assignments: true,
+        },
+      },
       teacher: { select: { name: true } },
     },
     orderBy: { createdAt: "desc" },

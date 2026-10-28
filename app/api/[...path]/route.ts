@@ -26,6 +26,11 @@ import {
   definiteMailFailure,
 } from "@/lib/invitation-email";
 import { teacherRosterNames } from "@/lib/roster-names";
+import {
+  changeClassMember,
+  requireClassMembership,
+  ClassAccessError,
+} from "@/lib/class-members";
 import { completeness, checkCalculations } from "@/lib/physics";
 import type { Answers, LabContent } from "@/lib/types";
 const json = (data: unknown, status = 200) =>
@@ -102,7 +107,7 @@ async function handle(
           user?.passwordHash ??
             "$2b$12$R9h/cIPz0gi.URNNX3kh2OPST9/PgBkqquzi.Ss7KIUgO2t0jWMUW",
         );
-        if (!user || !valid || !user.isActive)
+        if (!user || !valid || !user.isActive || user.deletedAt)
           return fail("Неправильна пошта або пароль.", 401);
         await createSession(user.id);
         return json({ ok: true });
@@ -204,7 +209,7 @@ async function handle(
       path[0] === "classes" &&
       path[2] === "students" &&
       ((path.length === 4 && ["import", "codes", "email"].includes(path[3])) ||
-        (path.length === 5 && path[3] === "invites"))
+        (path.length === 5 && ["invites", "members"].includes(path[3])))
     ) {
       if (user.role !== "TEACHER") return fail("Доступ лише для вчителя.", 403);
       const classroom = await db.classroom.findFirst({
@@ -212,6 +217,28 @@ async function handle(
         select: { id: true, name: true },
       });
       if (!classroom) return fail("Клас не знайдено.", 404);
+      if (path[3] === "members" && path.length === 5) {
+        if (method === "PATCH") {
+          const { active } = z
+            .object({ active: z.boolean() })
+            .parse(await req.json());
+          return json(
+            await changeClassMember(
+              user.id,
+              classroom.id,
+              path[4],
+              active ? "ACTIVE" : "SUSPENDED",
+            ),
+          );
+        }
+        if (method === "DELETE") {
+          z.object({ confirmed: z.literal(true) }).parse(await req.json());
+          return json(
+            await changeClassMember(user.id, classroom.id, path[4], "LEFT"),
+          );
+        }
+        return fail("Маршрут не знайдено.", 404);
+      }
       if (path[3] === "email" && path.length === 4) {
         const config = invitationMailConfig();
         if (method === "GET") {
@@ -507,6 +534,7 @@ async function handle(
             (invite.claimedAt && invite.claimedById !== user.id)
           )
             return null;
+          await requireClassMembership(tx, invite.classroomId, user.id, true);
           const alreadyClaimed = await tx.studentInvite.findUnique({
             where: {
               classroomId_claimedById: {
@@ -553,6 +581,7 @@ async function handle(
       }
       await db.$transaction(async (tx) => {
         await tx.$queryRaw`SELECT "id" FROM "Classroom" WHERE "id" = ${c.id} FOR UPDATE`;
+        await requireClassMembership(tx, c.id, user.id, true);
         const pending = await tx.studentInvite.findFirst({
           where: { classroomId: c.id, email: user.email, claimedAt: null },
         });
@@ -688,7 +717,9 @@ async function handle(
         where: { id: path[1] },
         include: {
           classroom: {
-            include: { memberships: { where: { userId: user.id } } },
+            include: {
+              memberships: { where: { userId: user.id, status: "ACTIVE" } },
+            },
           },
           labVersion: true,
         },
@@ -732,6 +763,7 @@ async function handle(
         );
         if (recordError) return fail(recordError, 422);
         const result = await db.$transaction(async (tx) => {
+          await requireClassMembership(tx, assignment.classroomId, user.id);
           await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${assignment.id}))`;
           const latestAssignment = await tx.assignment.findUniqueOrThrow({
             where: { id: assignment.id },
@@ -818,6 +850,18 @@ async function handle(
         )
       )
         return fail("Роботу не знайдено.", 404);
+      if (
+        user.role === "STUDENT" &&
+        !(await db.membership.findFirst({
+          where: {
+            classroomId: s.assignment.classroomId,
+            userId: user.id,
+            status: "ACTIVE",
+          },
+          select: { id: true },
+        }))
+      )
+        return fail("Доступ до цього класу припинено.", 403);
       if (path[2] === "checks" && method === "GET") {
         if (
           user.role === "STUDENT" &&
@@ -948,6 +992,7 @@ async function handle(
     }
     return fail("Маршрут не знайдено.", 404);
   } catch (err) {
+    if (err instanceof ClassAccessError) return fail(err.message, err.status);
     if (err instanceof Error) {
       if (err.message === "MODE_LOCKED")
         return fail(

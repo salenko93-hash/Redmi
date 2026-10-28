@@ -1,0 +1,40 @@
+.dialog {
+  width: min(480px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  border: 1px solid #dce5d1;
+  border-radius: 18px;
+  padding: 24px;
+  background: #fafbf6;
+  color: #244b3b;
+}
+.dialog::backdrop {
+  background: #132a2199;
+}
+.name {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.dialog .confirm {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 14px;
+}
+.dialog .confirm input {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  flex: 0 0 18px;
+}
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+.actions button {
+  min-height: 44px;
+}

@@ -3,6 +3,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { Search, ArrowUpRight, Clock3, Check, LockKeyhole } from "lucide-react";
 import { LabIcon } from "./icons";
+import { statuses } from "@/lib/submission-status";
+export { statuses } from "@/lib/submission-status";
 export type LabCard = {
   id: string;
   number: number;
@@ -17,12 +19,6 @@ export type LabCard = {
   classroomId?: string;
   classProgress?: string;
   dueAt?: string | null;
-};
-export const statuses: Record<string, string> = {
-  DRAFT: "У процесі",
-  SUBMITTED: "На перевірці",
-  RETURNED: "На доопрацювання",
-  GRADED: "Оцінено",
 };
 export function LabGrid({
   cards,

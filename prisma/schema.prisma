@@ -24,6 +24,7 @@ model User {
   passwordHash String
   role Role @default(STUDENT)
   isActive Boolean @default(true)
+  deletedAt DateTime?
   isAdmin Boolean @default(false)
   createdAt DateTime @default(now())
   sessions Session[]
@@ -71,9 +72,11 @@ model Membership {
   classroomId String
   userId String
   rosterName String?
+  status String @default("ACTIVE")
   classroom Classroom @relation(fields:[classroomId], references:[id], onDelete:Cascade)
   user User @relation(fields:[userId], references:[id], onDelete:Cascade)
   @@unique([classroomId,userId])
+  @@index([classroomId,status])
 }
 model StudentInvite {
   id String @id @default(cuid())

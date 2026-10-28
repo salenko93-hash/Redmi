@@ -17,22 +17,38 @@ export default async function Dashboard() {
   const user = await currentUser();
   if (!user) redirect("/");
   const teacher = user.role === "TEACHER";
-  const assignments = await db.assignment.findMany({
+  const loadedAssignments = await db.assignment.findMany({
     where: {
       classroom: teacher
         ? { teacherId: user.id }
-        : { memberships: { some: { userId: user.id } } },
+        : { memberships: { some: { userId: user.id, status: "ACTIVE" } } },
     },
     include: {
       labVersion: true,
-      classroom: { include: { _count: { select: { memberships: true } } } },
+      classroom: {
+        include: {
+          memberships: {
+            where: { status: "ACTIVE" },
+            select: { userId: true },
+          },
+          _count: { select: { memberships: { where: { status: "ACTIVE" } } } },
+        },
+      },
       submissions: {
         where: teacher ? {} : { studentId: user.id },
-        select: { status: true, score: true },
+        select: { status: true, score: true, studentId: true },
       },
     },
     orderBy: { labVersion: { number: "asc" } },
   });
+  const assignments = loadedAssignments.map((a) => ({
+    ...a,
+    submissions: teacher
+      ? a.submissions.filter((s) =>
+          a.classroom.memberships.some((m) => m.userId === s.studentId),
+        )
+      : a.submissions,
+  }));
   const subs = assignments.flatMap((a) => a.submissions);
   const graded = subs.filter((s) => s.status === "GRADED"),
     pending = subs.filter((s) => s.status === "SUBMITTED");

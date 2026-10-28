@@ -16,7 +16,13 @@ async function requireActiveAdmin(
   actorId: string,
 ) {
   const actor = await tx.user.findFirst({
-    where: { id: actorId, role: "TEACHER", isAdmin: true, isActive: true },
+    where: {
+      id: actorId,
+      role: "TEACHER",
+      isAdmin: true,
+      isActive: true,
+      deletedAt: null,
+    },
     select: { id: true },
   });
   if (!actor)
@@ -32,6 +38,7 @@ export async function adminOverview() {
         email: true,
         isActive: true,
         isAdmin: true,
+        deletedAt: true,
         _count: { select: { ownedClasses: true } },
       },
       orderBy: { createdAt: "asc" },
@@ -222,14 +229,66 @@ export async function setTeacherAccess(
       throw new AdminActionError(
         "Потрібен хоча б один активний адміністратор.",
       );
-    if (teacher.isActive === active) return;
-    await tx.user.update({ where: { id }, data: { isActive: active } });
+    if (teacher.deletedAt && !active)
+      throw new AdminActionError(
+        "Учителя видалено з команди. Спочатку відновіть його.",
+      );
+    if (teacher.isActive === active && !teacher.deletedAt) return;
+    await tx.user.update({
+      where: { id },
+      data: { isActive: active, ...(active ? { deletedAt: null } : {}) },
+    });
     await tx.session.deleteMany({ where: { userId: id } });
     await tx.adminAudit.create({
       data: {
         actorId,
         targetId: id,
-        action: active ? "TEACHER_ENABLED" : "TEACHER_BLOCKED",
+        action: active
+          ? teacher.deletedAt
+            ? "TEACHER_RESTORED"
+            : "TEACHER_ENABLED"
+          : "TEACHER_BLOCKED",
+        detail: { email: teacher.email },
+      },
+    });
+  });
+}
+export async function removeTeacher(actorId: string, id: string) {
+  if (id === actorId)
+    throw new AdminActionError(
+      "Не можна видалити власний обліковий запис із команди.",
+    );
+  await db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('fizlab-staff-access'))`;
+    await requireActiveAdmin(tx, actorId);
+    const teacher = await tx.user.findFirst({ where: { id, role: "TEACHER" } });
+    if (!teacher) throw new AdminActionError("Учителя не знайдено.", 404);
+    if (
+      teacher.isAdmin &&
+      (await tx.user.count({
+        where: {
+          role: "TEACHER",
+          isAdmin: true,
+          isActive: true,
+          deletedAt: null,
+          id: { not: id },
+        },
+      })) === 0
+    )
+      throw new AdminActionError(
+        "Потрібен хоча б один активний адміністратор.",
+      );
+    if (teacher.deletedAt) return;
+    await tx.user.update({
+      where: { id },
+      data: { isActive: false, deletedAt: new Date() },
+    });
+    await tx.session.deleteMany({ where: { userId: id } });
+    await tx.adminAudit.create({
+      data: {
+        actorId,
+        targetId: id,
+        action: "TEACHER_REMOVED",
         detail: { email: teacher.email },
       },
     });

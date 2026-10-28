@@ -4,7 +4,7 @@ import { Download } from "lucide-react";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Shell } from "@/components/shell";
-import { statuses } from "@/components/lab-grid";
+import { statuses } from "@/lib/submission-status";
 import { teacherRosterNames } from "@/lib/roster-names";
 export default async function Journal() {
   const u = await currentUser();

@@ -1,3 +1,4 @@
+import { provisionTestAdmin, releaseTestAdmin } from "../helpers/admin-account";
 import { test, expect } from "@playwright/test";
 import { Client } from "pg";
 import { randomBytes, createHash } from "node:crypto";
@@ -18,11 +19,7 @@ test("admin explicitly repairs a pupil account into a teacher without losing cre
   const anonymous = await playwright.request.newContext({ baseURL: origin });
   const nonce = Date.now();
   const email = `repair-${nonce}@test.invalid`;
-  const demo = (
-    await db.query('SELECT id,"isAdmin" FROM "User" WHERE email=$1', [
-      "teacher@demo.test",
-    ])
-  ).rows[0];
+  const demo = await provisionTestAdmin(db);
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   try {
@@ -62,7 +59,7 @@ test("admin explicitly repairs a pupil account into a teacher without losing cre
       (
         await page.request.post("/api/auth/login", {
           headers,
-          data: { email: "teacher@demo.test", password: "LabDemo2026!" },
+          data: { email: demo.email, password: "LabDemo2026!" },
         })
       ).status(),
     ).toBe(200);
@@ -280,10 +277,7 @@ test("admin explicitly repairs a pupil account into a teacher without losing cre
     });
     expect(errors).toEqual([]);
   } finally {
-    await db.query('UPDATE "User" SET "isAdmin"=$1 WHERE id=$2', [
-      demo.isAdmin,
-      demo.id,
-    ]);
+    await releaseTestAdmin(db, demo.id);
     await Promise.all([pupil.dispose(), anonymous.dispose()]);
     await db.end();
   }

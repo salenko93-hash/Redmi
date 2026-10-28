@@ -1,3 +1,4 @@
+import { provisionTestAdmin, releaseTestAdmin } from "../helpers/admin-account";
 import { test, expect } from "@playwright/test";
 import { Client } from "pg";
 import { randomBytes, createHash } from "node:crypto";
@@ -21,11 +22,7 @@ test("mobile role registration requires a teacher invitation and adds the teache
   const hash = createHash("sha256").update(token).digest("hex");
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  const demo = (
-    await db.query('SELECT id,"isAdmin" FROM "User" WHERE email=$1', [
-      "teacher@demo.test",
-    ])
-  ).rows[0];
+  const demo = await provisionTestAdmin(db);
   try {
     await db.query(
       'INSERT INTO "TeacherInvite" ("tokenHash",email,"expiresAt") VALUES ($1,$2,NOW()+INTERVAL \'1 hour\')',
@@ -138,7 +135,7 @@ test("mobile role registration requires a teacher invitation and adds the teache
       (
         await admin.post("/api/auth/login", {
           headers,
-          data: { email: "teacher@demo.test", password: "LabDemo2026!" },
+          data: { email: demo.email, password: "LabDemo2026!" },
         })
       ).status(),
     ).toBe(200);
@@ -270,10 +267,7 @@ test("mobile role registration requires a teacher invitation and adds the teache
     ).toBe(400);
     expect(errors).toEqual([]);
   } finally {
-    await db.query('UPDATE "User" SET "isAdmin"=$1 WHERE id=$2', [
-      demo.isAdmin,
-      demo.id,
-    ]);
+    await releaseTestAdmin(db, demo.id);
     await admin.dispose();
     await db.end();
   }

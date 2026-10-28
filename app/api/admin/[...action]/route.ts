@@ -7,6 +7,7 @@ import {
   revokeTeacherInvitation,
   setTeacherAccess,
   promoteStudentToTeacher,
+  removeTeacher,
   AdminActionError,
 } from "@/lib/admin";
 import {
@@ -86,6 +87,15 @@ async function handle(
         .object({ active: z.boolean() })
         .parse(await req.json());
       await setTeacherAccess(user.id, path[1], active);
+      return json({ ok: true });
+    }
+    if (
+      path[0] === "teachers" &&
+      path.length === 2 &&
+      req.method === "DELETE"
+    ) {
+      z.object({ confirmed: z.literal(true) }).parse(await req.json());
+      await removeTeacher(user.id, path[1]);
       return json({ ok: true });
     }
     if (route === "mail/check" && req.method === "POST") {

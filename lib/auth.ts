@@ -11,7 +11,7 @@ export async function currentUser() {
     where: { tokenHash: hashToken(token) },
     include: { user: true },
   });
-  return s && s.expiresAt > new Date() && s.user.isActive
+  return s && s.expiresAt > new Date() && s.user.isActive && !s.user.deletedAt
     ? {
         id: s.user.id,
         name: s.user.name,
@@ -29,9 +29,9 @@ export async function createSession(userId: string) {
     await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${userId} FOR UPDATE`;
     const user = await tx.user.findUnique({
       where: { id: userId },
-      select: { isActive: true },
+      select: { isActive: true, deletedAt: true },
     });
-    if (!user?.isActive) throw new Error("ACCOUNT_DISABLED");
+    if (!user?.isActive || user.deletedAt) throw new Error("ACCOUNT_DISABLED");
     await tx.session.create({
       data: { tokenHash: hashToken(token), userId, expiresAt },
     });

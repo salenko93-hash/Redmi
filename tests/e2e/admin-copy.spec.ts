@@ -1,3 +1,4 @@
+import { provisionTestAdmin, releaseTestAdmin } from "../helpers/admin-account";
 import { test, expect } from "@playwright/test";
 import { Client } from "pg";
 const origin = process.env.E2E_BASE_URL || "http://localhost:3100";
@@ -12,11 +13,7 @@ test("invitation copy handles secure clipboard, absent API, denied permission an
     throw new Error("Disposable database required");
   const db = new Client({ connectionString: target });
   await db.connect();
-  const demo = (
-    await db.query('SELECT id,"isAdmin" FROM "User" WHERE email=$1', [
-      "teacher@demo.test",
-    ])
-  ).rows[0];
+  const demo = await provisionTestAdmin(db);
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   try {
@@ -26,7 +23,7 @@ test("invitation copy handles secure clipboard, absent API, denied permission an
       (
         await page.request.post("/api/auth/login", {
           headers,
-          data: { email: "teacher@demo.test", password: "LabDemo2026!" },
+          data: { email: demo.email, password: "LabDemo2026!" },
         })
       ).status(),
     ).toBe(200);
@@ -114,10 +111,7 @@ test("invitation copy handles secure clipboard, absent API, denied permission an
     ).toEqual([0, token.length]);
     expect(errors).toEqual([]);
   } finally {
-    await db.query('UPDATE "User" SET "isAdmin"=$1 WHERE id=$2', [
-      demo.isAdmin,
-      demo.id,
-    ]);
+    await releaseTestAdmin(db, demo.id);
     await db.end();
   }
 });

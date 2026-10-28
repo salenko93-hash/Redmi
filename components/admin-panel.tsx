@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { ShieldCheck, UserPlus, Mail, Copy, RefreshCw } from "lucide-react";
 import type { adminOverview } from "@/lib/admin";
 import { copyText } from "@/lib/copy-text";
+import { RemovalConfirmation } from "./removal-confirmation";
 import styles from "./admin-panel.module.css";
 type Overview = Awaited<ReturnType<typeof adminOverview>>;
 const date = (value: string) =>
@@ -16,6 +17,8 @@ const actions: Record<string, string> = {
   INVITATION_REVOKED: "Відкликано запрошення",
   TEACHER_BLOCKED: "Призупинено доступ учителя",
   TEACHER_ENABLED: "Відновлено доступ учителя",
+  TEACHER_REMOVED: "Видалено вчителя з команди",
+  TEACHER_RESTORED: "Відновлено видаленого вчителя",
   TEACHER_ROLE_GRANTED: "Учнівську роль змінено на вчительську",
   MAIL_CHECK_OK: "Поштове підключення працює",
   MAIL_CHECK_FAILED: "Помилка перевірки пошти",
@@ -28,10 +31,17 @@ export function AdminPanel({
   userId: string;
 }) {
   const router = useRouter();
+  const removeInvoker = useRef<HTMLButtonElement>(null);
   const inviteCode = useRef<HTMLTextAreaElement>(null);
   const promotionPanel = useRef<HTMLElement>(null);
   const [copyMessage, setCopyMessage] = useState("");
   const [copying, setCopying] = useState(false);
+  const [showRemoved, setShowRemoved] = useState(false);
+  const [removingTeacher, setRemovingTeacher] = useState<{
+    id: string;
+    name: string;
+    email: string;
+  } | null>(null);
   const [existingStudent, setExistingStudent] = useState<{
     id: string;
     name: string;
@@ -97,7 +107,7 @@ export function AdminPanel({
           <span>у навчальному просторі</span>
         </div>
       </div>
-      {error && (
+      {error && !removingTeacher && (
         <p className="error" role="alert">
           {error}
         </p>
@@ -106,6 +116,31 @@ export function AdminPanel({
         <p className={styles.notice} role="status">
           {message}
         </p>
+      )}
+      {removingTeacher && (
+        <RemovalConfirmation
+          returnFocus={removeInvoker.current}
+          title="Видалити вчителя з команди?"
+          name={`${removingTeacher.name} · ${removingTeacher.email}`}
+          description="Учитель утратить доступ і зникне з основного списку команди. Класи, роботи та оцінки залишаться. Адміністратор зможе повернути його через «Показати видалених учителів» → «Відновити»."
+          busy={busy}
+          error={error}
+          onCancel={() => {
+            setRemovingTeacher(null);
+            setError("");
+          }}
+          onConfirm={() =>
+            run(async () => {
+              await request("teachers/" + removingTeacher.id, "DELETE", {
+                confirmed: true,
+              });
+              setRemovingTeacher(null);
+              setMessage(
+                "Учителя видалено з команди. Класи й роботи збережено; доступ можна відновити.",
+              );
+            })
+          }
+        />
       )}
       <div className={styles.columns}>
         <section className="panel" aria-label="Керування вчителями">
@@ -118,8 +153,19 @@ export function AdminPanel({
             </div>
             <ShieldCheck size={24} />
           </div>
+          {data.teachers.some((t) => t.deletedAt) && (
+            <label className={styles.filterRemoved}>
+              <input
+                type="checkbox"
+                checked={showRemoved}
+                onChange={(event) => setShowRemoved(event.target.checked)}
+              />
+              Показати видалених учителів ·{" "}
+              {data.teachers.filter((t) => t.deletedAt).length}
+            </label>
+          )}
           <div className="table-scroll">
-            <table>
+            <table className={styles.teamTable}>
               <thead>
                 <tr>
                   <th scope="col">Учитель</th>
@@ -129,52 +175,106 @@ export function AdminPanel({
                 </tr>
               </thead>
               <tbody>
-                {data.teachers.map((teacher) => (
-                  <tr key={teacher.id} data-admin-teacher={teacher.id}>
-                    <td>
-                      <strong>{teacher.name}</strong>
-                      <small className={styles.email}>{teacher.email}</small>
-                      {teacher.isAdmin && (
-                        <span className="pill">Адміністратор</span>
-                      )}
-                      {teacher.id === userId && (
-                        <small className={styles.email}>Це ви</small>
-                      )}
-                    </td>
-                    <td>
-                      <span
-                        className={
-                          teacher.isActive ? styles.active : styles.blocked
-                        }
-                      >
-                        {teacher.isActive ? "Активний" : "Призупинено"}
-                      </span>
-                    </td>
-                    <td>{teacher._count.ownedClasses}</td>
-                    <td>
-                      <button
-                        type="button"
-                        className="button secondary"
-                        disabled={busy || teacher.id === userId}
-                        aria-label={`${teacher.isActive ? "Призупинити" : "Відновити"} доступ: ${teacher.name}`}
-                        onClick={() =>
-                          run(async () => {
-                            await request("teachers/" + teacher.id, "PATCH", {
-                              active: !teacher.isActive,
-                            });
-                            setMessage(
-                              teacher.isActive
-                                ? "Доступ призупинено, активні сеанси завершено. Класи та роботи збережені."
-                                : "Доступ відновлено. Учитель може увійти зі своїм паролем.",
-                            );
-                          })
-                        }
-                      >
-                        {teacher.isActive ? "Призупинити" : "Відновити"}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {data.teachers
+                  .filter((t) => showRemoved || !t.deletedAt)
+                  .map((teacher) => (
+                    <tr key={teacher.id} data-admin-teacher={teacher.id}>
+                      <td>
+                        <strong>{teacher.name}</strong>
+                        <small className={styles.email}>{teacher.email}</small>
+                        {teacher.isAdmin && (
+                          <span className="pill">Адміністратор</span>
+                        )}
+                        {teacher.id === userId && (
+                          <small className={styles.email}>Це ви</small>
+                        )}
+                      </td>
+                      <td>
+                        <span
+                          className={
+                            teacher.isActive ? styles.active : styles.blocked
+                          }
+                        >
+                          {teacher.deletedAt
+                            ? "Видалено з команди"
+                            : teacher.isActive
+                              ? "Активний"
+                              : "Призупинено"}
+                        </span>
+                      </td>
+                      <td>{teacher._count.ownedClasses}</td>
+                      <td>
+                        <div className={styles.roleActions}>
+                          <button
+                            type="button"
+                            className="button secondary"
+                            disabled={
+                              busy ||
+                              teacher.id === userId ||
+                              (teacher.isActive && !teacher.deletedAt)
+                            }
+                            aria-label={`Відновити доступ: ${teacher.name}`}
+                            onClick={() =>
+                              run(async () => {
+                                await request(
+                                  "teachers/" + teacher.id,
+                                  "PATCH",
+                                  { active: true },
+                                );
+                                setMessage(
+                                  "Учителя відновлено. Він може ввійти зі своїм паролем. Класи та роботи збережені.",
+                                );
+                              })
+                            }
+                          >
+                            Відновити
+                          </button>
+                          <button
+                            type="button"
+                            className="button secondary"
+                            disabled={
+                              busy ||
+                              teacher.id === userId ||
+                              !teacher.isActive ||
+                              Boolean(teacher.deletedAt)
+                            }
+                            aria-label={`Призупинити доступ: ${teacher.name}`}
+                            onClick={() =>
+                              run(async () => {
+                                await request(
+                                  "teachers/" + teacher.id,
+                                  "PATCH",
+                                  { active: false },
+                                );
+                                setMessage(
+                                  "Доступ призупинено, активні сеанси завершено. Класи та роботи збережені.",
+                                );
+                              })
+                            }
+                          >
+                            Призупинити
+                          </button>
+                          <button
+                            type="button"
+                            className="button secondary"
+                            disabled={
+                              busy ||
+                              teacher.id === userId ||
+                              Boolean(teacher.deletedAt)
+                            }
+                            aria-label={`Видалити вчителя: ${teacher.name}`}
+                            onClick={(event) => {
+                              removeInvoker.current = event.currentTarget;
+                              setError("");
+                              setRemovingTeacher(teacher);
+                            }}
+                          >
+                            Видалити
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>

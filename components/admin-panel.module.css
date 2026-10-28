@@ -154,3 +154,44 @@
     min-width: 560px;
   }
 }
+.filterRemoved {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  min-height: 44px;
+  margin: 12px 0;
+}
+.filterRemoved input {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  flex: 0 0 18px;
+}
+@media (max-width: 600px) {
+  .root .teamTable {
+    min-width: 0;
+    width: 100%;
+  }
+  .teamTable thead {
+    display: none;
+  }
+  .teamTable tbody {
+    display: grid;
+    gap: 14px;
+  }
+  .teamTable tr {
+    display: grid;
+    border: 1px solid #dce5d1;
+    border-radius: 12px;
+    padding: 12px;
+  }
+  .teamTable td {
+    display: block;
+    padding: 5px 0;
+    border: 0;
+  }
+  .teamTable td:nth-child(3)::before {
+    content: "Класи: ";
+  }
+}
