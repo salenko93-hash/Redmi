@@ -1,8 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldCheck, UserPlus, Mail, Copy, RefreshCw } from "lucide-react";
 import type { adminOverview } from "@/lib/admin";
+import { copyText } from "@/lib/copy-text";
 import styles from "./admin-panel.module.css";
 type Overview = Awaited<ReturnType<typeof adminOverview>>;
 const date = (value: string) =>
@@ -26,6 +27,9 @@ export function AdminPanel({
   userId: string;
 }) {
   const router = useRouter();
+  const inviteCode = useRef<HTMLTextAreaElement>(null);
+  const [copyMessage, setCopyMessage] = useState("");
+  const [copying, setCopying] = useState(false);
   const [email, setEmail] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -175,6 +179,7 @@ export function AdminPanel({
               run(async () => {
                 const result = await request("invites", "POST", { email });
                 setInvite(result);
+                setCopyMessage("");
                 setEmail("");
               });
             }}
@@ -206,6 +211,7 @@ export function AdminPanel({
               <label>
                 Код запрошення вчителя
                 <textarea
+                  ref={inviteCode}
                   aria-label="Код запрошення вчителя"
                   readOnly
                   rows={3}
@@ -216,17 +222,30 @@ export function AdminPanel({
               <button
                 type="button"
                 className="button secondary"
+                disabled={copying}
                 onClick={async () => {
+                  setCopying(true);
+                  setCopyMessage("");
                   try {
-                    await navigator.clipboard.writeText(invite.token);
-                    setMessage("Код скопійовано.");
-                  } catch {
-                    setMessage("Виділіть код і скопіюйте його вручну.");
+                    const copied = await copyText(
+                      invite.token,
+                      inviteCode.current,
+                    );
+                    setCopyMessage(
+                      copied
+                        ? "Код скопійовано."
+                        : "Код виділено. Натисніть Ctrl+C на комп’ютері або утримуйте поле й оберіть «Скопіювати» на телефоні.",
+                    );
+                  } finally {
+                    setCopying(false);
                   }
                 }}
               >
                 <Copy size={15} /> Скопіювати запрошення
               </button>
+              <p aria-live="polite" aria-atomic="true">
+                {copyMessage}
+              </p>
               <p>
                 Передайте код колезі особисто. На сторінці реєстрації він обирає
                 «Учитель», указує цю адресу, власний пароль і код запрошення
