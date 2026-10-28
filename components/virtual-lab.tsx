@@ -1,5 +1,7 @@
 "use client";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { SimulationControl } from "./simulation-control";
 import {
   FlaskConical,
   Play,
@@ -7,6 +9,8 @@ import {
   RotateCcw,
   ArrowDownToLine,
   Check,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import {
   initialParameters,
@@ -217,6 +221,22 @@ export function VirtualLab({
     () => simulate(number, experiment.id, parameters),
     [number, experiment.id, parameters],
   );
+  const [expanded, setExpanded] = useState(false);
+  const expandButton = useRef<HTMLButtonElement>(null);
+  const wasExpanded = useRef(false);
+  useEffect(() => {
+    if (!expanded) {
+      if (wasExpanded.current) expandButton.current?.focus();
+      wasExpanded.current = false;
+      return;
+    }
+    wasExpanded.current = true;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [expanded]);
   const phaseRef = useRef(0);
   useEffect(() => {
     if (!running) return;
@@ -288,40 +308,10 @@ export function VirtualLab({
     setRecorded(true);
     setReplace(false);
   }
-  return (
-    <details className="virtual-lab no-print" open>
-      <summary>
-        <FlaskConical size={20} />
-        <span>Віртуальна лабораторія</span>
-        <span className="virtual-badge">МОДЕЛЬ</span>
-      </summary>
-      <div className="virtual-content">
-        <p>{setup.instruction}</p>
-        {number === 2 && (
-          <div
-            className="rotation-view-controls"
-            role="group"
-            aria-label="Вигляд установки"
-          >
-            <button
-              type="button"
-              className={`button ${rotationView === "perspective" ? "primary" : "secondary"}`}
-              aria-pressed={rotationView === "perspective"}
-              onClick={() => setRotationView("perspective")}
-            >
-              Об’ємний вигляд
-            </button>
-            <button
-              type="button"
-              className={`button ${rotationView === "top" ? "primary" : "secondary"}`}
-              aria-pressed={rotationView === "top"}
-              onClick={() => setRotationView("top")}
-            >
-              Вигляд зверху
-            </button>
-          </div>
-        )}
-        <div className="virtual-instrument">
+  const instrument = (
+    <div className="virtual-instrument">
+      <div className="virtual-layout">
+        <div className="virtual-stage">
           <Scene
             number={number}
             experiment={experiment.id}
@@ -331,7 +321,16 @@ export function VirtualLab({
             rotationView={rotationView}
             elasticStart={elasticStart}
           />
-          <div className="virtual-toolbar">
+        </div>
+        <section
+          className="virtual-control-panel"
+          aria-label="Параметри досліду"
+        >
+          <div
+            className="virtual-toolbar"
+            role="group"
+            aria-label="Керування дослідом"
+          >
             <button
               type="button"
               className="button primary"
@@ -351,97 +350,81 @@ export function VirtualLab({
                   ? "Продовжити"
                   : "Запустити дослід"}
             </button>
-            <button type="button" className="button secondary" onClick={reset}>
+            <button
+              type="button"
+              className="button secondary"
+              onClick={reset}
+              aria-label="Скинути прилад"
+            >
               <RotateCcw size={16} />
-              Скинути прилад
+              Скинути
             </button>
             <span>
               {running
                 ? "Спостерігайте…"
                 : phase === 1
                   ? "Дослід завершено"
-                  : "Готово до досліду"}
+                  : phase > 0
+                    ? "Дослід призупинено"
+                    : "Готово до досліду"}
             </span>
+            <button
+              ref={expandButton}
+              type="button"
+              className="button secondary virtual-expand"
+              onClick={() => setExpanded(!expanded)}
+            >
+              {expanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+              {expanded ? "Згорнути" : "Розгорнути"}
+            </button>
           </div>
-          {number === 5 && (
-            <DensityReadouts
-              experiment={experiment.id}
-              readings={result.readings}
-              phase={phase}
-            />
+          {number === 2 && (
+            <div
+              className="rotation-view-controls"
+              role="group"
+              aria-label="Вигляд установки"
+            >
+              <button
+                type="button"
+                className={`button ${rotationView === "perspective" ? "primary" : "secondary"}`}
+                aria-pressed={rotationView === "perspective"}
+                onClick={() => setRotationView("perspective")}
+              >
+                Об’ємний вигляд
+              </button>
+              <button
+                type="button"
+                className={`button ${rotationView === "top" ? "primary" : "secondary"}`}
+                aria-pressed={rotationView === "top"}
+                onClick={() => setRotationView("top")}
+              >
+                Вигляд зверху
+              </button>
+            </div>
           )}
-          {number === 6 && (
-            <ElasticReadouts
-              readings={result.readings}
-              phase={phase}
-              message={result.message}
-            />
-          )}
-          {number === 7 && (
-            <FrictionReadouts
-              readings={result.readings}
-              phase={phase}
-              message={result.message}
-            />
-          )}
-          {number === 8 && (
-            <PressureReadouts
-              experiment={experiment.id}
-              readings={result.readings}
-              phase={phase}
-            />
-          )}
-          {number === 9 && (
-            <HydroReadouts readings={result.readings} phase={phase} />
-          )}
-          {number === 10 && (
-            <FloatingReadouts
-              readings={result.readings}
-              phase={phase}
-              message={result.message}
-            />
-          )}
+          <h4>Параметри досліду</h4>
           <div
             className={`virtual-controls${number === 1 ? " ramp-controls" : ""}`}
           >
             {setup.controls
               .filter((c) => number !== 4 || c.key === "object")
               .map((c) => (
-                <label key={c.key}>
-                  {c.label}{" "}
-                  <strong>
-                    {c.options ? "" : `${parameters[c.key]} ${c.unit ?? ""}`}
-                  </strong>
-                  {c.options ? (
-                    <select
-                      aria-label={c.label}
-                      disabled={running}
-                      value={parameters[c.key]}
-                      onChange={(e) => adjust(c.key, Number(e.target.value))}
-                    >
-                      {c.options.map((o, i) => (
-                        <option key={o} value={i}>
-                          {o}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input
-                      aria-label={c.label}
-                      disabled={running}
-                      type="range"
-                      min={c.min}
-                      max={
-                        number === 10 && c.key === "sand"
-                          ? floatingSandCapacity(parameters.volume)
-                          : c.max
-                      }
-                      step={c.step}
-                      value={parameters[c.key]}
-                      onChange={(e) => adjust(c.key, Number(e.target.value))}
-                    />
-                  )}
-                </label>
+                <SimulationControl
+                  key={c.key}
+                  label={c.label}
+                  value={parameters[c.key]}
+                  min={c.min}
+                  max={
+                    number === 10 && c.key === "sand"
+                      ? floatingSandCapacity(parameters.volume)
+                      : c.max
+                  }
+                  step={c.step}
+                  unit={c.unit}
+                  options={c.options}
+                  disabled={running}
+                  onChange={(value) => adjust(c.key, value)}
+                />
               ))}
             {number === 4 && (
               <div className="weight-set">
@@ -470,7 +453,134 @@ export function VirtualLab({
               </div>
             )}
           </div>
-        </div>
+          <div className="virtual-transfer">
+            {allowTransfer && (
+              <label>
+                Рядок таблиці
+                <select
+                  aria-label={`Рядок для ${experiment.title}`}
+                  value={row}
+                  onChange={(e) => {
+                    setRow(Number(e.target.value));
+                    setRecorded(false);
+                    setReplace(false);
+                  }}
+                >
+                  {experiment.rows.map((r, i) => (
+                    <option key={i} value={i}>
+                      {r}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <button
+              type="button"
+              className="button secondary"
+              disabled={
+                !allowTransfer || phase !== 1 || !result.canRecord || recorded
+              }
+              onClick={() => setReplace(true)}
+            >
+              {recorded ? <Check size={16} /> : <ArrowDownToLine size={16} />}{" "}
+              {recorded ? "Покази перенесено" : "Перенести покази в таблицю"}
+            </button>
+          </div>
+          {replace && (
+            <div className="notice">
+              <p>
+                Перенести покази в «{experiment.rows[row]}»? Поточні вимірювання
+                цього рядка буде замінено, а попередні розрахунки очищено.
+              </p>
+              <div className="button-row">
+                <button
+                  type="button"
+                  className="button primary"
+                  onClick={record}
+                >
+                  Підтвердити перенесення
+                </button>
+                <button
+                  type="button"
+                  className="button secondary"
+                  onClick={() => setReplace(false)}
+                >
+                  Скасувати
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
+      {number === 5 && (
+        <DensityReadouts
+          experiment={experiment.id}
+          readings={result.readings}
+          phase={phase}
+        />
+      )}
+      {number === 6 && (
+        <ElasticReadouts
+          readings={result.readings}
+          phase={phase}
+          message={result.message}
+        />
+      )}
+      {number === 7 && (
+        <FrictionReadouts
+          readings={result.readings}
+          phase={phase}
+          message={result.message}
+        />
+      )}
+      {number === 8 && (
+        <PressureReadouts
+          experiment={experiment.id}
+          readings={result.readings}
+          phase={phase}
+        />
+      )}
+      {number === 9 && (
+        <HydroReadouts readings={result.readings} phase={phase} />
+      )}
+      {number === 10 && (
+        <FloatingReadouts
+          readings={result.readings}
+          phase={phase}
+          message={result.message}
+        />
+      )}
+    </div>
+  );
+  return (
+    <details className="virtual-lab no-print" open>
+      <summary>
+        <FlaskConical size={20} />
+        <span>Віртуальна лабораторія</span>
+        <span className="virtual-badge">МОДЕЛЬ</span>
+      </summary>
+      <div className="virtual-content">
+        <p>{setup.instruction}</p>
+        {expanded
+          ? createPortal(
+              <dialog
+                className="experiment-dialog"
+                aria-label={`Керування дослідом: ${experiment.title}`}
+                ref={(node) => {
+                  if (node && !node.open) node.showModal();
+                }}
+                onCancel={(event) => {
+                  event.preventDefault();
+                  setExpanded(false);
+                }}
+                onClose={() => setExpanded(false)}
+              >
+                <h3 className="experiment-dialog-title">{experiment.title}</h3>
+                {instrument}
+              </dialog>,
+              document.body,
+            )
+          : instrument}
         {number === 2 && (
           <section
             className="rotation-readout"
@@ -696,57 +806,6 @@ export function VirtualLab({
               <p role="status">{result.message}</p>
             </div>
           )}
-        <div className="virtual-transfer">
-          <label>
-            Рядок таблиці
-            <select
-              aria-label={`Рядок для ${experiment.title}`}
-              value={row}
-              onChange={(e) => {
-                setRow(Number(e.target.value));
-                setRecorded(false);
-                setReplace(false);
-              }}
-            >
-              {experiment.rows.map((r, i) => (
-                <option key={i} value={i}>
-                  {r}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            type="button"
-            className="button secondary"
-            disabled={
-              !allowTransfer || phase !== 1 || !result.canRecord || recorded
-            }
-            onClick={() => setReplace(true)}
-          >
-            {recorded ? <Check size={16} /> : <ArrowDownToLine size={16} />}{" "}
-            {recorded ? "Покази перенесено" : "Перенести покази в таблицю"}
-          </button>
-        </div>
-        {replace && (
-          <div className="notice">
-            <p>
-              Перенести покази в «{experiment.rows[row]}»? Поточні вимірювання
-              цього рядка буде замінено, а попередні розрахунки очищено.
-            </p>
-            <div className="button-row">
-              <button type="button" className="button primary" onClick={record}>
-                Підтвердити перенесення
-              </button>
-              <button
-                type="button"
-                className="button secondary"
-                onClick={() => setReplace(false)}
-              >
-                Скасувати
-              </button>
-            </div>
-          </div>
-        )}
         {!allowTransfer && (
           <p className="muted">
             Тут можна тренуватися з приладом. Перенесення доступне в незданій

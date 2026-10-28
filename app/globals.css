@@ -4011,3 +4011,518 @@ td {
   font-size: 14px;
   line-height: 1.6;
 }
+
+/* Shared experiment workspace: scene and settings fit together. */
+.virtual-lab {
+  container-type: inline-size;
+  overflow: clip;
+}
+.virtual-instrument {
+  --scene-limit: min(56svh, 540px);
+  gap: 14px;
+}
+.virtual-instrument > .virtual-toolbar {
+  position: sticky;
+  top: 8px;
+  z-index: 4;
+  padding: 10px;
+  border: 1px solid #dce6d4;
+  border-radius: 12px;
+  background: #fffffffa;
+  box-shadow: 0 4px 14px #294d3b0a;
+  gap: 8px;
+}
+.virtual-toolbar .button {
+  min-height: 42px;
+  font-size: 12px;
+}
+.virtual-toolbar > span {
+  margin-left: 0;
+  flex: 1;
+  font-size: 11px;
+}
+.virtual-toolbar .virtual-expand {
+  margin-left: auto;
+}
+.virtual-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.virtual-stage {
+  min-width: 0;
+  border: 1px solid #e0e8d8;
+  border-radius: 12px;
+  background: #f2f6ed;
+  overflow: hidden;
+}
+.virtual-stage > .simulation-scene {
+  width: 100%;
+  height: auto;
+  max-height: var(--scene-limit);
+}
+.virtual-stage .rotation-view-controls {
+  margin: 0;
+  padding: 10px;
+  background: #fff;
+}
+.virtual-control-panel {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid #dce6d4;
+  border-radius: 12px;
+  background: #fff;
+}
+.virtual-control-panel > h4 {
+  font-size: 13px;
+  margin: 0 0 16px;
+}
+.virtual-control-panel .virtual-controls {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+}
+.virtual-control-panel .virtual-controls.ramp-controls {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.virtual-control {
+  min-width: 0;
+}
+.virtual-controls .virtual-control > label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 7px;
+  font-size: 12px;
+  color: #35543f;
+  font-weight: 650;
+}
+.virtual-control > label span {
+  color: #7d8d75;
+  font-size: 11px;
+  white-space: nowrap;
+  font-weight: 400;
+}
+.virtual-value-editor {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  gap: 4px;
+}
+.virtual-value-editor button {
+  border: 1px solid #dce5d5;
+  border-radius: 7px;
+  color: #355b41;
+  background: #f4f7ef;
+  font-size: 20px;
+  padding: 0;
+  min-height: 38px;
+}
+.virtual-value-editor input {
+  min-width: 0;
+  width: 100%;
+  padding: 6px 3px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 650;
+  border-radius: 7px;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.virtual-value-editor input::-webkit-inner-spin-button,
+.virtual-value-editor input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.virtual-control input[type="range"] {
+  display: block;
+  width: 100%;
+  margin: 4px 0 0;
+  min-height: 30px;
+}
+.virtual-control select {
+  min-height: 42px;
+  width: 100%;
+  font-size: 12px;
+}
+.virtual-control-error {
+  display: block;
+  color: #9c4e32;
+  font-size: 11px;
+  margin-top: 4px;
+}
+.virtual-control-panel .weight-set {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.virtual-control-panel .weight-set > div {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.virtual-control-panel .weight-set > div > span {
+  flex-basis: 100%;
+  text-align: center;
+}
+.virtual-control-panel .weight-set button {
+  min-width: 30px;
+  min-height: 32px;
+}
+@container (min-width: 660px) {
+  .virtual-layout {
+    grid-template-columns: minmax(0, 1fr) 280px;
+  }
+  .virtual-control-panel {
+    max-height: var(--scene-limit);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #bfceaf transparent;
+  }
+}
+.experiment-dialog {
+  width: min(1500px, calc(100vw - 24px));
+  max-width: none;
+  height: calc(100dvh - 24px);
+  max-height: none;
+  padding: 20px;
+  border: 1px solid #bfceb2;
+  border-radius: 16px;
+  background: #fbfdf7;
+  color: var(--ink);
+  overflow: auto;
+  container-type: inline-size;
+}
+.experiment-dialog::backdrop {
+  background: #17372bcc;
+  backdrop-filter: blur(3px);
+}
+.experiment-dialog-title {
+  font-size: 16px;
+  margin: 0 0 12px;
+}
+.experiment-dialog .virtual-instrument {
+  --scene-limit: min(68svh, 760px);
+}
+.experiment-dialog .virtual-toolbar {
+  top: 0;
+}
+@media (max-width: 700px) {
+  .virtual-instrument {
+    --scene-limit: 45svh;
+  }
+  .virtual-instrument > .virtual-toolbar {
+    top: 5px;
+    padding: 8px;
+    gap: 7px;
+  }
+  .virtual-toolbar .button {
+    flex: 1 1 40%;
+    min-height: 44px;
+    font-size: 11px;
+  }
+  .virtual-toolbar > span {
+    order: 2;
+    flex: 1;
+    width: auto;
+    font-size: 10px;
+  }
+  .virtual-toolbar .virtual-expand {
+    order: 3;
+    flex: 0 0 auto;
+    min-height: 34px;
+    font-size: 10px;
+    padding: 6px 9px;
+  }
+  .virtual-control-panel {
+    padding: 12px;
+  }
+  .virtual-value-editor {
+    grid-template-columns: 42px minmax(0, 1fr) 42px;
+  }
+  .virtual-value-editor button,
+  .virtual-value-editor input {
+    min-height: 44px;
+  }
+  .virtual-control input[type="range"] {
+    min-height: 38px;
+  }
+  .experiment-dialog {
+    width: calc(100vw - 12px);
+    height: calc(100dvh - 12px);
+    padding: 10px;
+    border-radius: 12px;
+  }
+}
+
+/* Main navigation belongs above the workspace on every device. */
+.app-shell {
+  display: block;
+}
+.main-wrapper {
+  margin-left: 0;
+}
+.app-navigation {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 32px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+}
+.app-navigation .brand {
+  font-size: 24px;
+}
+.app-navigation .brand-icon {
+  width: 36px;
+  height: 36px;
+}
+.app-navigation > nav {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+}
+.app-navigation .nav-link {
+  padding: 10px 12px;
+  white-space: nowrap;
+  gap: 8px;
+}
+.app-navigation .nav-link.active:after {
+  display: none;
+}
+.nav-account {
+  position: relative;
+  min-width: 0;
+}
+.nav-account > summary {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  list-style: none;
+  cursor: pointer;
+}
+.nav-account summary::-webkit-details-marker {
+  display: none;
+}
+.nav-account-name {
+  max-width: 160px;
+  min-width: 0;
+}
+.nav-account-name strong {
+  display: block;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nav-account-name small {
+  display: block;
+  font-size: 10px;
+  color: #7c8e78;
+}
+.nav-account-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 40;
+  width: 210px;
+  padding: 8px;
+  border: 1px solid #dce5d5;
+  border-radius: 10px;
+  box-shadow: 0 8px 25px #294d3b18;
+  background: #fff;
+}
+.nav-account-menu > a,
+.nav-account-menu > button {
+  display: flex;
+  width: 100%;
+  gap: 9px;
+  align-items: center;
+  padding: 10px;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: var(--ink);
+  font-size: 12px;
+}
+.nav-account-menu > a:hover,
+.nav-account-menu > button:hover {
+  background: var(--sage);
+}
+.main-wrapper > .topbar {
+  height: 42px;
+  padding: 0 32px;
+}
+.main-wrapper > .topbar:before {
+  content: none;
+}
+@media (max-width: 1280px) {
+  .app-navigation {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    padding: 12px 22px 8px;
+  }
+  .app-navigation > nav {
+    grid-column: 1/-1;
+    grid-row: 2;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    padding-bottom: 4px;
+  }
+  .app-navigation .nav-link {
+    flex-shrink: 0;
+  }
+}
+@media (max-width: 700px) {
+  .app-navigation {
+    padding: 10px 16px 6px;
+    gap: 9px;
+  }
+  .app-navigation .brand {
+    font-size: 21px;
+  }
+  .app-navigation .brand-icon {
+    width: 31px;
+    height: 31px;
+  }
+  .app-navigation .nav-link {
+    min-height: 42px;
+    font-size: 11px;
+    padding: 8px 10px;
+  }
+  .nav-account-name {
+    max-width: 120px;
+  }
+  .nav-account-name strong {
+    font-size: 10px;
+  }
+  .nav-account-name small {
+    font-size: 9px;
+  }
+  .main-wrapper > .topbar {
+    height: 34px;
+    padding: 0 18px;
+  }
+  .footer {
+    padding-bottom: 20px;
+  }
+}
+@media print {
+  .app-navigation,
+  .experiment-dialog {
+    display: none !important;
+  }
+}
+/* All experiment actions stay with their settings in the right-hand panel. */
+.virtual-control-panel {
+  padding: 12px;
+}
+.virtual-control-panel > .virtual-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  margin: -1px 0 16px;
+  padding: 0 0 12px;
+  gap: 8px;
+  border-bottom: 1px solid #e2e9da;
+  background: #fff;
+}
+.virtual-control-panel .virtual-toolbar .button {
+  padding: 8px 9px;
+  min-height: 40px;
+  font-size: 11px;
+  width: 100%;
+  margin: 0;
+}
+.virtual-control-panel .virtual-toolbar .button:first-child {
+  grid-column: 1/-1;
+  min-height: 44px;
+  font-size: 12px;
+}
+.virtual-control-panel .virtual-toolbar > span {
+  grid-column: 1/-1;
+  grid-row: 3;
+  width: auto;
+  margin: 0;
+  font-size: 10px;
+}
+.virtual-control-panel .virtual-toolbar .virtual-expand {
+  grid-column: 2;
+  grid-row: 2;
+}
+.virtual-control-panel .virtual-toolbar > .button:nth-child(2) {
+  grid-column: 1;
+  grid-row: 2;
+}
+.virtual-control-panel .ramp-controls .virtual-control > label {
+  min-height: 36px;
+}
+@container (min-width: 660px) {
+  .virtual-control-panel {
+    max-height: max(var(--scene-limit), 480px);
+  }
+}
+.virtual-control-panel .virtual-transfer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 9px;
+  border-top: 1px solid #e1e9d9;
+  padding-top: 12px;
+  margin-top: 18px;
+}
+.virtual-control-panel .virtual-transfer label {
+  min-width: 0;
+}
+.virtual-control-panel .virtual-transfer .button {
+  width: 100%;
+  font-size: 11px;
+  padding: 9px 8px;
+  min-height: 42px;
+}
+.virtual-control-panel .notice {
+  padding: 12px;
+  font-size: 12px;
+}
+.virtual-control-panel .notice p {
+  font-size: 12px;
+}
+.virtual-control-panel .notice .button {
+  min-height: 40px;
+  font-size: 11px;
+  padding: 8px;
+}
+.virtual-control-panel .virtual-toolbar .button {
+  min-height: 44px;
+}
+@container (min-width: 660px) {
+  .virtual-control-panel {
+    max-height: max(var(--scene-limit), 600px);
+  }
+}
+
+@media (max-width: 360px) {
+  .nav-account-name {
+    max-width: 82px;
+  }
+  .app-navigation .brand {
+    font-size: 19px;
+  }
+}
+
+.virtual-control-panel .rotation-view-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 7px;
+  margin: 0 0 16px;
+}
+.virtual-control-panel .rotation-view-controls .button {
+  min-height: 40px;
+  font-size: 11px;
+}

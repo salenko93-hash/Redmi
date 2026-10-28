@@ -8,7 +8,7 @@ import {
   NotebookPen,
   LogOut,
   Atom,
-  ArrowUpRight,
+  ChevronDown,
   ShieldCheck,
 } from "lucide-react";
 export function Navigation({
@@ -32,40 +32,28 @@ export function Navigation({
     ...(isAdmin ? [["/admin", "Адміністрування", ShieldCheck] as const] : []),
   ] as const;
   return (
-    <>
-      <aside className="sidebar">
-        <Link href="/dashboard" className="brand">
-          <span className="brand-icon">
-            <Atom size={26} />
-          </span>
-          ФізЛаб<span className="brand-dot">.</span>
-        </Link>
-        <div className="workspace-label">НАВЧАЛЬНИЙ ПРОСТІР</div>
-        <nav>
-          {items.map(([href, label, Icon]) => (
-            <Link
-              className={"nav-link " + (path.startsWith(href) ? "active" : "")}
-              key={href}
-              href={href}
-            >
-              <Icon size={19} />
-              {label}
-            </Link>
-          ))}
-        </nav>
-        <div className="sidebar-note">
-          <span>
-            Маленькі досліди.
-            <br />
-            Великі відкриття.
-          </span>
-          <Atom size={48} strokeWidth={0.8} />
-          <p>
-            Фізика починається
-            <br />з вашого «чому?»
-          </p>
-        </div>
-        <div className="profile">
+    <header className="app-navigation no-print">
+      <Link href="/dashboard" className="brand">
+        <span className="brand-icon">
+          <Atom size={24} />
+        </span>
+        ФізЛаб<span className="brand-dot">.</span>
+      </Link>
+      <nav aria-label="Головна навігація">
+        {items.map(([href, label, Icon]) => (
+          <Link
+            key={href}
+            href={href}
+            className={"nav-link " + (path.startsWith(href) ? "active" : "")}
+            aria-current={path.startsWith(href) ? "page" : undefined}
+          >
+            <Icon size={18} />
+            {label}
+          </Link>
+        ))}
+      </nav>
+      <details className="nav-account">
+        <summary>
           <span className="avatar">
             {name
               .split(" ")
@@ -73,7 +61,7 @@ export function Navigation({
               .slice(0, 2)
               .join("")}
           </span>
-          <div>
+          <span className="nav-account-name">
             <strong>{name}</strong>
             <small>
               {isAdmin
@@ -82,32 +70,24 @@ export function Navigation({
                   ? "Учитель"
                   : "Учень / учениця"}
             </small>
-          </div>
+          </span>
+          <ChevronDown size={15} />
+        </summary>
+        <div className="nav-account-menu">
+          <Link href="/account">Мій обліковий запис</Link>
           <button
-            className="icon-button"
-            aria-label="Вийти"
+            type="button"
             onClick={async () => {
               await fetch("/api/auth/logout", { method: "POST" });
               router.push("/");
               router.refresh();
             }}
           >
-            <LogOut size={17} />
+            <LogOut size={16} />
+            Вийти
           </button>
         </div>
-      </aside>
-      <nav className="mobile-nav">
-        {items.map(([href, label, Icon]) => (
-          <Link
-            key={href}
-            href={href}
-            className={path.startsWith(href) ? "active" : ""}
-          >
-            <Icon size={20} />
-            <span>{label}</span>
-          </Link>
-        ))}
-      </nav>
-    </>
+      </details>
+    </header>
   );
 }

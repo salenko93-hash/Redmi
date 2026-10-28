@@ -29,6 +29,27 @@ test("all ten virtual laboratories operate on a touch-sized screen", async ({
     .locator(".lab-card")
     .evaluateAll((nodes) => nodes.map((n) => (n as HTMLAnchorElement).href));
   expect(links).toHaveLength(10);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  for (const link of links) {
+    await page.goto(link);
+    await page
+      .getByRole("button", { name: "2 Експеримент", exact: true })
+      .click();
+    for (const instrument of await page.locator(".virtual-lab").all()) {
+      const right = await instrument.evaluate((el) => {
+        const stage = el
+          .querySelector(".virtual-stage")!
+          .getBoundingClientRect();
+        const panel = el
+          .querySelector(".virtual-control-panel")!
+          .getBoundingClientRect();
+        return panel.left > stage.right && panel.top >= stage.top - 1;
+      });
+      expect(right).toBe(true);
+    }
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+
   for (let n = 1; n <= 10; n++) {
     await page.goto(links[n - 1]);
     await page
@@ -241,7 +262,7 @@ test("virtual readings persist, clear stale calculations, enforce mode and survi
       .getByLabel("Рядок для Скочування кульки")
       .selectOption(String(i));
     if (i) {
-      const slider = instrument.getByLabel("Довжина шляху");
+      const slider = instrument.getByLabel("Довжина шляху", { exact: true });
       await slider.focus();
       await slider.press("ArrowLeft");
     }

@@ -142,11 +142,14 @@ test("lab five replaces PDF and preserves dimensions, displaced volume, tare and
       .getBoundingClientRect();
     return {
       gap: toolbar.top - scene.bottom,
+      beside: toolbar.left >= scene.right,
       above: toolbar.bottom <= controls.top,
     };
   });
-  expect(toolbarPosition.gap).toBeGreaterThanOrEqual(0);
-  expect(toolbarPosition.gap).toBeLessThanOrEqual(20);
+  if (!toolbarPosition.beside) {
+    expect(toolbarPosition.gap).toBeGreaterThanOrEqual(0);
+    expect(toolbarPosition.gap).toBeLessThanOrEqual(42);
+  }
   expect(toolbarPosition.above).toBeTruthy();
   await page.emulateMedia({ reducedMotion: "reduce" });
   const dimensions = () =>
