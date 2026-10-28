@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { ThemePicker } from "./theme-picker";
 import {
   LayoutDashboard,
   BookOpen,
@@ -75,6 +76,7 @@ export function Navigation({
         </summary>
         <div className="nav-account-menu">
           <Link href="/account">Мій обліковий запис</Link>
+          <ThemePicker compact />
           <button
             type="button"
             onClick={async () => {

@@ -1,0 +1,205 @@
+:root {
+  --bg: #f6f7f3;
+  --ink: #243e32;
+  --muted: #657267;
+  --line: #e5e9e1;
+  --green: #295541;
+  --sage: #eaf0e5;
+  --lime: #e6ecb6;
+  --green-hover: #1b4431;
+  --focus: #78945d;
+  --hero-bg: #294f3c;
+  --hero-text: #e5ebd9;
+  --hero-subtle: #c0cfb8;
+  --hero-accent: #c9d7a5;
+  --surface-alt: #fafbf6;
+  --panel-soft: #f1f6e9;
+  --accent-border: #dce5d1;
+  --accent-muted: #526547;
+  --orb-light: #a8ba8c;
+  --orb-mid: #6c8b5e;
+  --orb-shade: #456d4b;
+  --orb-dark: #344f3c;
+}
+
+:root[data-theme="ocean"] {
+  --bg: #f2f7fa;
+  --ink: #203d4d;
+  --muted: #566b79;
+  --line: #dce7ee;
+  --green: #205677;
+  --sage: #e5f0f8;
+  --lime: #dceef5;
+  --green-hover: #16415d;
+  --focus: #658da9;
+  --hero-bg: #1e4d68;
+  --hero-text: #e8f4fb;
+  --hero-subtle: #c7dfeb;
+  --hero-accent: #b5e0ee;
+  --surface-alt: #f8fbfd;
+  --panel-soft: #edf5fa;
+  --accent-border: #cbdfea;
+  --accent-muted: #42677e;
+  --orb-light: #acd7e7;
+  --orb-mid: #6aacc4;
+  --orb-shade: #3e7f9b;
+  --orb-dark: #2b536a;
+}
+
+:root[data-theme="lavender"] {
+  --bg: #f7f4fa;
+  --ink: #3e2d50;
+  --muted: #6c6176;
+  --line: #e8dff0;
+  --green: #674487;
+  --sage: #efe8f7;
+  --lime: #e9ddf5;
+  --green-hover: #4e306b;
+  --focus: #9577b1;
+  --hero-bg: #53376e;
+  --hero-text: #f4edfa;
+  --hero-subtle: #dfcfee;
+  --hero-accent: #dcc1f2;
+  --surface-alt: #fcfaff;
+  --panel-soft: #f4eff9;
+  --accent-border: #dccce9;
+  --accent-muted: #735b89;
+  --orb-light: #dac6eb;
+  --orb-mid: #a98ac7;
+  --orb-shade: #805b9f;
+  --orb-dark: #503667;
+}
+
+:root[data-theme="sunrise"] {
+  --bg: #fbf7ef;
+  --ink: #493820;
+  --muted: #74644f;
+  --line: #ece3d2;
+  --green: #805321;
+  --sage: #f8eedc;
+  --lime: #f7e3b4;
+  --green-hover: #634017;
+  --focus: #b28a4c;
+  --hero-bg: #694820;
+  --hero-text: #fff5df;
+  --hero-subtle: #ead8b3;
+  --hero-accent: #f5d18d;
+  --surface-alt: #fffdf8;
+  --panel-soft: #fcf3e3;
+  --accent-border: #e8d7b7;
+  --accent-muted: #80623b;
+  --orb-light: #f5dda5;
+  --orb-mid: #cba15d;
+  --orb-shade: #a1763c;
+  --orb-dark: #644725;
+}
+
+:root[data-theme="rose"] {
+  --bg: #fbf4f7;
+  --ink: #4c2b3a;
+  --muted: #77606c;
+  --line: #efdee5;
+  --green: #8a405d;
+  --sage: #f8e7ef;
+  --lime: #f5d9e7;
+  --green-hover: #6b2d46;
+  --focus: #b87994;
+  --hero-bg: #71354e;
+  --hero-text: #fff0f7;
+  --hero-subtle: #efcfdf;
+  --hero-accent: #f5bed8;
+  --surface-alt: #fffafb;
+  --panel-soft: #fbeef4;
+  --accent-border: #ebcbd9;
+  --accent-muted: #86566e;
+  --orb-light: #f0c7dc;
+  --orb-mid: #cb8baa;
+  --orb-shade: #a55f80;
+  --orb-dark: #6c3b51;
+}
+/* Decorative artwork follows the palette; experimental equipment keeps its material colors. */
+.auth-story {
+  color: var(--hero-text);
+}
+.auth-story .brand,
+.pill.light,
+.hero-sphere {
+  color: var(--hero-text);
+}
+.auth-story h1 em,
+.art-label,
+.formula,
+.visual-plus {
+  color: var(--hero-accent);
+}
+.auth-story > p,
+.hero p,
+.story-foot {
+  color: var(--hero-subtle);
+}
+.hero-orbit,
+.orbit-ring {
+  border-color: color-mix(in srgb, var(--hero-accent) 30%, transparent);
+}
+.hero-orbit:after,
+.orb-dot,
+.live-dot {
+  background: var(--hero-accent);
+}
+.button.cream {
+  background: var(--lime);
+  color: var(--ink);
+}
+input[type="range"],
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--green);
+}
+.auth-panel {
+  position: relative;
+  flex-direction: column;
+}
+.auth-theme {
+  position: absolute;
+  right: 24px;
+  top: 18px;
+}
+.nav-account-menu > div {
+  padding: 12px 14px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.nav-account-menu select {
+  width: 100%;
+}
+@media (max-width: 760px) {
+  .auth-theme {
+    position: static;
+    align-self: flex-end;
+    margin-bottom: 22px;
+  }
+}
+.orb-core {
+  background: radial-gradient(
+    circle at 25% 25%,
+    var(--orb-light),
+    var(--orb-shade) 70%
+  );
+  color: var(--hero-text);
+  box-shadow: 10px 10px 30px color-mix(in srgb, var(--hero-bg) 70%, #000);
+}
+label,
+input,
+textarea,
+select {
+  color: var(--ink);
+}
+input,
+textarea,
+select {
+  border-color: var(--accent-border);
+}
+.text-button,
+.back-link {
+  color: var(--green);
+}

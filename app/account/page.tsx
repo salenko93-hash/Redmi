@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
 import { Shell } from "@/components/shell";
 import { AccountActions } from "@/components/account-actions";
+import { ThemePicker } from "@/components/theme-picker";
 export default async function Account() {
   const u = await currentUser();
   if (!u) redirect("/");
@@ -21,6 +22,14 @@ export default async function Account() {
           </p>
         </div>
       </div>
+      <section className="panel">
+        <h2>Кольорова тема</h2>
+        <p>
+          Оберіть палітру для свого робочого простору. Вибір зберігається в
+          цьому браузері на цьому пристрої.
+        </p>
+        <ThemePicker />
+      </section>
       <section className="panel">
         <h2>Доступ і приватність</h2>
         <p>

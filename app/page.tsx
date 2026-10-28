@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { publicSiteOrigin } from "@/lib/site-origin";
 import { AuthForm } from "@/components/auth-form";
+import { ThemePicker } from "@/components/theme-picker";
 import { Atom, FlaskConical, ArrowUpRight } from "lucide-react";
 export default async function Home({
   searchParams,
@@ -58,6 +59,9 @@ export default async function Home({
         </div>
       </section>
       <section className="auth-panel">
+        <div className="auth-theme no-print">
+          <ThemePicker compact />
+        </div>
         <AuthForm
           key={initialMode}
           initialMode={initialMode}

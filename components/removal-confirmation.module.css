@@ -2,11 +2,11 @@
   width: min(480px, calc(100vw - 32px));
   max-height: calc(100dvh - 32px);
   overflow: auto;
-  border: 1px solid #dce5d1;
+  border: 1px solid var(--accent-border);
   border-radius: 18px;
   padding: 24px;
-  background: #fafbf6;
-  color: #244b3b;
+  background: var(--surface-alt);
+  color: var(--ink);
 }
 .dialog::backdrop {
   background: #132a2199;

@@ -12,7 +12,7 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
-  border-top: 1px solid #e2e8da;
+  border-top: 1px solid var(--line);
   padding: 14px 0;
 }
 .member > div {
@@ -26,7 +26,7 @@
 }
 .member small,
 .member span {
-  color: #6b796f;
+  color: var(--muted);
   font-size: 12px;
   margin-top: 5px;
 }
