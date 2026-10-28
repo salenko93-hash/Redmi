@@ -6,6 +6,7 @@ export class AdminActionError extends Error {
   constructor(
     message: string,
     public status = 409,
+    public existingStudent?: { id: string; name: string; email: string },
   ) {
     super(message);
   }
@@ -79,9 +80,21 @@ export async function createTeacherInvitation(actorId: string, email: string) {
   await db.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('fizlab-staff-access'))`;
     await requireActiveAdmin(tx, actorId);
-    if (await tx.user.findUnique({ where: { email }, select: { id: true } }))
+    const existing = await tx.user.findUnique({
+      where: { email },
+      select: { id: true, name: true, email: true, role: true, isActive: true },
+    });
+    if (existing?.role === "STUDENT" && existing.isActive)
       throw new AdminActionError(
-        "Ця адреса вже має обліковий запис. Для вчителя скористайтеся керуванням доступом.",
+        "Ця адреса вже має учнівський обліковий запис. Якщо це ваш колега, підтвердьте зміну ролі нижче.",
+        409,
+        { id: existing.id, name: existing.name, email: existing.email },
+      );
+    if (existing)
+      throw new AdminActionError(
+        existing.role === "TEACHER"
+          ? "Ця адреса вже належить учителю. Скористайтеся керуванням доступом у команді вчителів."
+          : "Цей обліковий запис призупинено. Зверніться до оператора сервера перед зміною ролі.",
       );
     if (
       await tx.teacherInvite.findFirst({
@@ -104,6 +117,56 @@ export async function createTeacherInvitation(actorId: string, email: string) {
     });
   });
   return { token, email, expiresAt: expiresAt.toISOString() };
+}
+export async function promoteStudentToTeacher(
+  actorId: string,
+  id: string,
+  email: string,
+) {
+  return db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('fizlab-staff-access'))`;
+    await requireActiveAdmin(tx, actorId);
+    // Coordinate session revocation with concurrent logins on the same user row.
+    await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${id} FOR UPDATE`;
+    const target = await tx.user.findFirst({
+      where: { id, email },
+      select: { id: true, name: true, email: true, role: true, isActive: true },
+    });
+    if (!target)
+      throw new AdminActionError(
+        "Обліковий запис не знайдено. Перевірте адресу.",
+        404,
+      );
+    if (!target.isActive)
+      throw new AdminActionError(
+        "Обліковий запис призупинено. Зміну ролі не виконано.",
+      );
+    if (target.role !== "STUDENT")
+      throw new AdminActionError(
+        "Обліковий запис уже має роль учителя. Оновіть сторінку.",
+      );
+    await tx.user.update({
+      where: { id },
+      data: { role: "TEACHER", isAdmin: false },
+    });
+    await tx.session.deleteMany({ where: { userId: id } });
+    const invitations = await tx.teacherInvite.deleteMany({
+      where: { email, usedAt: null },
+    });
+    await tx.adminAudit.create({
+      data: {
+        actorId,
+        targetId: id,
+        action: "TEACHER_ROLE_GRANTED",
+        detail: {
+          email,
+          previousRole: "STUDENT",
+          revokedInvitations: invitations.count,
+        },
+      },
+    });
+    return { id: target.id, name: target.name, email: target.email };
+  });
 }
 export async function revokeTeacherInvitation(actorId: string, id: string) {
   await db.$transaction(async (tx) => {

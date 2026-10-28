@@ -90,6 +90,29 @@
   font-family: monospace;
   font-size: 14px;
 }
+.invite .confirmRole {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 14px 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.confirmRole input {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  padding: 0;
+}
+.roleActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.roleActions button {
+  min-height: 44px;
+}
 .root form {
   display: grid;
   gap: 14px;

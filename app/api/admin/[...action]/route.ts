@@ -6,6 +6,7 @@ import {
   createTeacherInvitation,
   revokeTeacherInvitation,
   setTeacherAccess,
+  promoteStudentToTeacher,
   AdminActionError,
 } from "@/lib/admin";
 import {
@@ -40,6 +41,26 @@ async function handle(
       route = path.join("/");
     if (route === "overview" && req.method === "GET")
       return json(await adminOverview());
+    if (route === "teachers/promote" && req.method === "POST") {
+      const { id, email } = z
+        .object({
+          id: z.string().min(1).max(100),
+          email: z
+            .string()
+            .trim()
+            .email()
+            .max(254)
+            .transform((s) => s.toLowerCase()),
+          confirmed: z.literal(true),
+        })
+        .parse(await req.json());
+      if (!(await rateLimit("admin-promote:" + user.id, 20)))
+        return json(
+          { error: "Забагато змін. Спробуйте через 15 хвилин." },
+          429,
+        );
+      return json(await promoteStudentToTeacher(user.id, id, email));
+    }
     if (route === "invites" && req.method === "POST") {
       const { email } = z
         .object({
@@ -111,7 +132,15 @@ async function handle(
     return json({ error: "Маршрут не знайдено." }, 404);
   } catch (error) {
     if (error instanceof AdminActionError)
-      return json({ error: error.message }, error.status);
+      return json(
+        {
+          error: error.message,
+          ...(error.existingStudent
+            ? { existingStudent: error.existingStudent }
+            : {}),
+        },
+        error.status,
+      );
     if (error instanceof z.ZodError || error instanceof SyntaxError)
       return json({ error: "Перевірте введені дані." }, 400);
     console.error(

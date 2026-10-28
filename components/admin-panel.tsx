@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldCheck, UserPlus, Mail, Copy, RefreshCw } from "lucide-react";
 import type { adminOverview } from "@/lib/admin";
@@ -16,6 +16,7 @@ const actions: Record<string, string> = {
   INVITATION_REVOKED: "Відкликано запрошення",
   TEACHER_BLOCKED: "Призупинено доступ учителя",
   TEACHER_ENABLED: "Відновлено доступ учителя",
+  TEACHER_ROLE_GRANTED: "Учнівську роль змінено на вчительську",
   MAIL_CHECK_OK: "Поштове підключення працює",
   MAIL_CHECK_FAILED: "Помилка перевірки пошти",
 };
@@ -28,8 +29,18 @@ export function AdminPanel({
 }) {
   const router = useRouter();
   const inviteCode = useRef<HTMLTextAreaElement>(null);
+  const promotionPanel = useRef<HTMLElement>(null);
   const [copyMessage, setCopyMessage] = useState("");
   const [copying, setCopying] = useState(false);
+  const [existingStudent, setExistingStudent] = useState<{
+    id: string;
+    name: string;
+    email: string;
+  } | null>(null);
+  const [promotionConfirmed, setPromotionConfirmed] = useState(false);
+  useEffect(() => {
+    if (existingStudent) promotionPanel.current?.focus();
+  }, [existingStudent]);
   const [email, setEmail] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
@@ -46,8 +57,10 @@ export function AdminPanel({
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
     const result = await response.json();
-    if (!response.ok)
+    if (!response.ok) {
+      if (result.existingStudent) setExistingStudent(result.existingStudent);
       throw new Error(result.error || "Не вдалося виконати дію.");
+    }
     return result;
   }
   async function run(action: () => Promise<void>) {
@@ -176,6 +189,8 @@ export function AdminPanel({
           <form
             onSubmit={(event) => {
               event.preventDefault();
+              setExistingStudent(null);
+              setPromotionConfirmed(false);
               run(async () => {
                 const result = await request("invites", "POST", { email });
                 setInvite(result);
@@ -193,13 +208,86 @@ export function AdminPanel({
                 maxLength={254}
                 value={email}
                 disabled={busy}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  setExistingStudent(null);
+                  setPromotionConfirmed(false);
+                }}
               />
             </label>
             <button className="button primary" disabled={busy}>
               <UserPlus size={16} /> Створити запрошення
             </button>
           </form>
+          {existingStudent && (
+            <section
+              ref={promotionPanel}
+              tabIndex={-1}
+              className={styles.invite}
+              aria-label="Зміна ролі облікового запису"
+            >
+              <h3>Акаунт уже існує як учнівський</h3>
+              <strong>{existingStudent.name}</strong>
+              <p>{existingStudent.email}</p>
+              <p>
+                Якщо це ваш колега, надайте йому роль учителя. Обліковий запис,
+                пароль і збережені дані залишаться. Він з’явиться в команді
+                вчителів та має ввійти повторно. Прав адміністратора ця дія не
+                надає.
+              </p>
+              <label className={styles.confirmRole}>
+                <input
+                  type="checkbox"
+                  checked={promotionConfirmed}
+                  disabled={busy}
+                  onChange={(event) =>
+                    setPromotionConfirmed(event.target.checked)
+                  }
+                />
+                Підтверджую, що це обліковий запис учителя
+              </label>
+              <div className={styles.roleActions}>
+                <button
+                  type="button"
+                  className="button primary"
+                  disabled={busy || !promotionConfirmed}
+                  onClick={() =>
+                    run(async () => {
+                      const teacher = await request(
+                        "teachers/promote",
+                        "POST",
+                        {
+                          id: existingStudent.id,
+                          email: existingStudent.email,
+                          confirmed: true,
+                        },
+                      );
+                      setExistingStudent(null);
+                      setPromotionConfirmed(false);
+                      setEmail("");
+                      setMessage(
+                        `${teacher.name}: роль учителя надано. Попросіть колегу ввійти знову зі своєю поштою та паролем.`,
+                      );
+                    })
+                  }
+                >
+                  Надати роль учителя
+                </button>
+                <button
+                  type="button"
+                  className="button secondary"
+                  disabled={busy}
+                  onClick={() => {
+                    setExistingStudent(null);
+                    setPromotionConfirmed(false);
+                    setError("");
+                  }}
+                >
+                  Скасувати
+                </button>
+              </div>
+            </section>
+          )}
           {invite && (
             <div className={styles.invite} role="status">
               <strong>Запрошення для {invite.email}</strong>
