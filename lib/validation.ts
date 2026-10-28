@@ -54,12 +54,20 @@ export const credentials = z.object({
   name: z.string().trim().min(2).max(100).optional(),
   invite: z.string().trim().max(100).optional(),
 });
-export const registrationCredentials = credentials.extend({
-  role: z.enum(["STUDENT", "TEACHER"]).optional(),
-  studentCode: z
-    .string()
-    .trim()
-    .max(40)
-    .transform((s) => s.replace(/[\s-]/g, "").toUpperCase())
-    .optional(),
-});
+export const registrationCredentials = credentials
+  .extend({
+    role: z.enum(["STUDENT", "TEACHER"]).optional(),
+    passwordConfirmation: z.string().min(10).max(128).optional(),
+    studentCode: z
+      .string()
+      .trim()
+      .max(40)
+      .transform((s) => s.replace(/[\s-]/g, "").toUpperCase())
+      .optional(),
+  })
+  .refine(
+    (data) =>
+      data.passwordConfirmation === undefined ||
+      data.password === data.passwordConfirmation,
+    { message: "Паролі не збігаються.", path: ["passwordConfirmation"] },
+  );

@@ -484,6 +484,35 @@ async function handle(
         201,
       );
     }
+    if (
+      path[0] === "classes" &&
+      path[2] === "members" &&
+      path.length === 4 &&
+      (method === "PATCH" || method === "DELETE")
+    ) {
+      if (user.role !== "TEACHER") return fail("Доступ лише для вчителя.", 403);
+      const active =
+        method === "DELETE"
+          ? false
+          : z.object({ active: z.boolean() }).parse(await req.json()).active;
+      const changed = await db.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT "id" FROM "Classroom" WHERE "id" = ${path[1]} FOR UPDATE`;
+        const classroom = await tx.classroom.findFirst({
+          where: { id: path[1], teacherId: user.id },
+        });
+        if (!classroom) return 0;
+        const result = await tx.membership.updateMany({
+          where: { classroomId: classroom.id, userId: path[3] },
+          data: {
+            isActive: active,
+            removedAt: method === "DELETE" ? new Date() : null,
+          },
+        });
+        return result.count;
+      });
+      if (!changed) return fail("Учня в цьому класі не знайдено.", 404);
+      return json({ ok: true });
+    }
     if (route === "classes/join" && method === "POST") {
       if (user.role !== "STUDENT") return fail("Це дія для учня.", 403);
       if (!(await rateLimit("join:" + user.id, 20)))
@@ -516,6 +545,7 @@ async function handle(
             },
           });
           if (alreadyClaimed && alreadyClaimed.id !== invite.id) return null;
+          await tx.$queryRaw`SELECT "id" FROM "Classroom" WHERE "id" = ${invite.classroomId} FOR UPDATE`;
           if (!invite.claimedAt) {
             const changed = await tx.studentInvite.updateMany({
               where: { id: invite.id, claimedAt: null },
@@ -528,6 +558,16 @@ async function handle(
               if (latest?.claimedById !== user.id) return null;
             }
           }
+          const membership = await tx.membership.findUnique({
+            where: {
+              classroomId_userId: {
+                classroomId: invite.classroomId,
+                userId: user.id,
+              },
+            },
+          });
+          if (membership && !membership.isActive)
+            throw new Error("CLASS_ACCESS_DISABLED");
           await tx.membership.upsert({
             where: {
               classroomId_userId: {
@@ -553,6 +593,11 @@ async function handle(
       }
       await db.$transaction(async (tx) => {
         await tx.$queryRaw`SELECT "id" FROM "Classroom" WHERE "id" = ${c.id} FOR UPDATE`;
+        const membership = await tx.membership.findUnique({
+          where: { classroomId_userId: { classroomId: c.id, userId: user.id } },
+        });
+        if (membership && !membership.isActive)
+          throw new Error("CLASS_ACCESS_DISABLED");
         const pending = await tx.studentInvite.findFirst({
           where: { classroomId: c.id, email: user.email, claimedAt: null },
         });
@@ -688,7 +733,9 @@ async function handle(
         where: { id: path[1] },
         include: {
           classroom: {
-            include: { memberships: { where: { userId: user.id } } },
+            include: {
+              memberships: { where: { userId: user.id, isActive: true } },
+            },
           },
           labVersion: true,
         },
@@ -732,6 +779,17 @@ async function handle(
         );
         if (recordError) return fail(recordError, 422);
         const result = await db.$transaction(async (tx) => {
+          await tx.$queryRaw`SELECT "id" FROM "Classroom" WHERE "id" = ${assignment.classroomId} FOR UPDATE`;
+          if (
+            !(await tx.membership.findFirst({
+              where: {
+                classroomId: assignment.classroomId,
+                userId: user.id,
+                isActive: true,
+              },
+            }))
+          )
+            throw new Error("CLASS_ACCESS_DISABLED");
           await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${assignment.id}))`;
           const latestAssignment = await tx.assignment.findUniqueOrThrow({
             where: { id: assignment.id },
@@ -816,6 +874,17 @@ async function handle(
           (user.role === "TEACHER" &&
             s.assignment.classroom.teacherId === user.id)
         )
+      )
+        return fail("Роботу не знайдено.", 404);
+      if (
+        user.role === "STUDENT" &&
+        !(await db.membership.findFirst({
+          where: {
+            classroomId: s.assignment.classroomId,
+            userId: user.id,
+            isActive: true,
+          },
+        }))
       )
         return fail("Роботу не знайдено.", 404);
       if (path[2] === "checks" && method === "GET") {
@@ -997,6 +1066,11 @@ async function handle(
       err.code === "P2002"
     )
       return fail("Такий запис уже існує.", 409);
+    if (err instanceof Error && err.message === "CLASS_ACCESS_DISABLED")
+      return fail(
+        "Доступ до класу припинено. Зверніться до вчителя для відновлення.",
+        403,
+      );
     console.error("API failure", err instanceof Error ? err.name : "unknown");
     return fail("Не вдалося виконати запит. Спробуйте знову.", 500);
   }

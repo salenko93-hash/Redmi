@@ -24,6 +24,7 @@ model User {
   passwordHash String
   role Role @default(STUDENT)
   isActive Boolean @default(true)
+  removedAt DateTime?
   isAdmin Boolean @default(false)
   createdAt DateTime @default(now())
   sessions Session[]
@@ -71,6 +72,8 @@ model Membership {
   classroomId String
   userId String
   rosterName String?
+  isActive Boolean @default(true)
+  removedAt DateTime?
   classroom Classroom @relation(fields:[classroomId], references:[id], onDelete:Cascade)
   user User @relation(fields:[userId], references:[id], onDelete:Cascade)
   @@unique([classroomId,userId])

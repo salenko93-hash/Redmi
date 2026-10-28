@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MemberActions } from "@/components/member-actions";
 import { notFound, redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -22,7 +23,7 @@ export default async function ClassPage({
       id: (await params).id,
       ...(u.role === "TEACHER"
         ? { teacherId: u.id }
-        : { memberships: { some: { userId: u.id } } }),
+        : { memberships: { some: { userId: u.id, isActive: true } } }),
     },
     include: {
       memberships: {
@@ -69,7 +70,7 @@ export default async function ClassPage({
         <div>
           <h1>{c.name}</h1>
           <p>
-            {c.memberships.length} учнів
+            {c.memberships.filter((m) => m.isActive).length} активних учнів
             {teacher && invites.length > 0
               ? ` · ${invites.length} очікують приєднання`
               : ""}{" "}
@@ -87,11 +88,22 @@ export default async function ClassPage({
               {c.memberships.length > 0 && (
                 <h3>Приєдналися · {c.memberships.length}</h3>
               )}
+              <p className="muted">
+                Видалення з активного списку закриває доступ лише до цього
+                класу. Роботи й оцінки зберігаються; учня можна відновити.
+              </p>
               {c.memberships.map((m) => (
-                <p key={m.id} data-roster-member={m.user.id}>
+                <div key={m.id} data-roster-member={m.user.id}>
                   {m.rosterName ?? m.user.name}{" "}
                   <small className="muted">· {m.user.email}</small>
-                </p>
+                  <MemberActions
+                    classroomId={c.id}
+                    userId={m.user.id}
+                    name={m.rosterName ?? m.user.name}
+                    active={m.isActive}
+                    removed={Boolean(m.removedAt)}
+                  />
+                </div>
               ))}
               {!c.memberships.length && !invites.length && (
                 <p className="muted">Поділіться кодом класу з учнями.</p>
@@ -162,7 +174,14 @@ export default async function ClassPage({
                       return (
                         <div key={m.id}>
                           <span>
-                            {m.rosterName ?? m.user.name}{" "}
+                            {m.rosterName ?? m.user.name}
+                            {!m.isActive && (
+                              <small className="muted">
+                                {" "}
+                                ·{" "}
+                                {m.removedAt ? "Вибув / вибула" : "Призупинено"}
+                              </small>
+                            )}{" "}
                             {s && (s.answers as { help?: boolean }).help && (
                               <span title="Потребує допомоги">🙋</span>
                             )}

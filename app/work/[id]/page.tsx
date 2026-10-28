@@ -15,7 +15,7 @@ export default async function Work({
   const a = await db.assignment.findFirst({
     where: {
       id: (await params).id,
-      classroom: { memberships: { some: { userId: u.id } } },
+      classroom: { memberships: { some: { userId: u.id, isActive: true } } },
     },
     include: { labVersion: true, classroom: true },
   });

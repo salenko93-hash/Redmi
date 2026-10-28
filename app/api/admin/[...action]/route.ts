@@ -88,6 +88,14 @@ async function handle(
       await setTeacherAccess(user.id, path[1], active);
       return json({ ok: true });
     }
+    if (
+      path[0] === "teachers" &&
+      path.length === 2 &&
+      req.method === "DELETE"
+    ) {
+      await setTeacherAccess(user.id, path[1], false, true);
+      return json({ ok: true });
+    }
     if (route === "mail/check" && req.method === "POST") {
       const config = invitationMailConfig();
       if (!config)

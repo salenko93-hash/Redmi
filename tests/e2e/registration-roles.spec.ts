@@ -87,6 +87,7 @@ test("mobile role registration requires a teacher invitation and adds the teache
       .fill("Новий учитель");
     await page.getByLabel("Електронна пошта", { exact: true }).fill(email);
     await page.getByLabel("Пароль", { exact: true }).fill(password);
+    await page.getByLabel("Повторіть пароль", { exact: true }).fill(password);
     await page
       .getByRole("button", { name: "Зареєструватися", exact: true })
       .click();
@@ -233,6 +234,7 @@ test("mobile role registration requires a teacher invitation and adds the teache
       .fill("Новий учень");
     await page.getByLabel("Електронна пошта", { exact: true }).fill(pupilEmail);
     await page.getByLabel("Пароль", { exact: true }).fill(password);
+    await page.getByLabel("Повторіть пароль", { exact: true }).fill(password);
     const pupilInput = page.getByLabel("Особистий код учня", { exact: true });
     await expect(pupilInput).toHaveAttribute("required", "");
     await page

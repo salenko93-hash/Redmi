@@ -31,6 +31,7 @@ export async function adminOverview() {
         name: true,
         email: true,
         isActive: true,
+        removedAt: true,
         isAdmin: true,
         _count: { select: { ownedClasses: true } },
       },
@@ -197,6 +198,7 @@ export async function setTeacherAccess(
   actorId: string,
   id: string,
   active: boolean,
+  remove = false,
 ) {
   if (id === actorId)
     throw new AdminActionError(
@@ -205,6 +207,7 @@ export async function setTeacherAccess(
   await db.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('fizlab-staff-access'))`;
     await requireActiveAdmin(tx, actorId);
+    await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${id} FOR UPDATE`;
     const teacher = await tx.user.findFirst({ where: { id, role: "TEACHER" } });
     if (!teacher) throw new AdminActionError("Учителя не знайдено.", 404);
     if (
@@ -222,14 +225,21 @@ export async function setTeacherAccess(
       throw new AdminActionError(
         "Потрібен хоча б один активний адміністратор.",
       );
-    if (teacher.isActive === active) return;
-    await tx.user.update({ where: { id }, data: { isActive: active } });
+    if (teacher.isActive === active && !teacher.removedAt && !remove) return;
+    await tx.user.update({
+      where: { id },
+      data: { isActive: active, removedAt: remove ? new Date() : null },
+    });
     await tx.session.deleteMany({ where: { userId: id } });
     await tx.adminAudit.create({
       data: {
         actorId,
         targetId: id,
-        action: active ? "TEACHER_ENABLED" : "TEACHER_BLOCKED",
+        action: remove
+          ? "TEACHER_REMOVED"
+          : active
+            ? "TEACHER_ENABLED"
+            : "TEACHER_BLOCKED",
         detail: { email: teacher.email },
       },
     });

@@ -21,18 +21,28 @@ export default async function Dashboard() {
     where: {
       classroom: teacher
         ? { teacherId: user.id }
-        : { memberships: { some: { userId: user.id } } },
+        : { memberships: { some: { userId: user.id, isActive: true } } },
     },
     include: {
       labVersion: true,
-      classroom: { include: { _count: { select: { memberships: true } } } },
+      classroom: {
+        include: {
+          memberships: { where: { isActive: true }, select: { userId: true } },
+          _count: { select: { memberships: { where: { isActive: true } } } },
+        },
+      },
       submissions: {
         where: teacher ? {} : { studentId: user.id },
-        select: { status: true, score: true },
+        select: { studentId: true, status: true, score: true },
       },
     },
     orderBy: { labVersion: { number: "asc" } },
   });
+  if (teacher)
+    for (const a of assignments) {
+      const activeIds = new Set(a.classroom.memberships.map((m) => m.userId));
+      a.submissions = a.submissions.filter((s) => activeIds.has(s.studentId));
+    }
   const subs = assignments.flatMap((a) => a.submissions);
   const graded = subs.filter((s) => s.status === "GRADED"),
     pending = subs.filter((s) => s.status === "SUBMITTED");

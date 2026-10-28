@@ -15,6 +15,7 @@ const actions: Record<string, string> = {
   TEACHER_INVITED: "Створено запрошення вчителю",
   INVITATION_REVOKED: "Відкликано запрошення",
   TEACHER_BLOCKED: "Призупинено доступ учителя",
+  TEACHER_REMOVED: "Видалено вчителя з команди (дані збережено)",
   TEACHER_ENABLED: "Відновлено доступ учителя",
   TEACHER_ROLE_GRANTED: "Учнівську роль змінено на вчительську",
   MAIL_CHECK_OK: "Поштове підключення працює",
@@ -147,7 +148,11 @@ export function AdminPanel({
                           teacher.isActive ? styles.active : styles.blocked
                         }
                       >
-                        {teacher.isActive ? "Активний" : "Призупинено"}
+                        {teacher.removedAt
+                          ? "Видалено з команди"
+                          : teacher.isActive
+                            ? "Активний"
+                            : "Призупинено"}
                       </span>
                     </td>
                     <td>{teacher._count.ownedClasses}</td>
@@ -171,6 +176,32 @@ export function AdminPanel({
                         }
                       >
                         {teacher.isActive ? "Призупинити" : "Відновити"}
+                      </button>
+                      <button
+                        type="button"
+                        className="button secondary"
+                        disabled={
+                          busy ||
+                          teacher.id === userId ||
+                          Boolean(teacher.removedAt)
+                        }
+                        aria-label={`Видалити з команди: ${teacher.name}`}
+                        onClick={() => {
+                          if (
+                            !window.confirm(
+                              `Видалити ${teacher.name} з команди? Доступ буде закрито. Класи, роботи й оцінки залишаться; учителя можна відновити.`,
+                            )
+                          )
+                            return;
+                          run(async () => {
+                            await request("teachers/" + teacher.id, "DELETE");
+                            setMessage(
+                              "Учителя видалено з команди. Навчальні дані збережено; доступ можна відновити.",
+                            );
+                          });
+                        }}
+                      >
+                        Видалити
                       </button>
                     </td>
                   </tr>

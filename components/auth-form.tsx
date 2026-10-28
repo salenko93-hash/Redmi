@@ -17,6 +17,7 @@ export function AuthForm({
   expectedOrigin?: string;
   initialOriginMismatch?: boolean;
 }) {
+  const [showPassword, setShowPassword] = useState(false);
   const [originMismatch, setOriginMismatch] = useState(initialOriginMismatch);
   useEffect(
     () =>
@@ -111,6 +112,8 @@ export function AuthForm({
           setError("");
           const f = new FormData(e.currentTarget);
           try {
+            if (register && f.get("password") !== f.get("passwordConfirmation"))
+              throw new Error("Паролі не збігаються. Повторіть пароль.");
             const res = await fetch("/api/auth/" + mode, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -202,7 +205,7 @@ export function AuthForm({
           {recover ? "Новий пароль" : "Пароль"}
           <input
             name="password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             required
             minLength={10}
             maxLength={128}
@@ -212,6 +215,27 @@ export function AuthForm({
             placeholder="Щонайменше 10 символів"
           />
         </label>
+        {register && (
+          <label>
+            Повторіть пароль
+            <input
+              name="passwordConfirmation"
+              type={showPassword ? "text" : "password"}
+              required
+              minLength={10}
+              maxLength={128}
+              autoComplete="new-password"
+            />
+          </label>
+        )}
+        <button
+          type="button"
+          className="text-button"
+          aria-pressed={showPassword}
+          onClick={() => setShowPassword(!showPassword)}
+        >
+          {showPassword ? "Приховати пароль" : "Показати пароль"}
+        </button>
         {register && role === "TEACHER" && (
           <div className="registration-invite">
             <label>
@@ -293,6 +317,7 @@ export function AuthForm({
           onClick={() => {
             setMode(register || recover ? "login" : "register");
             setError("");
+            setShowPassword(false);
           }}
         >
           {register || recover ? "Увійти" : "Зареєструватися"}
