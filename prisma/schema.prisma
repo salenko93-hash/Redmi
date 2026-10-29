@@ -64,10 +64,12 @@ model Classroom {
   code String @unique
   teacherId String
   createdAt DateTime @default(now())
+  archivedAt DateTime?
   teacher User @relation(fields:[teacherId], references:[id])
   memberships Membership[]
   assignments Assignment[]
   studentInvites StudentInvite[]
+  @@index([teacherId, archivedAt])
 }
 model Membership {
   id String @id @default(cuid())

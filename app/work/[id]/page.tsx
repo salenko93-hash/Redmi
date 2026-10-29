@@ -44,7 +44,18 @@ export default async function Work({
           </p>
         </div>
       </div>
+      {a.classroom.archivedAt && (
+        <section className="panel">
+          <h2>Клас в архіві · тільки перегляд</h2>
+          <p>
+            Збережені відповіді доступні для перегляду, PDF і друку. Для
+            редагування зверніться до вчителя, щоб відновити клас.
+          </p>
+          <Link href="/classes?view=archive">До архіву класів →</Link>
+        </section>
+      )}
       <Workspace
+        archived={Boolean(a.classroom.archivedAt)}
         reportMeta={{
           title: a.labVersion.title,
           studentName: u.name,

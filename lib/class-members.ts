@@ -8,6 +8,20 @@ export class ClassAccessError extends Error {
     super(message);
   }
 }
+/** Keep archive/delete serialized with joins, imports, assignments and student saves. */
+export async function requireOpenClass(
+  tx: Prisma.TransactionClient,
+  classroomId: string,
+) {
+  const rows = await tx.$queryRaw<{ archivedAt: Date | null }[]>`
+    SELECT "archivedAt" FROM "Classroom" WHERE "id"=${classroomId} FOR SHARE`;
+  if (!rows.length) throw new ClassAccessError("Клас не знайдено.", 404);
+  if (rows[0].archivedAt)
+    throw new ClassAccessError(
+      "Клас в архіві. Для внесення змін учитель має відновити клас.",
+      409,
+    );
+}
 /** Hold the membership read lock until a join/save finishes, so withdrawal cannot race a save. */
 export async function requireClassMembership(
   tx: Prisma.TransactionClient,
@@ -15,6 +29,7 @@ export async function requireClassMembership(
   userId: string,
   allowMissing = false,
 ) {
+  await requireOpenClass(tx, classroomId);
   const rows = allowMissing
     ? await tx.$queryRaw<
         { status: string }[]
@@ -44,6 +59,7 @@ export async function changeClassMember(
     });
     if (!actor) throw new ClassAccessError("Доступ учителя припинено.");
     await tx.$queryRaw`SELECT "id" FROM "Classroom" WHERE "id"=${classroomId} FOR UPDATE`;
+    await requireOpenClass(tx, classroomId);
     if (
       !(await tx.classroom.findFirst({
         where: { id: classroomId, teacherId: actorId },

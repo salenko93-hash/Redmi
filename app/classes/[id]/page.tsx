@@ -11,6 +11,7 @@ import {
 import { statuses } from "@/lib/submission-status";
 import { ClassMembers } from "@/components/class-members";
 import { StudentImport } from "@/components/student-import";
+import { ClassroomActions } from "@/components/classroom-actions";
 export default async function ClassPage({
   params,
 }: {
@@ -26,6 +27,7 @@ export default async function ClassPage({
         : { memberships: { some: { userId: u.id, status: "ACTIVE" } } }),
     },
     include: {
+      _count: { select: { studentInvites: true } },
       memberships: {
         include: { user: { select: { id: true, name: true, email: true } } },
       },
@@ -79,7 +81,7 @@ export default async function ClassPage({
             · {c.assignments.length} призначених робіт
           </p>
         </div>
-        {teacher && (
+        {teacher && !c.archivedAt && (
           <div className="button-row">
             <Link className="button secondary" href={`/progress?class=${c.id}`}>
               Навчальний поступ
@@ -88,21 +90,63 @@ export default async function ClassPage({
           </div>
         )}
       </div>
+      {c.archivedAt && (
+        <section className="panel">
+          <h2>Клас в архіві</h2>
+          <p>
+            Учні, звіти та оцінки збережені. Учнівські роботи доступні для
+            перегляду, завантаження PDF і друку. Для нових учнів, призначень та
+            редагування відновіть клас.
+          </p>
+        </section>
+      )}
+      {teacher && (
+        <section className="panel" aria-label="Керування класом">
+          <ClassroomActions
+            id={c.id}
+            name={c.name}
+            archived={Boolean(c.archivedAt)}
+            detail
+            empty={
+              !c.memberships.length &&
+              !c.assignments.length &&
+              c._count.studentInvites === 0
+            }
+          />
+        </section>
+      )}
       <div className={teacher ? "two-column" : "single-column"}>
         <section>
           {teacher && (
             <div className="panel">
               <h2>Учні класу</h2>
-              <StudentImport classroomId={c.id} invites={invites} />
-              <ClassMembers
-                classroomId={c.id}
-                members={c.memberships.map((m) => ({
-                  userId: m.user.id,
-                  name: m.rosterName ?? m.user.name,
-                  email: m.user.email,
-                  status: m.status,
-                }))}
-              />
+              {!c.archivedAt && (
+                <StudentImport classroomId={c.id} invites={invites} />
+              )}
+              {!c.archivedAt ? (
+                <ClassMembers
+                  classroomId={c.id}
+                  members={c.memberships.map((m) => ({
+                    userId: m.user.id,
+                    name: m.rosterName ?? m.user.name,
+                    email: m.user.email,
+                    status: m.status,
+                  }))}
+                />
+              ) : (
+                <ul>
+                  {c.memberships.map((m) => (
+                    <li key={m.id}>
+                      {m.rosterName ?? m.user.name} ·{" "}
+                      {m.status === "LEFT"
+                        ? "Вибув / вибула"
+                        : m.status === "SUSPENDED"
+                          ? "Доступ призупинено"
+                          : "Учасник класу"}
+                    </li>
+                  ))}
+                </ul>
+              )}
               {!c.memberships.length && !invites.length && (
                 <p className="muted">Поділіться кодом класу з учнями.</p>
               )}
@@ -151,7 +195,7 @@ export default async function ClassPage({
                     на перевірці
                   </span>
                 )}
-                {teacher && (
+                {teacher && !c.archivedAt && (
                   <AssignmentMode
                     id={a.id}
                     mode={a.experimentMode}
@@ -239,7 +283,9 @@ export default async function ClassPage({
             ))}
           </div>
         </section>
-        {teacher && <AssignForm classroomId={c.id} labs={all} />}
+        {teacher && !c.archivedAt && (
+          <AssignForm classroomId={c.id} labs={all} />
+        )}
       </div>
     </Shell>
   );

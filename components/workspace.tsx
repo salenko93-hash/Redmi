@@ -77,6 +77,7 @@ export function Workspace({
   preview = false,
   sandbox = false,
   reportMeta,
+  archived = false,
 }: {
   assignmentId: string;
   userId: string;
@@ -88,9 +89,13 @@ export function Workspace({
   preview?: boolean;
   sandbox?: boolean;
   reportMeta?: ReportMeta;
+  archived?: boolean;
 }) {
   const router = useRouter();
-  const learning = useLearningJournal(assignmentId, !preview && !sandbox);
+  const learning = useLearningJournal(
+    assignmentId,
+    !preview && !sandbox && !archived,
+  );
   const materialHref = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].includes(number)
     ? `/materials/${number}`
     : null;
@@ -101,11 +106,13 @@ export function Workspace({
   );
   const [step, setStep] = useState(0),
     [state, setState] = useState(
-      sandbox
-        ? "Пробне проходження · не зберігається"
-        : preview
-          ? "Перегляд шаблону"
-          : "Збережено",
+      archived
+        ? "Архів · тільки перегляд"
+        : sandbox
+          ? "Пробне проходження · не зберігається"
+          : preview
+            ? "Перегляд шаблону"
+            : "Збережено",
     ),
     [error, setError] = useState(""),
     [missing, setMissing] = useState<string[]>([]),
@@ -113,6 +120,7 @@ export function Workspace({
     [sending, setSending] = useState(false),
     [confirmSubmit, setConfirmSubmit] = useState(false);
   const readOnly =
+    archived ||
     preview ||
     sending ||
     (!!initial && ["SUBMITTED", "GRADED"].includes(initial.status));
@@ -855,7 +863,8 @@ export function Workspace({
                   <ChevronRight size={17} />
                 </button>
               ) : (
-                !preview && (
+                !preview &&
+                !archived && (
                   <button
                     className="button primary"
                     disabled={sending || conflict}
@@ -950,7 +959,9 @@ export function Workspace({
         </div>
         <aside className="work-aside no-print">
           <LabTools number={number} />
-          {!preview && !sandbox && <LearningJournal journal={learning} />}
+          {!preview && !sandbox && !archived && (
+            <LearningJournal journal={learning} />
+          )}
           <div className="panel">
             <span className="eyebrow">ВАШ МАРШРУТ</span>
             <h3>{steps[step]}</h3>

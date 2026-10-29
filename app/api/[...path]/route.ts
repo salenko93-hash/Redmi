@@ -32,7 +32,9 @@ import {
   changeClassMember,
   requireClassMembership,
   ClassAccessError,
+  requireOpenClass,
 } from "@/lib/class-members";
+import { changeClassroom } from "@/lib/classroom-lifecycle";
 import { completeness, checkCalculations } from "@/lib/physics";
 import type { Answers, LabContent } from "@/lib/types";
 const json = (data: unknown, status = 200) =>
@@ -177,6 +179,8 @@ async function handle(
             (studentInvite.email && studentInvite.email !== input.email))
         )
           throw new Error("INVALID_STUDENT_INVITE");
+        if (studentInvite)
+          await requireOpenClass(tx, studentInvite.classroomId);
         const created = await tx.user.create({
           data: {
             email: input.email,
@@ -208,6 +212,30 @@ async function handle(
     const user = await currentUser();
     if (!user) return fail("Увійдіть у свій обліковий запис.", 401);
     if (
+      path[0] === "classes" &&
+      path.length === 2 &&
+      ["PATCH", "DELETE"].includes(method)
+    ) {
+      if (user.role !== "TEACHER") return fail("Доступ лише для вчителя.", 403);
+      if (method === "DELETE") {
+        z.object({ confirmed: z.literal(true) })
+          .strict()
+          .parse(await req.json());
+        return json(await changeClassroom(user.id, path[1], "delete"));
+      }
+      const { archived } = z
+        .object({ archived: z.boolean() })
+        .strict()
+        .parse(await req.json());
+      return json(
+        await changeClassroom(
+          user.id,
+          path[1],
+          archived ? "archive" : "restore",
+        ),
+      );
+    }
+    if (
       path.length === 3 &&
       path[0] === "assignments" &&
       path[2] === "learning"
@@ -222,9 +250,11 @@ async function handle(
       if (user.role !== "TEACHER") return fail("Доступ лише для вчителя.", 403);
       const classroom = await db.classroom.findFirst({
         where: { id: path[1], teacherId: user.id },
-        select: { id: true, name: true },
+        select: { id: true, name: true, archivedAt: true },
       });
       if (!classroom) return fail("Клас не знайдено.", 404);
+      if (classroom.archivedAt && method !== "GET")
+        return fail("Клас в архіві. Спочатку відновіть клас.", 409);
       if (path[3] === "members" && path.length === 5) {
         if (method === "PATCH") {
           const { active } = z
@@ -480,6 +510,7 @@ async function handle(
         const result = await db.$transaction(async (tx) => {
           // Serialize imports into one class, including mixed name-only/email lists.
           await tx.$queryRaw`SELECT "id" FROM "Classroom" WHERE "id" = ${classroom.id} FOR UPDATE`;
+          await requireOpenClass(tx, classroom.id);
           const rows = await loadPlan(tx);
           const inserted = await tx.studentInvite.createMany({
             data: rows
@@ -643,7 +674,11 @@ async function handle(
         }))
       )
         return fail("Шаблон не знайдено.", 404);
-      return json(await db.assignment.create({ data: input }), 201);
+      const assignment = await db.$transaction(async (tx) => {
+        await requireOpenClass(tx, input.classroomId);
+        return tx.assignment.create({ data: input });
+      });
+      return json(assignment, 201);
     }
     if (
       path[0] === "assignments" &&
@@ -660,6 +695,7 @@ async function handle(
       });
       if (!assignment) return fail("Роботу не знайдено.", 404);
       await db.$transaction(async (tx) => {
+        await requireOpenClass(tx, assignment.classroomId);
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${assignment.id}))`;
         const submissions = await tx.submission.findMany({
           where: { assignmentId: assignment.id },

@@ -19,9 +19,12 @@ export default async function Dashboard() {
   const teacher = user.role === "TEACHER";
   const loadedAssignments = await db.assignment.findMany({
     where: {
-      classroom: teacher
-        ? { teacherId: user.id }
-        : { memberships: { some: { userId: user.id, status: "ACTIVE" } } },
+      classroom: {
+        archivedAt: null,
+        ...(teacher
+          ? { teacherId: user.id }
+          : { memberships: { some: { userId: user.id, status: "ACTIVE" } } }),
+      },
     },
     include: {
       labVersion: true,
