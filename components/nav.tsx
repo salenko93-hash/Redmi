@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
 import { ThemePicker } from "./theme-picker";
 import {
   LayoutDashboard,
@@ -24,6 +25,24 @@ export function Navigation({
 }) {
   const path = usePathname();
   const router = useRouter();
+  const header = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const node = header.current;
+    if (!node) return;
+    // The menu wraps on smaller screens; keep anchors and sticky tools below its actual height.
+    const measure = () =>
+      document.documentElement.style.setProperty(
+        "--app-navigation-height",
+        `${node.getBoundingClientRect().height}px`,
+      );
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => {
+      observer.disconnect();
+      document.documentElement.style.removeProperty("--app-navigation-height");
+    };
+  }, []);
   const items = [
     ["/dashboard", "Мій простір", LayoutDashboard],
     ["/library", "Лабораторні роботи", BookOpen],
@@ -35,7 +54,7 @@ export function Navigation({
     ...(isAdmin ? [["/admin", "Адміністрування", ShieldCheck] as const] : []),
   ] as const;
   return (
-    <header className="app-navigation no-print">
+    <header className="app-navigation no-print" ref={header}>
       <Link href="/dashboard" className="brand">
         <span className="brand-icon">
           <Atom size={24} />

@@ -12,6 +12,9 @@
 * {
   box-sizing: border-box;
 }
+html {
+  scroll-padding-top: calc(var(--app-navigation-height, 0px) + 12px);
+}
 body {
   margin: 0;
   background: var(--bg);
@@ -1329,7 +1332,7 @@ td {
 }
 .work-aside {
   position: sticky;
-  top: 20px;
+  top: calc(var(--app-navigation-height, 0px) + 20px);
 }
 .work-aside .panel {
   padding: 20px;
@@ -4479,6 +4482,9 @@ td {
   margin-left: 0;
 }
 .app-navigation {
+  position: sticky;
+  top: 0;
+  z-index: 30;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
@@ -4486,6 +4492,7 @@ td {
   padding: 12px 32px;
   background: #fff;
   border-bottom: 1px solid var(--line);
+  box-shadow: 0 3px 12px #294d3b0a;
 }
 .app-navigation .brand {
   font-size: 24px;
