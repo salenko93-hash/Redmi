@@ -10,6 +10,7 @@ import {
 import { createPortal } from "react-dom";
 import { SimulationControl } from "./simulation-control";
 import { ManualStopwatch, useManualStopwatch } from "./manual-stopwatch";
+import { usesManualTiming } from "@/lib/experiment-timing";
 import type { LearningAction } from "@/lib/learning-progress";
 import {
   FlaskConical,
@@ -216,6 +217,7 @@ export function VirtualLab({
   measurements?: ReactNode;
 }) {
   const setup = simulationSetup(number, experiment.id);
+  const timed = usesManualTiming(number);
   const stopwatch = useManualStopwatch();
   const [parameters, setParameters] = useState<Parameters>(() => ({
     ...initialParameters(number, experiment.id),
@@ -235,24 +237,22 @@ export function VirtualLab({
     () => simulate(number, experiment.id, parameters),
     [number, experiment.id, parameters],
   );
-  const phase =
-    number === 1
-      ? Math.min(1, stopwatch.elapsed / (result.duration * 1000))
-      : simulationPhase;
-  const running =
-    number === 1 ? stopwatch.running && phase < 1 : simulationRunning;
-  const rampCompleted = useRef(false);
+  const phase = timed
+    ? Math.min(1, stopwatch.elapsed / (result.duration * 1000))
+    : simulationPhase;
+  const running = timed ? stopwatch.running && phase < 1 : simulationRunning;
+  const runCompleted = useRef(false);
   const actionRef = useRef(onLearningAction);
   actionRef.current = onLearningAction;
   useEffect(() => {
-    if (number !== 1 || phase < 1 || rampCompleted.current) return;
-    rampCompleted.current = true;
+    if (!timed || phase < 1 || runCompleted.current) return;
+    runCompleted.current = true;
     actionRef.current?.({
       kind: "RUN_COMPLETED",
       experimentId: experiment.id,
       payload: { parameters: { ...parameters } },
     });
-  }, [number, phase, experiment.id, parameters]);
+  }, [timed, phase, experiment.id, parameters]);
   const [expanded, setExpanded] = useState(false);
   const expandButton = useRef<HTMLButtonElement>(null);
   const wasExpanded = useRef(false);
@@ -271,13 +271,10 @@ export function VirtualLab({
   }, [expanded]);
   const phaseRef = useRef(0);
   useEffect(() => {
-    if (number === 1 || !running) return;
+    if (timed || !running) return;
     let frame = 0,
       last = performance.now();
-    const milliseconds =
-      (number === 1 || number === 3
-        ? result.duration
-        : Math.min(number === 2 ? 15 : 6, Math.max(1, result.duration))) * 1000;
+    const milliseconds = Math.min(6, Math.max(1, result.duration)) * 1000;
     const reduced = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
@@ -306,11 +303,11 @@ export function VirtualLab({
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [running, result.duration, number]);
+  }, [running, result.duration, timed]);
   function reset() {
-    if (number === 1) {
+    if (timed) {
       stopwatch.reset();
-      rampCompleted.current = false;
+      runCompleted.current = false;
     }
     setElasticStart(0);
     setRunning(false);
@@ -359,8 +356,13 @@ export function VirtualLab({
   const transfer = (
     <>
       <div className="virtual-transfer">
-        {number === 1 && (
-          <p className="muted">Переноситься лише шлях. Час введіть вручну.</p>
+        {timed && (
+          <p className="muted">
+            {number === 1
+              ? "Переноситься лише шлях."
+              : "Переносяться умови та кількість циклів."}{" "}
+            Час введіть вручну.
+          </p>
         )}
         {allowTransfer && (
           <label>
@@ -390,7 +392,7 @@ export function VirtualLab({
             phase !== 1 ||
             !result.canRecord ||
             recorded ||
-            (number === 1 && stopwatch.running)
+            (timed && stopwatch.running)
           }
           onClick={() => setReplace(true)}
         >
@@ -401,10 +403,11 @@ export function VirtualLab({
       {replace && (
         <div className="notice">
           <p>
-            {number === 1 ? (
+            {timed ? (
               <>
-                Перенести шлях у «{experiment.rows[row]}»? Введений вами час
-                залишиться без змін. Попередні розрахунки буде очищено.
+                Перенести {number === 1 ? "шлях" : "покази без часу"} у «
+                {experiment.rows[row]}»? Введений вами час залишиться без змін.
+                Попередні розрахунки буде очищено.
               </>
             ) : (
               <>
@@ -475,7 +478,7 @@ export function VirtualLab({
               step={c.step}
               unit={c.unit}
               options={c.options}
-              disabled={number === 1 ? stopwatch.running : running}
+              disabled={timed ? stopwatch.running : running}
               onChange={(value) => adjust(c.key, value)}
             />
           ))}
@@ -506,11 +509,10 @@ export function VirtualLab({
           </div>
         )}
       </div>
-      {number !== 1 && transfer}
     </div>
   );
   const instrument = (
-    <div className="virtual-instrument">
+    <div className="virtual-instrument shared-experiment-workspace">
       <div className="virtual-layout">
         <div className="virtual-stage">
           <Scene
@@ -524,16 +526,16 @@ export function VirtualLab({
           />
         </div>
         <section
-          className={`virtual-control-panel${number === 1 ? " ramp-control-panel" : ""}`}
-          aria-label={number === 1 ? "Керування дослідом" : "Параметри досліду"}
+          className={`virtual-control-panel${timed ? " ramp-control-panel" : ""}`}
+          aria-label="Керування дослідом"
         >
-          {number === 1 && <h4>Керування дослідом</h4>}
+          <h4>Керування дослідом</h4>
           <div
             className="virtual-toolbar"
             role="group"
             aria-label="Керування дослідом"
           >
-            {number !== 1 && (
+            {!timed && (
               <>
                 <button
                   type="button"
@@ -595,8 +597,9 @@ export function VirtualLab({
               {expanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
               {expanded ? "Згорнути" : "Розгорнути"}
             </button>
-            {number === 1 && (
+            {timed && (
               <ManualStopwatch
+                labNumber={number}
                 clock={stopwatch}
                 finished={phase >= 1}
                 onStart={() => {
@@ -629,21 +632,8 @@ export function VirtualLab({
               />
             )}
           </div>
-          {number !== 1 && settings}
         </section>
       </div>
-      {number === 1 && (
-        <div className="ramp-data-panel">
-          <section
-            className="ramp-settings-panel"
-            aria-label="Параметри досліду"
-          >
-            {settings}
-          </section>
-          {transfer}
-          {expanded && measurements}
-        </div>
-      )}
       {number === 5 && (
         <DensityReadouts
           experiment={experiment.id}
@@ -682,6 +672,16 @@ export function VirtualLab({
           message={result.message}
         />
       )}
+      <div className="experiment-data-panel">
+        <section
+          className="experiment-settings-panel"
+          aria-label="Параметри досліду"
+        >
+          {settings}
+        </section>
+        {transfer}
+        {expanded && measurements}
+      </div>
     </div>
   );
   return (
@@ -697,7 +697,7 @@ export function VirtualLab({
           {expanded
             ? createPortal(
                 <dialog
-                  className={`experiment-dialog${number === 1 ? " ramp-experiment-dialog" : ""}`}
+                  className={`experiment-dialog shared-experiment-dialog${number === 1 ? " ramp-experiment-dialog" : ""}`}
                   aria-label={`Керування дослідом: ${experiment.title}`}
                   ref={(node) => {
                     if (node && !node.open) node.showModal();
@@ -909,10 +909,10 @@ export function VirtualLab({
                 ? "Показано повільне підняття посудини як послідовність рівноважних станів. Швидкість підйому не вимірюється. "
                 : number === 8
                   ? "Відлік показує огляд розмірів нерухомого бруска, а не рух чи зміну сили. "
-                  : number === 1 || number === 3
+                  : timed
                     ? "Відтворення 1×: рух і відлік використовують фізичний час моделі. "
                     : "Анімацію може бути прискорено. Покази часу нижче — фізичний час моделі, а не тривалість анімації. "}
-            {number === 1
+            {timed
               ? "Рух змодельовано. Ручне вимірювання залежить від реакції учня; модельний час — довідковий."
               : "Усі дані синтетичні; випадкова похибка не додається."}
           </p>
@@ -934,7 +934,9 @@ export function VirtualLab({
                     .map((f) => (
                       <div key={f.key}>
                         <dt>
-                          {f.label}
+                          {timed && f.key === "t"
+                            ? "Довідковий час моделі"
+                            : f.label}
                           {f.unit ? ` (${f.unit})` : ""}
                         </dt>
                         <dd>{result.readings[f.key]}</dd>
@@ -960,8 +962,8 @@ export function VirtualLab({
           </details>
         </div>
       </details>
-      {number === 1 && !expanded && measurements && (
-        <div className="ramp-measurements-below">{measurements}</div>
+      {!expanded && measurements && (
+        <div className="measurements-below">{measurements}</div>
       )}
     </>
   );

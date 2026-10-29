@@ -69,6 +69,7 @@ test("lab two web material replaces the PDF and the circular instrument follows 
   await cycles.focus();
   await cycles.press("Home");
   await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.clock.install();
   let first = 0;
   for (const count of [10, 20, 30]) {
     if (count > 10) {
@@ -79,9 +80,13 @@ test("lab two web material replaces the PDF and the circular instrument follows 
       instrument.locator('[data-instrument="rotation-count"]'),
     ).toHaveText(`0 / ${count}`);
     await instrument
-      .getByRole("button", { name: "Запустити дослід", exact: true })
+      .getByRole("button", { name: "Запустити секундомір", exact: true })
       .click();
+    await page.clock.fastForward(200_000);
     await expect(instrument.locator(".virtual-results")).toBeVisible();
+    await instrument
+      .getByRole("button", { name: "Зупинити секундомір", exact: true })
+      .click();
     await expect(
       instrument.locator('[data-instrument="rotation-count"]'),
     ).toHaveText(`${count} / ${count}`);
@@ -170,15 +175,20 @@ test("lab two web material replaces the PDF and the circular instrument follows 
   const ball = instrument.locator('[data-instrument="rotating-ball"]');
   const beforeX = Number(await ball.getAttribute("cx"));
   await instrument
-    .getByRole("button", { name: "Запустити дослід", exact: true })
+    .getByRole("button", { name: "Запустити секундомір", exact: true })
     .click();
   await expect(radius).toBeDisabled();
   await expect
     .poll(async () => Number(await ball.getAttribute("cx")))
     .not.toBe(beforeX);
-  await instrument.getByRole("button", { name: "Пауза", exact: true }).click();
+  await instrument
+    .getByRole("button", { name: "Зупинити секундомір", exact: true })
+    .click();
   await expect(
-    instrument.getByRole("button", { name: "Продовжити", exact: true }),
+    instrument.getByRole("button", {
+      name: "Продовжити секундомір",
+      exact: true,
+    }),
   ).toBeVisible();
   const pausedTime = await timer.innerText(),
     pausedX = await ball.getAttribute("cx");
@@ -204,11 +214,11 @@ test("lab two web material replaces the PDF and the circular instrument follows 
     });
   expect(gap).toBeCloseTo(12, 4);
   await instrument
-    .getByRole("button", { name: "Продовжити", exact: true })
+    .getByRole("button", { name: "Продовжити секундомір", exact: true })
     .click();
   await expect.poll(async () => timer.innerText()).not.toBe(pausedTime);
   await instrument
-    .getByRole("button", { name: "Скинути прилад", exact: true })
+    .getByRole("button", { name: "Скинути секундомір", exact: true })
     .click();
   await expect(timer).toHaveText("0,00 с");
   await expect(countOutput).toHaveText("0 / 10");

@@ -386,7 +386,7 @@ export function RotationScene({
         textAnchor="middle"
         style={{ fontSize: 8.5, fill: "#d1ddc8", letterSpacing: 1 }}
       >
-        СЕКУНДОМІР
+        ПОКАЗИ МОДЕЛІ
       </text>
       <rect x="436" y="135" width="124" height="72" rx="7" fill="#14281e" />
       <rect

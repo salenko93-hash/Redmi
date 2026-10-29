@@ -1,15 +1,18 @@
 "use client";
 import { fieldFeedback } from "@/lib/physics";
 import type { Answers, Experiment } from "@/lib/types";
-import styles from "./ramp-measurements.module.css";
+import { usesManualTiming } from "@/lib/experiment-timing";
+import styles from "./experiment-measurements.module.css";
 
-export function RampMeasurements({
+export function ExperimentMeasurements({
+  number,
   experiment,
   answers,
   readOnly,
   feedbackMode,
   onChange,
 }: {
+  number: number;
   experiment: Experiment;
   answers: Answers;
   readOnly: boolean;
@@ -20,15 +23,20 @@ export function RampMeasurements({
     <section className={styles.root} aria-label="Таблиця дослідів">
       <h3>Таблиця дослідів</h3>
       <p>
-        Після «Стоп» введіть виміряний час у секундах. Швидкість обчисліть
-        самостійно.
+        {usesManualTiming(number)
+          ? `Після «Стоп» введіть час у секундах. ${number === 1 ? "Швидкість" : number === 2 ? "Період і частоту" : "Період"} обчисліть самостійно.`
+          : "Запишіть вимірювання. Розрахункові поля заповніть самостійно."}
       </p>
       <div
         className={styles.scroll}
         tabIndex={0}
-        aria-label="Вимірювання скочування кульки"
+        aria-label={`Вимірювання: ${experiment.title}`}
       >
-        <table>
+        <table
+          style={{
+            minWidth: Math.max(480, (experiment.fields.length + 1) * 125),
+          }}
+        >
           <caption className="sr-only">
             Вимірювання та розрахунки: {experiment.title}
           </caption>
@@ -53,7 +61,12 @@ export function RampMeasurements({
                   {label}
                   {answers.simulationRecords?.some(
                     (r) => r.experimentId === experiment.id && r.rowIndex === i,
-                  ) && <p className="model-source">дані моделі · час вручну</p>}
+                  ) && (
+                    <p className="model-source">
+                      дані моделі
+                      {usesManualTiming(number) ? " · час вручну" : ""}
+                    </p>
+                  )}
                 </th>
                 {experiment.fields.map((f) => {
                   const row = answers.experiments?.[experiment.id]?.[i] ?? {};

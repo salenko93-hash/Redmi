@@ -1,8 +1,161 @@
 import { test, expect, type Locator } from "@playwright/test";
+import { labs } from "../../lib/labs";
+import { initialParameters, simulate } from "../../lib/simulation";
 const origin = process.env.E2E_BASE_URL ?? "http://localhost:3100";
 const seconds = async (clock: Locator) =>
   Number((await clock.getByRole("timer").innerText()).replace(",", "."));
 test.use({ hasTouch: true });
+
+test("rotation and all pendulum series use manual real-time clocks and preserve typed times in the expanded table", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.setViewportSize({ width: 1920, height: 900 });
+  expect(
+    (
+      await page.request.post("/api/auth/login", {
+        headers: { Origin: origin },
+        data: { email: "teacher@demo.test", password: "LabDemo2026!" },
+      })
+    ).status(),
+  ).toBe(200);
+  await page.goto("/library");
+  const links = await page
+    .locator(".lab-card")
+    .evaluateAll((nodes) => nodes.map((n) => (n as HTMLAnchorElement).href));
+  for (const number of [2, 3]) {
+    await page.goto(links[number - 1]);
+    await page
+      .getByRole("button", { name: "Спробувати як учень", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "2 Експеримент", exact: true })
+      .click();
+    await page.clock.install();
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    const instruments = page.locator(".virtual-lab");
+    for (const [seriesIndex, lab] of (await instruments.all()).entries()) {
+      await lab
+        .getByRole("button", { name: "Розгорнути", exact: true })
+        .click();
+      const dialog = page.getByRole("dialog");
+      const clock = dialog.getByRole("region", {
+        name: "Ручний секундомір",
+        exact: true,
+      });
+      const modelTime = dialog.locator(
+        number === 2
+          ? '[data-instrument="rotation-time"]'
+          : '[data-instrument="pendulum-time"]',
+      );
+      await clock
+        .getByRole("button", { name: "Запустити секундомір", exact: true })
+        .click();
+      await page.clock.runFor(1000);
+      await clock
+        .getByRole("button", { name: "Зупинити секундомір", exact: true })
+        .click();
+      const modelSeconds = Number(
+        (await modelTime.textContent())!.replace(",", ".").replace(" с", ""),
+      );
+      expect(modelSeconds).toBeGreaterThanOrEqual(0.98);
+      expect(modelSeconds).toBeLessThan(1.3);
+      // Display rounds the model to hundredths and floors the manual clock.
+      expect(Math.abs((await seconds(clock)) - modelSeconds)).toBeLessThan(
+        0.011,
+      );
+      const pausedTime = await seconds(clock),
+        pausedModel = (await modelTime.textContent())!;
+      await page.clock.runFor(500);
+      expect(await seconds(clock)).toBe(pausedTime);
+      await expect(modelTime).toHaveText(pausedModel);
+      await clock
+        .getByRole("button", { name: "Продовжити секундомір", exact: true })
+        .click();
+      const experimentId = labs[number - 1].content.experiments[seriesIndex].id;
+      const duration = simulate(
+        number,
+        experimentId,
+        initialParameters(number, experimentId),
+      ).duration;
+      await page.clock.fastForward(
+        Math.ceil(duration * 1000 - pausedTime * 1000) + 150,
+      );
+      await expect(clock.getByRole("status")).toHaveText(
+        "Задану кількість циклів виконано — натисніть «Стоп»",
+      );
+      const transfer = dialog.getByRole("button", {
+        name: "Перенести покази в таблицю",
+        exact: true,
+      });
+      await expect(transfer).toBeDisabled();
+      await expect(
+        dialog.locator(".experiment-settings-panel input").first(),
+      ).toBeDisabled();
+      const atFinish = await seconds(clock);
+      await page.clock.runFor(300);
+      expect(await seconds(clock)).toBeGreaterThan(atFinish);
+      await clock
+        .getByRole("button", { name: "Зупинити секундомір", exact: true })
+        .click();
+      const table = dialog.getByRole("region", {
+        name: "Таблиця дослідів",
+        exact: true,
+      });
+      const row = table.locator(".experiment-row").first();
+      const time = row.getByRole("textbox", { name: /: Час$/ });
+      const period = row.getByRole("textbox", { name: /: Період$/ });
+      await expect(time).toHaveValue("");
+      await transfer.click();
+      await dialog
+        .getByRole("button", { name: "Підтвердити перенесення", exact: true })
+        .click();
+      await expect(time).toHaveValue("");
+      await time.fill("12,34");
+      await period.fill("999");
+      await dialog
+        .getByRole("combobox", { name: /Рядок для/ })
+        .selectOption("0");
+      await transfer.click();
+      await dialog
+        .getByRole("button", { name: "Підтвердити перенесення", exact: true })
+        .click();
+      await expect(time).toHaveValue("12,34");
+      await expect(period).toHaveValue("");
+      if (number === 2) {
+        await dialog.evaluate((el) => {
+          el.scrollTop = 0;
+        });
+        expect(
+          await table
+            .locator(".experiment-row")
+            .last()
+            .evaluate(
+              (el) =>
+                el.getBoundingClientRect().bottom <=
+                el.closest("dialog")!.getBoundingClientRect().bottom - 8,
+            ),
+        ).toBe(true);
+      }
+      await dialog.screenshot({
+        path: test
+          .info()
+          .outputPath(`lab-${number}-${seriesIndex + 1}-manual-workspace.png`),
+      });
+      const title = await dialog
+        .locator(".experiment-dialog-title")
+        .innerText();
+      await page.keyboard.press("Escape");
+      await expect(
+        page
+          .getByRole("textbox", { name: new RegExp(`^${title},.*: Час$`) })
+          .first(),
+      ).toHaveValue("12,34");
+    }
+  }
+  expect(errors).toEqual([]);
+});
 
 test("stopwatch alone controls the ramp; the bottom table is editable in expanded view and keeps pupil timings", async ({
   page,

@@ -54,6 +54,7 @@ test("lab three replaces PDF with three controlled pendulum series and consisten
   const instrument = page.locator(".virtual-lab");
   await expect(instrument).toHaveCount(1);
   await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.clock.install();
   const stringLength = () =>
     instrument
       .locator('[data-instrument="pendulum-length"]')
@@ -64,9 +65,13 @@ test("lab three replaces PDF with three controlled pendulum series and consisten
       .evaluate((el) => (el as SVGLineElement).getTotalLength());
   async function run() {
     await instrument
-      .getByRole("button", { name: "Запустити дослід", exact: true })
+      .getByRole("button", { name: "Запустити секундомір", exact: true })
       .click();
+    await page.clock.fastForward(200_000);
     await expect(instrument.locator(".virtual-results")).toBeVisible();
+    await instrument
+      .getByRole("button", { name: "Зупинити секундомір", exact: true })
+      .click();
     await expect(
       instrument.locator('[data-instrument="pendulum-count"]'),
     ).toHaveText("10 / 10");
@@ -172,11 +177,13 @@ test("lab three replaces PDF with three controlled pendulum series and consisten
   const startX = await bob.getAttribute("cx"),
     clock = instrument.getByLabel("Час маятника", { exact: true });
   await instrument
-    .getByRole("button", { name: "Запустити дослід", exact: true })
+    .getByRole("button", { name: "Запустити секундомір", exact: true })
     .click();
   await expect(mass).toBeDisabled();
   await expect.poll(() => bob.getAttribute("cx")).not.toBe(startX);
-  await instrument.getByRole("button", { name: "Пауза", exact: true }).click();
+  await instrument
+    .getByRole("button", { name: "Зупинити секундомір", exact: true })
+    .click();
   const paused = await clock.innerText(),
     pausedX = await bob.getAttribute("cx");
   await page.waitForTimeout(120);
@@ -205,11 +212,11 @@ test("lab three replaces PDF with three controlled pendulum series and consisten
     ),
   ).toBeLessThan(0.13);
   await instrument
-    .getByRole("button", { name: "Продовжити", exact: true })
+    .getByRole("button", { name: "Продовжити секундомір", exact: true })
     .click();
   await expect.poll(() => clock.innerText()).not.toBe(paused);
   await instrument
-    .getByRole("button", { name: "Скинути прилад", exact: true })
+    .getByRole("button", { name: "Скинути секундомір", exact: true })
     .click();
   await expect(clock).toHaveText("0,00 с");
   await expect(

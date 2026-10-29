@@ -12,6 +12,8 @@ const password = "TestLab2026!";
 test("all ten virtual laboratories operate on a touch-sized screen", async ({
   page,
 }) => {
+  test.setTimeout(120_000);
+  await page.clock.install();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   const errors: string[] = [];
@@ -46,6 +48,22 @@ test("all ten virtual laboratories operate on a touch-sized screen", async ({
         return panel.left > stage.right && panel.top >= stage.top - 1;
       });
       expect(right).toBe(true);
+      expect(
+        await instrument.evaluate((el) => {
+          const settings = el
+            .querySelector(".experiment-settings-panel")!
+            .getBoundingClientRect();
+          const layout = el
+            .querySelector(".virtual-layout")!
+            .getBoundingClientRect();
+          return (
+            settings.top >= layout.bottom &&
+            !el.querySelector(
+              ".virtual-control-panel input, .virtual-control-panel select",
+            )
+          );
+        }),
+      ).toBe(true);
     }
   }
   await page.setViewportSize({ width: 390, height: 844 });
@@ -69,10 +87,15 @@ test("all ten virtual laboratories operate on a touch-sized screen", async ({
       "5",
     );
     const instruments = page.locator(".virtual-lab");
+    await expect(
+      page.getByRole("region", { name: "Ручний секундомір", exact: true }),
+    ).toHaveCount(n <= 3 ? labs[n - 1].content.experiments.length : 0);
     expect(await instruments.count()).toBe(
       labs[n - 1].content.experiments.length,
     );
-    for (const instrument of await instruments.all()) {
+    for (const [seriesIndex, instrument] of (
+      await instruments.all()
+    ).entries()) {
       if (n === 4) {
         for (const [label, count] of [
           ["20 г", 2],
@@ -94,10 +117,11 @@ test("all ten virtual laboratories operate on a touch-sized screen", async ({
       }
       await instrument
         .getByRole("button", {
-          name: n === 1 ? "Запустити секундомір" : "Запустити дослід",
+          name: n <= 3 ? "Запустити секундомір" : "Запустити дослід",
           exact: true,
         })
         .click();
+      if (n <= 3) await page.clock.fastForward(200_000);
       await expect(
         instrument.getByRole("heading", {
           name: "Покази приладів",
@@ -121,11 +145,28 @@ test("all ten virtual laboratories operate on a touch-sized screen", async ({
       ).toBeTruthy();
       await instrument
         .getByRole("button", {
-          name: n === 1 ? "Скинути секундомір" : "Скинути прилад",
+          name: n <= 3 ? "Скинути секундомір" : "Скинути прилад",
           exact: true,
         })
         .click();
       await expect(instrument.locator(".virtual-results")).toHaveCount(0);
+      await instrument
+        .getByRole("button", { name: "Розгорнути", exact: true })
+        .click();
+      const dialog = page.getByRole("dialog");
+      const table = dialog.getByRole("region", {
+        name: "Таблиця дослідів",
+        exact: true,
+      });
+      await expect(table).toBeVisible();
+      await expect(table.locator(".experiment-row")).toHaveCount(
+        labs[n - 1].content.experiments[seriesIndex].rows.length,
+      );
+      await expect(table.locator("input").first()).toBeDisabled();
+      expect(
+        await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
+      ).toBe(true);
+      await page.keyboard.press("Escape");
     }
   }
   expect(errors).toEqual([]);

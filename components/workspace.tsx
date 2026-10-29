@@ -3,7 +3,11 @@ import { rampCreativeInstruction } from "@/lib/lab-one-material";
 import { useLearningJournal } from "./use-learning-journal";
 import { LearningJournal } from "./learning-journal";
 import { ReportActions } from "./report-actions";
-import { RampMeasurements } from "./ramp-measurements";
+import { ExperimentMeasurements } from "./experiment-measurements";
+import {
+  transferredMeasurements,
+  usesManualTiming,
+} from "@/lib/experiment-timing";
 import type { ReportMeta } from "@/lib/report-types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -20,12 +24,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import type { Answers, LabContent } from "@/lib/types";
-import {
-  emptyAnswers,
-  fieldFeedback,
-  progress,
-  completeness,
-} from "@/lib/physics";
+import { emptyAnswers, progress, completeness } from "@/lib/physics";
 import { LabTools } from "./lab-tools";
 import { DensityReference } from "./density-reference";
 import { ExperimentGraph } from "./graph";
@@ -175,12 +174,12 @@ export function Workspace({
     const rows = e.rows.map((_, i) => ({
       ...current.experiments?.[e.id]?.[i],
     }));
-    // New readings invalidate previous calculations and material identification in this row.
-    rows[record.rowIndex] = { ...record.readings };
-    // The ramp's model time remains provenance, never a pupil's manual measurement.
-    if (number === 1)
-      rows[record.rowIndex].t =
-        current.experiments?.[e.id]?.[record.rowIndex]?.t ?? "";
+    // New readings invalidate calculations; a manually measured time is preserved.
+    rows[record.rowIndex] = transferredMeasurements(
+      number,
+      record.readings,
+      current.experiments?.[e.id]?.[record.rowIndex],
+    );
     const simulationRecords = [
       ...(current.simulationRecords ?? []).filter(
         (r) =>
@@ -585,93 +584,16 @@ export function Workspace({
                     ?.filter((r) => r.experimentId === e.id)
                     .at(-1)}
                   measurements={
-                    number === 1 ? (
-                      <RampMeasurements
-                        experiment={e}
-                        answers={answers}
-                        readOnly={readOnly}
-                        feedbackMode={feedbackMode}
-                        onChange={change}
-                      />
-                    ) : undefined
+                    <ExperimentMeasurements
+                      number={number}
+                      experiment={e}
+                      answers={answers}
+                      readOnly={readOnly}
+                      feedbackMode={feedbackMode}
+                      onChange={change}
+                    />
                   }
                 />
-                {number !== 1 && (
-                  <div className="experiment-rows">
-                    {e.rows.map((label, i) => (
-                      <div className="experiment-row" key={i}>
-                        <h4>
-                          <span>{i + 1}</span>
-                          {label}
-                        </h4>
-                        {answers.simulationRecords?.some(
-                          (r) => r.experimentId === e.id && r.rowIndex === i,
-                        ) && (
-                          <p className="model-source">
-                            Джерело: віртуальна лабораторія · дані моделі.
-                            {number === 1 &&
-                              " Час виміряйте вручну; модельний час не переноситься."}
-                            Розрахунки виконайте самостійно.
-                          </p>
-                        )}
-                        <div className="measurement-grid">
-                          {e.fields.map((f) => {
-                            const row = answers.experiments?.[e.id]?.[i] ?? {};
-                            const feedback =
-                              feedbackMode === "PRACTICE"
-                                ? fieldFeedback(f, row)
-                                : null;
-                            return (
-                              <label
-                                key={f.key}
-                                className={
-                                  f.calculated ? "calculated-field" : ""
-                                }
-                              >
-                                {f.label} {f.unit && <small>{f.unit}</small>}
-                                {f.calculated && (
-                                  <span className="field-tag">розрахунок</span>
-                                )}
-                                <input
-                                  aria-label={`${e.title}, ${label}: ${f.label}`}
-                                  inputMode={
-                                    f.type === "text" ? "text" : "decimal"
-                                  }
-                                  value={row[f.key] ?? ""}
-                                  disabled={readOnly}
-                                  maxLength={1000}
-                                  placeholder={
-                                    f.calculated
-                                      ? "Обчисліть самостійно"
-                                      : "Введіть значення"
-                                  }
-                                  onChange={(ev) => {
-                                    const rows = e.rows.map((_, j) => ({
-                                      ...answers.experiments?.[e.id]?.[j],
-                                    }));
-                                    rows[i][f.key] = ev.target.value;
-                                    change({
-                                      ...answers,
-                                      experiments: {
-                                        ...answers.experiments,
-                                        [e.id]: rows,
-                                      },
-                                    });
-                                  }}
-                                />
-                                {feedback && (
-                                  <small className="field-error">
-                                    {feedback}
-                                  </small>
-                                )}
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
                 <ExperimentGraph
                   experiment={e}
                   rows={answers.experiments?.[e.id] ?? []}
@@ -727,8 +649,10 @@ export function Workspace({
                         {Object.entries(r.readings).map(([key, value]) => (
                           <div key={key}>
                             <dt>
-                              {e.fields.find((f) => f.key === key)?.label ??
-                                key}
+                              {key === "t" && usesManualTiming(number)
+                                ? "Довідковий час моделі"
+                                : (e.fields.find((f) => f.key === key)?.label ??
+                                  key)}
                             </dt>
                             <dd>
                               {value}
@@ -736,13 +660,14 @@ export function Workspace({
                                 ? " " +
                                   e.fields.find((f) => f.key === key)?.unit
                                 : ""}
-                              {answers.experiments?.[e.id]?.[r.rowIndex]?.[
-                                key
-                              ] !== value && (
-                                <span className="field-error">
-                                  Клітинку змінено після перенесення
-                                </span>
-                              )}
+                              {!(key === "t" && usesManualTiming(number)) &&
+                                answers.experiments?.[e.id]?.[r.rowIndex]?.[
+                                  key
+                                ] !== value && (
+                                  <span className="field-error">
+                                    Клітинку змінено після перенесення
+                                  </span>
+                                )}
                             </dd>
                           </div>
                         ))}

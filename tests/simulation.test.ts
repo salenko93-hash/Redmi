@@ -10,8 +10,40 @@ import {
   type SimulationRecord,
 } from "../lib/simulation";
 import { labs } from "../lib/labs";
+import {
+  transferredMeasurements,
+  usesManualTiming,
+} from "../lib/experiment-timing";
 const close = (a: number, b: number, tolerance = 1e-4) =>
   assert.ok(Math.abs(a - b) < tolerance, `${a} ≠ ${b}`);
+test("only time-measuring experiments preserve pupil times on model transfer", () => {
+  for (const lab of labs) {
+    const timed = lab.content.experiments.some((e) =>
+      e.fields.some((f) => f.key === "t" && !f.calculated),
+    );
+    assert.equal(usesManualTiming(lab.number), timed);
+    for (const experiment of lab.content.experiments) {
+      const parameters = initialParameters(lab.number, experiment.id);
+      const readings = simulate(lab.number, experiment.id, parameters).readings;
+      const original = { ...readings };
+      const previous = { t: "12,34", T: "999", v: "999", density: "999" };
+      const transferred = transferredMeasurements(
+        lab.number,
+        readings,
+        previous,
+      );
+      assert.deepEqual(readings, original);
+      assert.equal(previous.t, "12,34");
+      assert.equal(transferred.T, undefined);
+      assert.equal(transferred.v, undefined);
+      if (timed) {
+        assert.equal(transferred.t, "12,34");
+        assert.equal(transferredMeasurements(lab.number, readings).t, "");
+        assert.notEqual(transferred.t, readings.t);
+      } else assert.deepEqual(transferred, readings);
+    }
+  }
+});
 test("every experiment has a valid model and finite readings", () => {
   for (const lab of labs)
     for (const e of lab.content.experiments) {

@@ -4768,12 +4768,12 @@ td {
 }
 
 /* Stopwatch controls stay to the right; recording happens below the entire ramp. */
-.ramp-data-panel {
+.experiment-data-panel {
   display: grid;
   gap: 14px;
   min-width: 0;
 }
-.ramp-data-panel > .virtual-transfer {
+.experiment-data-panel > .virtual-transfer {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
@@ -4784,27 +4784,27 @@ td {
   border: 1px solid var(--line);
   border-radius: 12px;
 }
-.ramp-data-panel > .virtual-transfer > p {
+.experiment-data-panel > .virtual-transfer > p {
   flex-basis: 100%;
   margin: 0;
   font-size: 12px;
 }
-.ramp-data-panel > .virtual-transfer label {
+.experiment-data-panel > .virtual-transfer label {
   min-width: 150px;
   max-width: 280px;
   flex: 1;
   font-size: 12px;
 }
-.ramp-data-panel > .virtual-transfer select {
+.experiment-data-panel > .virtual-transfer select {
   min-height: 44px;
 }
-.ramp-data-panel > .virtual-transfer button {
+.experiment-data-panel > .virtual-transfer button {
   min-height: 44px;
 }
-.ramp-data-panel .notice {
+.experiment-data-panel .notice {
   margin: 0;
 }
-.ramp-measurements-below {
+.measurements-below {
   margin-top: 16px;
   min-width: 0;
 }
@@ -4815,18 +4815,18 @@ td {
   max-height: none;
   overflow: visible;
 }
-.ramp-settings-panel {
+.experiment-settings-panel {
   min-width: 0;
   padding: 18px;
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 12px;
 }
-.ramp-settings-panel h4 {
+.experiment-settings-panel h4 {
   margin: 0 0 16px;
   font-size: 15px;
 }
-.ramp-settings-panel .virtual-controls {
+.experiment-settings-panel .virtual-controls {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
   gap: 16px;
@@ -4835,19 +4835,78 @@ td {
   border: 0;
   background: none;
 }
-.ramp-settings-panel .virtual-control {
+.experiment-settings-panel .virtual-control {
   min-width: 0;
 }
-.ramp-settings-panel .virtual-control > label {
+.experiment-settings-panel .virtual-control > label {
   min-height: 36px;
 }
-.ramp-settings-panel input[type="range"] {
+.experiment-settings-panel input[type="range"] {
   width: 100%;
   min-height: 36px;
 }
-.ramp-settings-panel select {
+.experiment-settings-panel select {
   width: 100%;
   min-height: 44px;
+}
+
+/* The same arrangement in every lab: apparatus/actions, parameters, then data. */
+.shared-experiment-workspace > .virtual-layout > .virtual-control-panel {
+  max-height: none;
+  overflow: visible;
+}
+.shared-experiment-workspace .rotation-view-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.shared-experiment-workspace .rotation-view-controls .button {
+  min-height: 34px;
+  padding: 5px 10px;
+  font-size: 11px;
+}
+.shared-experiment-workspace .weight-set {
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 6px;
+  padding: 0;
+}
+.shared-experiment-workspace .weight-set > div {
+  gap: 6px;
+  padding: 5px;
+}
+.shared-experiment-workspace .weight-set button {
+  min-width: 32px;
+  min-height: 32px;
+}
+.shared-experiment-dialog {
+  width: min(1500px, calc(100vw - 16px));
+  height: calc(100dvh - 16px);
+  padding: 12px;
+}
+.shared-experiment-dialog .experiment-dialog-title {
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+.shared-experiment-dialog .virtual-instrument {
+  --scene-limit: clamp(250px, calc(100dvh - 570px), 360px);
+  gap: 6px;
+}
+.shared-experiment-dialog .virtual-layout {
+  gap: 12px;
+}
+@media (max-width: 700px) {
+  .shared-experiment-workspace .rotation-view-controls .button,
+  .shared-experiment-workspace .weight-set button {
+    min-height: 44px;
+  }
+  .shared-experiment-workspace .weight-set button {
+    min-width: 44px;
+  }
+  .shared-experiment-dialog .virtual-instrument {
+    --scene-limit: 45svh;
+  }
 }
 
 /* Compact ramp workspace; three measurements remain together on a desktop. */
@@ -4871,48 +4930,48 @@ td {
 .ramp-experiment-dialog .virtual-stage > .ramp-wide-scene {
   height: clamp(250px, calc(100dvh - 500px), 410px);
 }
-.ramp-data-panel {
+.experiment-data-panel {
   gap: 6px;
 }
-.ramp-settings-panel {
+.experiment-settings-panel {
   padding: 8px 10px;
 }
-.ramp-settings-panel h4 {
+.experiment-settings-panel h4 {
   margin-bottom: 5px;
   font-size: 13px;
 }
-.ramp-settings-panel .virtual-controls {
+.experiment-settings-panel .virtual-controls {
   gap: 12px;
 }
-.ramp-settings-panel .virtual-control > label {
+.experiment-settings-panel .virtual-control > label {
   min-height: 18px;
   margin-bottom: 4px;
   font-size: 11px;
 }
-.ramp-settings-panel .virtual-value-editor input {
+.experiment-settings-panel .virtual-value-editor input {
   padding: 4px 3px;
   font-size: 13px;
 }
-.ramp-settings-panel .virtual-value-editor button {
+.experiment-settings-panel .virtual-value-editor button {
   min-height: 32px;
 }
-.ramp-settings-panel input[type="range"] {
+.experiment-settings-panel input[type="range"] {
   min-height: 20px;
   margin-top: 2px;
 }
-.ramp-settings-panel select {
+.experiment-settings-panel select {
   min-height: 34px;
 }
-.ramp-data-panel > .virtual-transfer {
+.experiment-data-panel > .virtual-transfer {
   padding: 6px 10px;
   gap: 10px;
   align-items: center;
 }
-.ramp-data-panel > .virtual-transfer > p {
+.experiment-data-panel > .virtual-transfer > p {
   flex: 1 1 260px;
   font-size: 11px;
 }
-.ramp-data-panel > .virtual-transfer label {
+.experiment-data-panel > .virtual-transfer label {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -4920,7 +4979,7 @@ td {
   min-width: 230px;
   font-size: 11px;
 }
-.ramp-data-panel > .virtual-transfer select {
+.experiment-data-panel > .virtual-transfer select {
   width: auto;
   min-width: 110px;
   flex: 1;
@@ -4929,7 +4988,7 @@ td {
   padding: 5px 8px;
   font-size: 11px;
 }
-.ramp-data-panel > .virtual-transfer button {
+.experiment-data-panel > .virtual-transfer button {
   min-height: 34px;
   padding: 6px 10px;
   font-size: 11px;
@@ -4948,23 +5007,23 @@ td {
   padding: 5px 8px;
 }
 @media (max-width: 700px) {
-  .ramp-settings-panel {
+  .experiment-settings-panel {
     padding: 12px;
   }
-  .ramp-settings-panel .virtual-value-editor button,
-  .ramp-settings-panel .virtual-value-editor input,
-  .ramp-settings-panel select {
+  .experiment-settings-panel .virtual-value-editor button,
+  .experiment-settings-panel .virtual-value-editor input,
+  .experiment-settings-panel select {
     min-height: 44px;
   }
-  .ramp-settings-panel input[type="range"] {
+  .experiment-settings-panel input[type="range"] {
     min-height: 36px;
   }
-  .ramp-data-panel > .virtual-transfer label {
+  .experiment-data-panel > .virtual-transfer label {
     max-width: none;
     flex: 1 1 100%;
   }
-  .ramp-data-panel > .virtual-transfer select,
-  .ramp-data-panel > .virtual-transfer button {
+  .experiment-data-panel > .virtual-transfer select,
+  .experiment-data-panel > .virtual-transfer button {
     min-height: 44px;
   }
 }

@@ -1,4 +1,5 @@
 "use client";
+import { usesManualTiming } from "@/lib/experiment-timing";
 import type { ReportData } from "@/lib/report-types";
 import {
   questionFigure,
@@ -159,7 +160,7 @@ export function ReportDocument({ data }: { data: ReportData }) {
                   <p>
                     Синтетичні покази під час перенесення у звіт; поточні
                     клітинки можуть відрізнятися.
-                    {number === 1 &&
+                    {usesManualTiming(number) &&
                       " Час у цьому блоці — довідковий час моделі. Учень вводить власне вимірювання в основну таблицю вручну."}
                   </p>
                   <ul>

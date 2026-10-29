@@ -54,12 +54,14 @@ export function ManualStopwatch({
   onStart,
   onStop,
   onReset,
+  labNumber = 1,
 }: {
   clock: ReturnType<typeof useManualStopwatch>;
   finished: boolean;
   onStart: () => void;
   onStop: () => void;
   onReset: () => void;
+  labNumber?: number;
 }) {
   const hint = useId();
   const seconds = (Math.floor(clock.elapsed / 10) / 100)
@@ -124,7 +126,9 @@ export function ManualStopwatch({
       <span className={styles.status} role="status">
         {clock.running
           ? finished
-            ? "Кулька на фініші — натисніть «Стоп»"
+            ? labNumber === 1
+              ? "Кулька на фініші — натисніть «Стоп»"
+              : "Задану кількість циклів виконано — натисніть «Стоп»"
             : "Дослід і відлік тривають"
           : clock.elapsed > 0
             ? finished
@@ -133,8 +137,9 @@ export function ManualStopwatch({
             : "Готовий до ручного вимірювання"}
       </span>
       <p id={hint}>
-        Старт запускає кульку й відлік. Стоп призупиняє дослід. Скинути повертає
-        на початок. Час запишіть у таблицю нижче.
+        Старт запускає {labNumber === 1 ? "кульку" : "рух"} й відлік. Стоп
+        призупиняє дослід. Скинути повертає на початок. Час запишіть у таблицю
+        нижче.
       </p>
     </section>
   );
