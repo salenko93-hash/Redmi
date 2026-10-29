@@ -432,6 +432,86 @@ export function VirtualLab({
       )}
     </>
   );
+  const settings = (
+    <div className="virtual-settings">
+      {number === 2 && (
+        <div
+          className="rotation-view-controls"
+          role="group"
+          aria-label="Вигляд установки"
+        >
+          <button
+            type="button"
+            className={`button ${rotationView === "perspective" ? "primary" : "secondary"}`}
+            aria-pressed={rotationView === "perspective"}
+            onClick={() => setRotationView("perspective")}
+          >
+            Об’ємний вигляд
+          </button>
+          <button
+            type="button"
+            className={`button ${rotationView === "top" ? "primary" : "secondary"}`}
+            aria-pressed={rotationView === "top"}
+            onClick={() => setRotationView("top")}
+          >
+            Вигляд зверху
+          </button>
+        </div>
+      )}
+      <h4>Параметри досліду</h4>
+      <div
+        className={`virtual-controls${number === 1 ? " ramp-controls" : ""}`}
+      >
+        {setup.controls
+          .filter((c) => number !== 4 || c.key === "object")
+          .map((c) => (
+            <SimulationControl
+              key={c.key}
+              label={c.label}
+              value={parameters[c.key]}
+              min={c.min}
+              max={
+                number === 10 && c.key === "sand"
+                  ? floatingSandCapacity(parameters.volume)
+                  : c.max
+              }
+              step={c.step}
+              unit={c.unit}
+              options={c.options}
+              disabled={number === 1 ? stopwatch.running : running}
+              onChange={(value) => adjust(c.key, value)}
+            />
+          ))}
+        {number === 4 && (
+          <div className="weight-set">
+            {weights.map((w) => (
+              <div key={w.key}>
+                <span>{w.label}</span>
+                <button
+                  type="button"
+                  disabled={running || !parameters[w.key]}
+                  aria-label={`Забрати ${w.label}`}
+                  onClick={() => adjust(w.key, parameters[w.key] - 1)}
+                >
+                  −
+                </button>
+                <strong>{parameters[w.key]}</strong>
+                <button
+                  type="button"
+                  disabled={running || parameters[w.key] >= 10}
+                  aria-label={`Додати ${w.label}`}
+                  onClick={() => adjust(w.key, parameters[w.key] + 1)}
+                >
+                  +
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      {number !== 1 && transfer}
+    </div>
+  );
   const instrument = (
     <div className="virtual-instrument">
       <div className="virtual-layout">
@@ -448,8 +528,9 @@ export function VirtualLab({
         </div>
         <section
           className={`virtual-control-panel${number === 1 ? " ramp-control-panel" : ""}`}
-          aria-label="Параметри досліду"
+          aria-label={number === 1 ? "Керування дослідом" : "Параметри досліду"}
         >
+          {number === 1 && <h4>Керування дослідом</h4>}
           <div
             className="virtual-toolbar"
             role="group"
@@ -551,88 +632,17 @@ export function VirtualLab({
               />
             )}
           </div>
-          <div className="virtual-settings">
-            {number === 2 && (
-              <div
-                className="rotation-view-controls"
-                role="group"
-                aria-label="Вигляд установки"
-              >
-                <button
-                  type="button"
-                  className={`button ${rotationView === "perspective" ? "primary" : "secondary"}`}
-                  aria-pressed={rotationView === "perspective"}
-                  onClick={() => setRotationView("perspective")}
-                >
-                  Об’ємний вигляд
-                </button>
-                <button
-                  type="button"
-                  className={`button ${rotationView === "top" ? "primary" : "secondary"}`}
-                  aria-pressed={rotationView === "top"}
-                  onClick={() => setRotationView("top")}
-                >
-                  Вигляд зверху
-                </button>
-              </div>
-            )}
-            <h4>Параметри досліду</h4>
-            <div
-              className={`virtual-controls${number === 1 ? " ramp-controls" : ""}`}
-            >
-              {setup.controls
-                .filter((c) => number !== 4 || c.key === "object")
-                .map((c) => (
-                  <SimulationControl
-                    key={c.key}
-                    label={c.label}
-                    value={parameters[c.key]}
-                    min={c.min}
-                    max={
-                      number === 10 && c.key === "sand"
-                        ? floatingSandCapacity(parameters.volume)
-                        : c.max
-                    }
-                    step={c.step}
-                    unit={c.unit}
-                    options={c.options}
-                    disabled={number === 1 ? stopwatch.running : running}
-                    onChange={(value) => adjust(c.key, value)}
-                  />
-                ))}
-              {number === 4 && (
-                <div className="weight-set">
-                  {weights.map((w) => (
-                    <div key={w.key}>
-                      <span>{w.label}</span>
-                      <button
-                        type="button"
-                        disabled={running || !parameters[w.key]}
-                        aria-label={`Забрати ${w.label}`}
-                        onClick={() => adjust(w.key, parameters[w.key] - 1)}
-                      >
-                        −
-                      </button>
-                      <strong>{parameters[w.key]}</strong>
-                      <button
-                        type="button"
-                        disabled={running || parameters[w.key] >= 10}
-                        aria-label={`Додати ${w.label}`}
-                        onClick={() => adjust(w.key, parameters[w.key] + 1)}
-                      >
-                        +
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            {number !== 1 && transfer}
-          </div>
+          {number !== 1 && settings}
         </section>
       </div>
       {number === 1 && (
         <div className="ramp-data-panel">
+          <section
+            className="ramp-settings-panel"
+            aria-label="Параметри досліду"
+          >
+            {settings}
+          </section>
           {transfer}
           {expanded && measurements}
         </div>

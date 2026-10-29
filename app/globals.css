@@ -4693,6 +4693,9 @@ td {
   position: static;
   flex: 0 0 auto;
   grid-template-columns: minmax(0, 1fr);
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 .ramp-control-panel > .virtual-toolbar > section {
   grid-row: 1;
@@ -4701,19 +4704,9 @@ td {
   grid-column: 1;
   grid-row: 2;
 }
-.ramp-control-panel > .virtual-settings {
-  min-height: 0;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #bfceaf transparent;
-  padding-right: 3px;
-}
 @container (min-width: 660px) {
   .virtual-control-panel {
     max-height: max(var(--scene-limit), 480px);
-  }
-  .ramp-control-panel {
-    overflow: hidden;
   }
 }
 .virtual-control-panel .virtual-transfer {
@@ -4818,8 +4811,41 @@ td {
 .ramp-experiment-dialog .virtual-instrument {
   --scene-limit: min(50svh, 520px);
 }
-@container (min-width: 660px) {
-  .virtual-control-panel.ramp-control-panel {
-    max-height: var(--scene-limit);
-  }
+.virtual-control-panel.ramp-control-panel {
+  max-height: none;
+  overflow: visible;
+}
+.ramp-settings-panel {
+  min-width: 0;
+  padding: 18px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.ramp-settings-panel h4 {
+  margin: 0 0 16px;
+  font-size: 15px;
+}
+.ramp-settings-panel .virtual-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.ramp-settings-panel .virtual-control {
+  min-width: 0;
+}
+.ramp-settings-panel .virtual-control > label {
+  min-height: 36px;
+}
+.ramp-settings-panel input[type="range"] {
+  width: 100%;
+  min-height: 36px;
+}
+.ramp-settings-panel select {
+  width: 100%;
+  min-height: 44px;
 }

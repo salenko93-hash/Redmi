@@ -28,6 +28,23 @@ test("stopwatch alone controls the ramp; the bottom table is editable in expande
     .getByRole("button", { name: "2 Експеримент", exact: true })
     .click();
   const lab = page.locator(".virtual-lab").first();
+  const settings = lab.getByRole("region", {
+    name: "Параметри досліду",
+    exact: true,
+  });
+  expect(
+    await settings.evaluate(
+      (el) =>
+        el.getBoundingClientRect().top >=
+        el
+          .closest(".virtual-instrument")!
+          .querySelector(".virtual-layout")!
+          .getBoundingClientRect().bottom,
+    ),
+  ).toBe(true);
+  await expect(
+    lab.locator(".ramp-control-panel input, .ramp-control-panel select"),
+  ).toHaveCount(0);
   let clock = lab.getByRole("region", {
     name: "Ручний секундомір",
     exact: true,
@@ -57,6 +74,18 @@ test("stopwatch alone controls the ramp; the bottom table is editable in expande
   expect(await seconds(clock)).toBe(pausedTime);
   await lab.getByRole("button", { name: "Розгорнути", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: /Керування дослідом:/ });
+  const expandedSettings = dialog.getByRole("region", {
+    name: "Параметри досліду",
+    exact: true,
+  });
+  expect(
+    await expandedSettings.locator(".virtual-control").evaluateAll((nodes) => {
+      const rects = nodes.map((el) => el.getBoundingClientRect());
+      return (
+        rects.length === 5 && rects.every((r) => Math.abs(r.y - rects[0].y) < 1)
+      );
+    }),
+  ).toBe(true);
   clock = dialog.getByRole("region", {
     name: "Ручний секундомір",
     exact: true,
@@ -157,6 +186,13 @@ test("stopwatch alone controls the ramp; the bottom table is editable in expande
   await lab.locator(":scope > summary").click();
   await page.setViewportSize({ width: 390, height: 844 });
   await lab.getByRole("button", { name: "Розгорнути", exact: true }).tap();
+  expect(
+    await expandedSettings.evaluate(
+      (el) =>
+        el.scrollHeight <= el.clientHeight + 1 &&
+        el.scrollWidth <= el.clientWidth + 1,
+    ),
+  ).toBe(true);
   clock = dialog.getByRole("region", {
     name: "Ручний секундомір",
     exact: true,

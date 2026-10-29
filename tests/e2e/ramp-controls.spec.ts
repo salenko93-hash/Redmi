@@ -108,8 +108,13 @@ for (const touch of [false, true]) {
       // Exercise native pointer/touch events, not just programmatic state changes.
       const left = (await angle.boundingBox())!,
         right = (await distance.boundingBox())!;
-      expect(left.x).toBeLessThan(right.x);
-      expect(left.y).toBeCloseTo(right.y, 0);
+      if (touch) {
+        expect(left.x).toBeCloseTo(right.x, 0);
+        expect(left.y).toBeLessThan(right.y);
+      } else {
+        expect(left.x).toBeLessThan(right.x);
+        expect(left.y).toBeCloseTo(right.y, 0);
+      }
       await expect(distance).toHaveAttribute("max", "2");
       await expect(
         instrument.locator('[data-instrument="ruler"]'),
