@@ -2,6 +2,8 @@
 import { rampCreativeInstruction } from "@/lib/lab-one-material";
 import { useLearningJournal } from "./use-learning-journal";
 import { LearningJournal } from "./learning-journal";
+import { ReportActions } from "./report-actions";
+import type { ReportMeta } from "@/lib/report-types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -9,7 +11,6 @@ import {
   CloudUpload,
   CloudOff,
   Send,
-  Printer,
   ChevronRight,
   ArrowLeft,
   HelpCircle,
@@ -75,6 +76,7 @@ export function Workspace({
   experimentMode,
   preview = false,
   sandbox = false,
+  reportMeta,
 }: {
   assignmentId: string;
   userId: string;
@@ -85,6 +87,7 @@ export function Workspace({
   experimentMode: string;
   preview?: boolean;
   sandbox?: boolean;
+  reportMeta?: ReportMeta;
 }) {
   const router = useRouter();
   const learning = useLearningJournal(assignmentId, !preview && !sandbox);
@@ -108,8 +111,7 @@ export function Workspace({
     [missing, setMissing] = useState<string[]>([]),
     [conflict, setConflict] = useState(false),
     [sending, setSending] = useState(false),
-    [confirmSubmit, setConfirmSubmit] = useState(false),
-    [printAll, setPrintAll] = useState(false);
+    [confirmSubmit, setConfirmSubmit] = useState(false);
   const readOnly =
     preview ||
     sending ||
@@ -337,7 +339,7 @@ export function Workspace({
       }),
     );
   }
-  const shownSteps = reviewMode || printAll ? [0, 1, 2, 3] : [step];
+  const shownSteps = reviewMode ? [0, 1, 2, 3] : [step];
   return (
     <div className="workspace" id="workspace-start">
       <div className="work-status-bar">
@@ -352,18 +354,23 @@ export function Workspace({
         <span>
           {preview ? "Шаблон" : `${progress(content, answers)}% заповнено`}
         </span>
-        <button
-          className="text-button"
-          onClick={() => {
-            setPrintAll(true);
-            setTimeout(() => {
-              window.print();
-              setPrintAll(false);
-            }, 100);
+        <ReportActions
+          data={{
+            meta: reportMeta ?? { title: `Лабораторна робота № ${number}` },
+            number,
+            content,
+            answers,
+            status: sandbox
+              ? "Пробне проходження"
+              : preview && !initial
+                ? "Навчальний шаблон"
+                : (initial?.status ?? "DRAFT"),
+            experimentMode,
+            score: initial?.score ?? null,
+            feedback: initial?.feedback ?? null,
+            comments: initial?.comments ?? [],
           }}
-        >
-          <Printer size={16} /> Звіт / PDF
-        </button>
+        />
       </div>
       {initial?.feedback && (
         <section className="feedback-banner">

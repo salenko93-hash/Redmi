@@ -8,12 +8,14 @@ export function LibraryWorkspace({
   content,
   number,
   teacher,
+  title,
 }: {
   id: string;
   userId: string;
   content: LabContent;
   number: number;
   teacher: boolean;
+  title?: string;
 }) {
   const [demo, setDemo] = useState(false);
   return (
@@ -38,6 +40,7 @@ export function LibraryWorkspace({
         )}
       </section>
       <Workspace
+        reportMeta={{ title: title ?? `Лабораторна робота № ${number}` }}
         key={demo ? "demo" : "preview"}
         preview={!demo}
         sandbox={demo}

@@ -45,6 +45,11 @@ export default async function Work({
         </div>
       </div>
       <Workspace
+        reportMeta={{
+          title: a.labVersion.title,
+          studentName: u.name,
+          classroom: a.classroom.name,
+        }}
         assignmentId={a.id}
         userId={u.id}
         content={a.labVersion.content as unknown as LabContent}

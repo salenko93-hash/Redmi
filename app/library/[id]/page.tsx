@@ -42,6 +42,7 @@ export default async function Lab({
         <TemplateEditor id={lab.id} title={lab.title} content={content} />
       )}
       <LibraryWorkspace
+        title={lab.title}
         id={lab.id}
         userId={u.id}
         content={content}

@@ -1048,6 +1048,152 @@ td {
 .work-status-bar > span:nth-child(2) {
   margin-left: auto;
 }
+
+/* Separate file download and native printing share one complete report. */
+.report-actions {
+  margin-left: auto;
+  min-width: 0;
+}
+.report-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.report-actions > [role="status"] {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+}
+.report-actions .error {
+  max-width: 420px;
+  font-size: 12px;
+}
+.report-export {
+  position: absolute;
+  left: -100000px;
+  top: 0;
+  width: 794px;
+  background: #fff;
+  color: #18251e;
+  padding: 28px;
+}
+.report-document {
+  font:
+    14px/1.6 Arial,
+    sans-serif;
+  color: #18251e;
+  overflow-wrap: anywhere;
+}
+.report-document h1 {
+  font-size: 26px;
+  line-height: 1.3;
+}
+.report-document h2 {
+  font-size: 21px;
+  margin-top: 26px;
+}
+.report-document h3 {
+  font-size: 17px;
+  margin-top: 18px;
+}
+.report-document h4 {
+  font-size: 15px;
+}
+.report-document p,
+.report-document li {
+  white-space: pre-wrap;
+}
+.report-document table {
+  width: 100%;
+  table-layout: fixed;
+  white-space: normal;
+  margin: 16px 0;
+}
+.report-document th,
+.report-document td {
+  font: inherit;
+  font-size: 12px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  padding: 8px;
+  border: 1px solid #d7ddd8;
+}
+.report-document thead {
+  display: table-header-group;
+}
+.report-document h1,
+.report-document h2,
+.report-document h3,
+.report-document h4 {
+  break-after: avoid;
+}
+.report-document figure,
+.report-document .experiment-graph,
+.report-document svg {
+  break-inside: avoid;
+}
+.report-document svg,
+.report-document img {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 360px;
+}
+.report-document .force-grid {
+  display: block;
+}
+.report-document .force-card {
+  margin: 10px 0;
+  border: 0;
+}
+.report-document .force-card svg {
+  max-height: 260px;
+}
+.report-document .force-fields,
+.report-document .graph-selects,
+.report-document button,
+.report-document dialog,
+.report-document [role="group"],
+.report-document .no-print {
+  display: none !important;
+}
+.report-document details > :not(summary) {
+  display: block !important;
+}
+.report-answer {
+  white-space: pre-wrap;
+}
+.report-comment {
+  border-left: 3px solid #65796b;
+  padding-left: 10px;
+}
+@media print {
+  @page {
+    size: A4;
+    margin: 16mm;
+  }
+  body.report-print-active > :not(.report-export) {
+    display: none !important;
+  }
+  body.report-print-active > .report-export {
+    position: static;
+    width: auto;
+    padding: 0;
+    margin: 0;
+  }
+  .report-document {
+    font-size: 11pt;
+  }
+  .report-document p,
+  .report-document .report-answer {
+    overflow: visible;
+    max-height: none;
+  }
+  .report-document figure,
+  .report-document .force-card {
+    background: #fff;
+  }
+}
 .text-button {
   background: none;
   border: 0;

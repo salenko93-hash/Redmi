@@ -97,6 +97,11 @@ export default async function Review({
         ))}
       </details>
       <Workspace
+        reportMeta={{
+          title: s.assignment.labVersion.title,
+          studentName: membership?.rosterName ?? s.student.name,
+          classroom: s.assignment.classroom.name,
+        }}
         preview
         assignmentId={s.assignmentId}
         userId={s.studentId}
@@ -104,7 +109,6 @@ export default async function Review({
         number={s.assignment.labVersion.number}
         initial={{
           ...s,
-          status: "SUBMITTED",
           attempts: s.attempts.map((a) => ({
             ...a,
             createdAt: a.createdAt.toISOString(),
