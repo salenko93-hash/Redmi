@@ -4,7 +4,7 @@ const seconds = async (clock: Locator) =>
   Number((await clock.getByRole("timer").innerText()).replace(",", "."));
 test.use({ hasTouch: true });
 
-test("manual timing stays independent of the ramp and survives expanded view, scrolling and mobile controls", async ({
+test("stopwatch alone controls the ramp; the bottom table is editable in expanded view and keeps pupil timings", async ({
   page,
 }, testInfo) => {
   const errors: string[] = [];
@@ -22,6 +22,9 @@ test("manual timing stays independent of the ramp and survives expanded view, sc
   const href = await page.locator(".lab-card").first().getAttribute("href");
   await page.goto(href!);
   await page
+    .getByRole("button", { name: "Спробувати як учень", exact: true })
+    .click();
+  await page
     .getByRole("button", { name: "2 Експеримент", exact: true })
     .click();
   const lab = page.locator(".virtual-lab").first();
@@ -29,101 +32,160 @@ test("manual timing stays independent of the ramp and survives expanded view, sc
     name: "Ручний секундомір",
     exact: true,
   });
+  await expect(
+    lab.getByRole("button", { name: "Запустити дослід", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    lab.getByRole("button", { name: "Скинути прилад", exact: true }),
+  ).toHaveCount(0);
   await expect(clock.getByRole("timer")).toHaveText("0,00");
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await lab
-    .getByRole("button", { name: "Запустити дослід", exact: true })
-    .click();
-  await expect(lab.locator(".virtual-results")).toBeVisible();
-  await expect(clock.getByRole("timer")).toHaveText("0,00");
-  await lab
-    .getByRole("button", { name: "Скинути прилад", exact: true })
-    .click();
+  const ball = () => page.locator('[data-instrument="ball"]').first();
+  const position = async () => Number(await ball().getAttribute("cx"));
+  await lab.getByLabel("Нахил жолоба", { exact: true }).fill("5");
+  await lab.getByLabel("Довжина шляху", { exact: true }).fill("2");
   await clock
     .getByRole("button", { name: "Запустити секундомір", exact: true })
     .click();
-  await expect.poll(() => seconds(clock)).toBeGreaterThan(0.1);
+  await expect.poll(position).toBeGreaterThan(0);
+  await clock
+    .getByRole("button", { name: "Зупинити секундомір", exact: true })
+    .click();
+  const paused = await position(),
+    pausedTime = await seconds(clock);
+  await page.waitForTimeout(150);
+  expect(await position()).toBe(paused);
+  expect(await seconds(clock)).toBe(pausedTime);
   await lab.getByRole("button", { name: "Розгорнути", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: /Керування дослідом:/ });
   clock = dialog.getByRole("region", {
     name: "Ручний секундомір",
     exact: true,
   });
-  await expect(
-    clock.getByRole("button", { name: "Зупинити секундомір", exact: true }),
-  ).toBeVisible();
-  const before = await seconds(clock);
-  await expect.poll(() => seconds(clock)).toBeGreaterThan(before + 0.1);
-  await clock
-    .getByRole("button", { name: "Зупинити секундомір", exact: true })
-    .click();
-  const stopped = await seconds(clock);
-  await page.waitForTimeout(180);
-  expect(await seconds(clock)).toBe(stopped);
-  await page.keyboard.press("Escape");
-  clock = lab.getByRole("region", { name: "Ручний секундомір", exact: true });
-  expect(await seconds(clock)).toBe(stopped);
+  expect(await seconds(clock)).toBe(pausedTime);
   await clock
     .getByRole("button", { name: "Продовжити секундомір", exact: true })
     .click();
-  await lab
-    .getByRole("button", { name: "Скинути прилад", exact: true })
+  await expect.poll(position).toBeGreaterThan(paused);
+  await clock
+    .getByRole("button", { name: "Скинути секундомір", exact: true })
     .click();
-  await expect.poll(() => seconds(clock)).toBeGreaterThan(stopped + 0.1);
-  await lab.getByLabel("Нахил жолоба", { exact: true }).fill("20");
-  await expect(
-    clock.getByRole("button", { name: "Зупинити секундомір", exact: true }),
-  ).toBeVisible();
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await lab
-    .getByRole("button", { name: "Запустити дослід", exact: true })
+  await expect(clock.getByRole("timer")).toHaveText("0,00");
+  expect(await position()).toBe(0);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await clock
+    .getByRole("button", { name: "Запустити секундомір", exact: true })
     .click();
-  await expect(lab.locator(".virtual-results")).toBeVisible();
+  await expect.poll(position).toBeGreaterThan(0);
   await expect(
-    clock.getByRole("button", { name: "Зупинити секундомір", exact: true }),
-  ).toBeVisible();
-  const completed = await seconds(clock);
-  await expect.poll(() => seconds(clock)).toBeGreaterThan(completed + 0.1);
+    dialog.getByLabel("Діаметр кульки", { exact: true }),
+  ).toBeDisabled();
+  await expect(
+    dialog.getByRole("button", {
+      name: "Перенести покази в таблицю",
+      exact: true,
+    }),
+  ).toBeDisabled();
+  await expect(clock.getByRole("status")).toHaveText(
+    "Кулька на фініші — натисніть «Стоп»",
+    { timeout: 7000 },
+  );
+  const finishedPosition = await position(),
+    afterFinish = await seconds(clock);
+  await expect.poll(() => seconds(clock)).toBeGreaterThan(afterFinish + 0.1);
+  expect(await position()).toBe(finishedPosition);
   await clock
     .getByRole("button", { name: "Зупинити секундомір", exact: true })
     .click();
-  await lab.getByRole("button", { name: "Розгорнути", exact: true }).click();
+  const finalTime = await seconds(clock);
+  await expect(
+    dialog.getByRole("button", {
+      name: "Перенести покази в таблицю",
+      exact: true,
+    }),
+  ).toBeEnabled();
+  const table = dialog.getByRole("region", {
+    name: "Таблиця дослідів",
+    exact: true,
+  });
+  expect(
+    await table.evaluate((el) => {
+      const instrument = el.closest(".virtual-instrument")!;
+      const layout = instrument
+        .querySelector(".virtual-layout")!
+        .getBoundingClientRect();
+      return el.getBoundingClientRect().top >= layout.bottom;
+    }),
+  ).toBe(true);
+  const row = table.locator(".experiment-row").first();
+  await expect(row.locator("input").nth(1)).toHaveValue("");
+  await row.locator("input").nth(1).fill("2,57");
+  await row.locator("input").nth(2).fill("999");
+  await dialog
+    .getByRole("button", { name: "Перенести покази в таблицю", exact: true })
+    .click();
+  await dialog
+    .getByRole("button", { name: "Підтвердити перенесення", exact: true })
+    .click();
+  await expect(row.locator("input").nth(0)).toHaveValue("2");
+  await expect(row.locator("input").nth(1)).toHaveValue("2,57");
+  await expect(row.locator("input").nth(2)).toHaveValue("");
+  await dialog.evaluate((el) => {
+    el.scrollTop = 0;
+  });
+  await dialog.screenshot({
+    path: testInfo.outputPath("stopwatch-controls-bottom-table-desktop.png"),
+  });
+  await clock
+    .getByRole("button", { name: "Новий дослід секундоміром", exact: true })
+    .click();
+  await expect.poll(() => seconds(clock)).toBeLessThan(finalTime);
+  await clock
+    .getByRole("button", { name: "Зупинити секундомір", exact: true })
+    .click();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(
+    page.getByRole("region", { name: "Таблиця дослідів", exact: true }),
+  ).toHaveCount(1);
+  await expect(
+    page.locator(".experiment-row").first().locator("input").nth(1),
+  ).toHaveValue("2,57");
+  await lab.locator(":scope > summary").click();
+  await expect(
+    page.getByRole("region", { name: "Таблиця дослідів", exact: true }),
+  ).toBeVisible();
+  await lab.locator(":scope > summary").click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await lab.getByRole("button", { name: "Розгорнути", exact: true }).tap();
   clock = dialog.getByRole("region", {
     name: "Ручний секундомір",
     exact: true,
   });
-  await dialog.locator(".virtual-settings").evaluate((el) => {
-    el.scrollTop = el.scrollHeight;
-  });
-  const visibleClock = await clock.getByRole("timer").evaluate((el) => {
-    const r = el.getBoundingClientRect(),
-      top = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
-    return top === el || el.contains(top);
-  });
-  expect(visibleClock).toBe(true);
-  await dialog.screenshot({
-    path: testInfo.outputPath("manual-stopwatch-expanded.png"),
-  });
-  await page.setViewportSize({ width: 390, height: 844 });
-  await expect(
-    clock.getByRole("button", { name: "Продовжити секундомір", exact: true }),
-  ).toBeVisible();
   await clock
     .getByRole("button", { name: "Скинути секундомір", exact: true })
     .tap();
-  await expect(clock.getByRole("timer")).toHaveText("0,00");
   await clock
     .getByRole("button", { name: "Запустити секундомір", exact: true })
     .tap();
-  await expect.poll(() => seconds(clock)).toBeGreaterThan(0.1);
+  await expect.poll(position).toBeGreaterThan(0);
   await clock
     .getByRole("button", { name: "Зупинити секундомір", exact: true })
     .tap();
-  await clock.screenshot({
-    path: testInfo.outputPath("manual-stopwatch-mobile.png"),
+  await table
+    .locator(".experiment-row")
+    .nth(1)
+    .locator("input")
+    .nth(1)
+    .fill("3,14");
+  await table.screenshot({
+    path: testInfo.outputPath("bottom-table-mobile.png"),
   });
   expect(await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
     true,
   );
+  await page.keyboard.press("Escape");
+  await expect(
+    page.locator(".experiment-row").nth(1).locator("input").nth(1),
+  ).toHaveValue("3,14");
   expect(errors).toEqual([]);
 });

@@ -19,8 +19,13 @@ export function useManualStopwatch() {
             performance.now() - (startedAt.current ?? performance.now()),
           ),
       );
-    const interval = window.setInterval(update, 40);
-    return () => window.clearInterval(interval);
+    let frame = 0;
+    const tick = () => {
+      update();
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
   }, [running]);
   function start() {
     if (startedAt.current !== null) return;
@@ -45,8 +50,16 @@ export function useManualStopwatch() {
 
 export function ManualStopwatch({
   clock,
+  finished,
+  onStart,
+  onStop,
+  onReset,
 }: {
   clock: ReturnType<typeof useManualStopwatch>;
+  finished: boolean;
+  onStart: () => void;
+  onStop: () => void;
+  onReset: () => void;
 }) {
   const hint = useId();
   const seconds = (Math.floor(clock.elapsed / 10) / 100)
@@ -57,7 +70,7 @@ export function ManualStopwatch({
       <div className={styles.heading}>
         <Timer size={17} aria-hidden="true" />
         <strong>Секундомір</strong>
-        <span>Вручну</span>
+        <span>Керує дослідом</span>
       </div>
       <div className={styles.display}>
         <output
@@ -74,13 +87,15 @@ export function ManualStopwatch({
         <button
           type="button"
           className={styles.primary}
-          onClick={clock.running ? clock.stop : clock.start}
+          onClick={clock.running ? onStop : onStart}
           aria-label={
             clock.running
               ? "Зупинити секундомір"
-              : clock.elapsed > 0
-                ? "Продовжити секундомір"
-                : "Запустити секундомір"
+              : finished
+                ? "Новий дослід секундоміром"
+                : clock.elapsed > 0
+                  ? "Продовжити секундомір"
+                  : "Запустити секундомір"
           }
         >
           {clock.running ? (
@@ -88,13 +103,19 @@ export function ManualStopwatch({
           ) : (
             <Play size={15} aria-hidden="true" />
           )}
-          {clock.running ? "Стоп" : clock.elapsed > 0 ? "Продовжити" : "Старт"}
+          {clock.running
+            ? "Стоп"
+            : finished
+              ? "Новий дослід"
+              : clock.elapsed > 0
+                ? "Продовжити"
+                : "Старт"}
         </button>
         <button
           type="button"
           className={styles.reset}
           aria-label="Скинути секундомір"
-          onClick={clock.reset}
+          onClick={onReset}
           disabled={!clock.running && clock.elapsed === 0}
         >
           <RotateCcw size={15} aria-hidden="true" /> Скинути
@@ -102,14 +123,18 @@ export function ManualStopwatch({
       </div>
       <span className={styles.status} role="status">
         {clock.running
-          ? "Відлік триває — зупиніть самостійно"
+          ? finished
+            ? "Кулька на фініші — натисніть «Стоп»"
+            : "Дослід і відлік тривають"
           : clock.elapsed > 0
-            ? "Час зафіксовано — запишіть у таблицю"
+            ? finished
+              ? "Час зафіксовано — запишіть у таблицю"
+              : "Дослід і відлік призупинено"
             : "Готовий до ручного вимірювання"}
       </span>
       <p id={hint}>
-        Старт і стоп натискаєте ви. Прилад не керує секундоміром. Час у секундах
-        внесіть у таблицю самостійно.
+        Старт запускає кульку й відлік. Стоп призупиняє дослід. Скинути повертає
+        на початок. Час запишіть у таблицю нижче.
       </p>
     </section>
   );

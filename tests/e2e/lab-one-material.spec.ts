@@ -73,7 +73,7 @@ test("lab one replaces its PDF with a responsive web material and native chart",
   await page.emulateMedia({ reducedMotion: "reduce" });
   const instrument = page.locator(".virtual-lab");
   await instrument
-    .getByRole("button", { name: "Запустити дослід", exact: true })
+    .getByRole("button", { name: "Запустити секундомір", exact: true })
     .click();
   await expect(instrument.locator(".virtual-results")).toBeVisible();
   await expect(

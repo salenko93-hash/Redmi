@@ -4692,6 +4692,14 @@ td {
 .ramp-control-panel > .virtual-toolbar {
   position: static;
   flex: 0 0 auto;
+  grid-template-columns: minmax(0, 1fr);
+}
+.ramp-control-panel > .virtual-toolbar > section {
+  grid-row: 1;
+}
+.ramp-control-panel > .virtual-toolbar > .virtual-expand {
+  grid-column: 1;
+  grid-row: 2;
 }
 .ramp-control-panel > .virtual-settings {
   min-height: 0;
@@ -4764,4 +4772,54 @@ td {
 .virtual-control-panel .rotation-view-controls .button {
   min-height: 40px;
   font-size: 11px;
+}
+
+/* Stopwatch controls stay to the right; recording happens below the entire ramp. */
+.ramp-data-panel {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.ramp-data-panel > .virtual-transfer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  margin: 0;
+  padding: 14px 18px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.ramp-data-panel > .virtual-transfer > p {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12px;
+}
+.ramp-data-panel > .virtual-transfer label {
+  min-width: 150px;
+  max-width: 280px;
+  flex: 1;
+  font-size: 12px;
+}
+.ramp-data-panel > .virtual-transfer select {
+  min-height: 44px;
+}
+.ramp-data-panel > .virtual-transfer button {
+  min-height: 44px;
+}
+.ramp-data-panel .notice {
+  margin: 0;
+}
+.ramp-measurements-below {
+  margin-top: 16px;
+  min-width: 0;
+}
+.ramp-experiment-dialog .virtual-instrument {
+  --scene-limit: min(50svh, 520px);
+}
+@container (min-width: 660px) {
+  .virtual-control-panel.ramp-control-panel {
+    max-height: var(--scene-limit);
+  }
 }

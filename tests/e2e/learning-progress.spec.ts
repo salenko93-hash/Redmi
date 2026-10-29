@@ -127,7 +127,10 @@ test("opt-in journal captures real instrument actions; corrections, privacy, rol
       .getByRole("button", { name: "2 Експеримент", exact: true })
       .click();
     await page
-      .getByRole("button", { name: "Запустити дослід", exact: true })
+      .getByRole("button", {
+        name: /Запустити секундомір|Новий дослід секундоміром/,
+        exact: true,
+      })
       .first()
       .click();
     await expect
@@ -138,13 +141,20 @@ test("opt-in journal captures real instrument actions; corrections, privacy, rol
         { timeout: 15000 },
       )
       .toBe(1);
+    await page
+      .getByRole("button", { name: "Зупинити секундомір", exact: true })
+      .first()
+      .click();
     await page.getByLabel("Точне значення: Довжина шляху").first().fill("1");
     await page
       .getByLabel("Точне значення: Довжина шляху")
       .first()
       .press("Enter");
     await page
-      .getByRole("button", { name: "Запустити дослід", exact: true })
+      .getByRole("button", {
+        name: /Запустити секундомір|Новий дослід секундоміром/,
+        exact: true,
+      })
       .first()
       .click();
     await expect
@@ -155,9 +165,16 @@ test("opt-in journal captures real instrument actions; corrections, privacy, rol
       )
       .toBe(1);
     // Events wait in this tab during a connection loss and synchronize after reconnecting.
+    await page
+      .getByRole("button", { name: "Зупинити секундомір", exact: true })
+      .first()
+      .click();
     await page.context().setOffline(true);
     await page
-      .getByRole("button", { name: "Запустити дослід", exact: true })
+      .getByRole("button", {
+        name: /Запустити секундомір|Новий дослід секундоміром/,
+        exact: true,
+      })
       .first()
       .click();
     await expect(journal.getByRole("status")).toContainText(

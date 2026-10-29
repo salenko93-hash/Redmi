@@ -165,9 +165,12 @@ for (const touch of [false, true]) {
       });
       await expect(ball).toHaveAttribute("cx", "0");
       await instrument
-        .getByRole("button", { name: "Запустити дослід", exact: true })
+        .getByRole("button", { name: "Запустити секундомір", exact: true })
         .click();
       await expect(instrument.locator(".virtual-results")).toBeVisible();
+      await instrument
+        .getByRole("button", { name: "Зупинити секундомір", exact: true })
+        .click();
       const fast = Number(
         (
           await instrument.locator(".virtual-results dd").nth(1).innerText()
@@ -183,9 +186,12 @@ for (const touch of [false, true]) {
       await expect(instrument.locator(".virtual-results")).toHaveCount(0);
       await checkAngle();
       await instrument
-        .getByRole("button", { name: "Запустити дослід", exact: true })
+        .getByRole("button", { name: "Запустити секундомір", exact: true })
         .click();
       await expect(instrument.locator(".virtual-results")).toBeVisible();
+      await instrument
+        .getByRole("button", { name: "Зупинити секундомір", exact: true })
+        .click();
       const slow = Number(
         (
           await instrument.locator(".virtual-results dd").nth(1).innerText()
@@ -195,9 +201,12 @@ for (const touch of [false, true]) {
       await distance.focus();
       await distance.press("Home");
       await instrument
-        .getByRole("button", { name: "Запустити дослід", exact: true })
+        .getByRole("button", { name: "Запустити секундомір", exact: true })
         .click();
       await expect(instrument.locator(".virtual-results")).toBeVisible();
+      await instrument
+        .getByRole("button", { name: "Зупинити секундомір", exact: true })
+        .click();
       const shortTime = Number(
         (
           await instrument.locator(".virtual-results dd").nth(1).innerText()
@@ -209,9 +218,12 @@ for (const touch of [false, true]) {
       await expect(instrument.locator(".virtual-results")).toHaveCount(0);
       await expect(ball).toHaveAttribute("cx", "0");
       await instrument
-        .getByRole("button", { name: "Запустити дослід", exact: true })
+        .getByRole("button", { name: "Запустити секундомір", exact: true })
         .click();
       await expect(instrument.locator(".virtual-results")).toBeVisible();
+      await instrument
+        .getByRole("button", { name: "Зупинити секундомір", exact: true })
+        .click();
       expect(
         Number(
           (
@@ -235,7 +247,7 @@ for (const touch of [false, true]) {
       await diameter.focus();
       await diameter.press("Home");
       await instrument
-        .getByRole("button", { name: "Запустити дослід", exact: true })
+        .getByRole("button", { name: "Запустити секундомір", exact: true })
         .click();
       await expect(diameter).toBeDisabled();
       await expect
@@ -247,10 +259,13 @@ for (const touch of [false, true]) {
         .poll(async () => marker.getAttribute("transform"))
         .not.toBe(beforeRotation);
       await instrument
-        .getByRole("button", { name: "Пауза", exact: true })
+        .getByRole("button", { name: "Зупинити секундомір", exact: true })
         .click();
       await expect(
-        instrument.getByRole("button", { name: "Продовжити", exact: true }),
+        instrument.getByRole("button", {
+          name: "Продовжити секундомір",
+          exact: true,
+        }),
       ).toBeVisible();
       const pausedPosition = Number(await ball.getAttribute("cx"));
       await page.waitForTimeout(120);
@@ -269,9 +284,12 @@ for (const touch of [false, true]) {
       await diameter.press("Home");
       async function measure() {
         await instrument
-          .getByRole("button", { name: "Запустити дослід", exact: true })
+          .getByRole("button", { name: "Запустити секундомір", exact: true })
           .click();
         await expect(instrument.locator(".virtual-results")).toBeVisible();
+        await instrument
+          .getByRole("button", { name: "Зупинити секундомір", exact: true })
+          .click();
         return Number(
           (
             await instrument.locator(".virtual-results dd").nth(1).innerText()

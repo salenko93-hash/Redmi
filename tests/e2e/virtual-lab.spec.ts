@@ -93,7 +93,10 @@ test("all ten virtual laboratories operate on a touch-sized screen", async ({
         await slider.press("ArrowRight");
       }
       await instrument
-        .getByRole("button", { name: "Запустити дослід", exact: true })
+        .getByRole("button", {
+          name: n === 1 ? "Запустити секундомір" : "Запустити дослід",
+          exact: true,
+        })
         .click();
       await expect(
         instrument.getByRole("heading", {
@@ -117,7 +120,10 @@ test("all ten virtual laboratories operate on a touch-sized screen", async ({
         ),
       ).toBeTruthy();
       await instrument
-        .getByRole("button", { name: "Скинути прилад", exact: true })
+        .getByRole("button", {
+          name: n === 1 ? "Скинути секундомір" : "Скинути прилад",
+          exact: true,
+        })
         .click();
       await expect(instrument.locator(".virtual-results")).toHaveCount(0);
     }
@@ -267,9 +273,12 @@ test("virtual readings persist, clear stale calculations, enforce mode and survi
       await slider.press("ArrowLeft");
     }
     await instrument
-      .getByRole("button", { name: "Запустити дослід", exact: true })
+      .getByRole("button", { name: "Запустити секундомір", exact: true })
       .click();
     await expect(instrument.locator(".virtual-results")).toBeVisible();
+    await instrument
+      .getByRole("button", { name: "Зупинити секундомір", exact: true })
+      .click();
     const row = page.locator(".experiment-row").nth(i);
     // A pupil enters the measured duration; transferring the path must keep it.
     const measuredTime = `${1 + i},37`;

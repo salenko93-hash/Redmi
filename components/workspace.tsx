@@ -3,6 +3,7 @@ import { rampCreativeInstruction } from "@/lib/lab-one-material";
 import { useLearningJournal } from "./use-learning-journal";
 import { LearningJournal } from "./learning-journal";
 import { ReportActions } from "./report-actions";
+import { RampMeasurements } from "./ramp-measurements";
 import type { ReportMeta } from "@/lib/report-types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -583,79 +584,94 @@ export function Workspace({
                   lastRecord={answers.simulationRecords
                     ?.filter((r) => r.experimentId === e.id)
                     .at(-1)}
+                  measurements={
+                    number === 1 ? (
+                      <RampMeasurements
+                        experiment={e}
+                        answers={answers}
+                        readOnly={readOnly}
+                        feedbackMode={feedbackMode}
+                        onChange={change}
+                      />
+                    ) : undefined
+                  }
                 />
-                <div className="experiment-rows">
-                  {e.rows.map((label, i) => (
-                    <div className="experiment-row" key={i}>
-                      <h4>
-                        <span>{i + 1}</span>
-                        {label}
-                      </h4>
-                      {answers.simulationRecords?.some(
-                        (r) => r.experimentId === e.id && r.rowIndex === i,
-                      ) && (
-                        <p className="model-source">
-                          Джерело: віртуальна лабораторія · дані моделі.
-                          {number === 1 &&
-                            " Час виміряйте вручну; модельний час не переноситься."}
-                          Розрахунки виконайте самостійно.
-                        </p>
-                      )}
-                      <div className="measurement-grid">
-                        {e.fields.map((f) => {
-                          const row = answers.experiments?.[e.id]?.[i] ?? {};
-                          const feedback =
-                            feedbackMode === "PRACTICE"
-                              ? fieldFeedback(f, row)
-                              : null;
-                          return (
-                            <label
-                              key={f.key}
-                              className={f.calculated ? "calculated-field" : ""}
-                            >
-                              {f.label} {f.unit && <small>{f.unit}</small>}
-                              {f.calculated && (
-                                <span className="field-tag">розрахунок</span>
-                              )}
-                              <input
-                                aria-label={`${e.title}, ${label}: ${f.label}`}
-                                inputMode={
-                                  f.type === "text" ? "text" : "decimal"
+                {number !== 1 && (
+                  <div className="experiment-rows">
+                    {e.rows.map((label, i) => (
+                      <div className="experiment-row" key={i}>
+                        <h4>
+                          <span>{i + 1}</span>
+                          {label}
+                        </h4>
+                        {answers.simulationRecords?.some(
+                          (r) => r.experimentId === e.id && r.rowIndex === i,
+                        ) && (
+                          <p className="model-source">
+                            Джерело: віртуальна лабораторія · дані моделі.
+                            {number === 1 &&
+                              " Час виміряйте вручну; модельний час не переноситься."}
+                            Розрахунки виконайте самостійно.
+                          </p>
+                        )}
+                        <div className="measurement-grid">
+                          {e.fields.map((f) => {
+                            const row = answers.experiments?.[e.id]?.[i] ?? {};
+                            const feedback =
+                              feedbackMode === "PRACTICE"
+                                ? fieldFeedback(f, row)
+                                : null;
+                            return (
+                              <label
+                                key={f.key}
+                                className={
+                                  f.calculated ? "calculated-field" : ""
                                 }
-                                value={row[f.key] ?? ""}
-                                disabled={readOnly}
-                                maxLength={1000}
-                                placeholder={
-                                  f.calculated
-                                    ? "Обчисліть самостійно"
-                                    : "Введіть значення"
-                                }
-                                onChange={(ev) => {
-                                  const rows = e.rows.map((_, j) => ({
-                                    ...answers.experiments?.[e.id]?.[j],
-                                  }));
-                                  rows[i][f.key] = ev.target.value;
-                                  change({
-                                    ...answers,
-                                    experiments: {
-                                      ...answers.experiments,
-                                      [e.id]: rows,
-                                    },
-                                  });
-                                }}
-                              />
-                              {feedback && (
-                                <small className="field-error">
-                                  {feedback}
-                                </small>
-                              )}
-                            </label>
-                          );
-                        })}
+                              >
+                                {f.label} {f.unit && <small>{f.unit}</small>}
+                                {f.calculated && (
+                                  <span className="field-tag">розрахунок</span>
+                                )}
+                                <input
+                                  aria-label={`${e.title}, ${label}: ${f.label}`}
+                                  inputMode={
+                                    f.type === "text" ? "text" : "decimal"
+                                  }
+                                  value={row[f.key] ?? ""}
+                                  disabled={readOnly}
+                                  maxLength={1000}
+                                  placeholder={
+                                    f.calculated
+                                      ? "Обчисліть самостійно"
+                                      : "Введіть значення"
+                                  }
+                                  onChange={(ev) => {
+                                    const rows = e.rows.map((_, j) => ({
+                                      ...answers.experiments?.[e.id]?.[j],
+                                    }));
+                                    rows[i][f.key] = ev.target.value;
+                                    change({
+                                      ...answers,
+                                      experiments: {
+                                        ...answers.experiments,
+                                        [e.id]: rows,
+                                      },
+                                    });
+                                  }}
+                                />
+                                {feedback && (
+                                  <small className="field-error">
+                                    {feedback}
+                                  </small>
+                                )}
+                              </label>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
                 <ExperimentGraph
                   experiment={e}
                   rows={answers.experiments?.[e.id] ?? []}
