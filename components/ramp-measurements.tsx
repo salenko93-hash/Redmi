@@ -53,11 +53,7 @@ export function RampMeasurements({
                   {label}
                   {answers.simulationRecords?.some(
                     (r) => r.experimentId === experiment.id && r.rowIndex === i,
-                  ) && (
-                    <p className="model-source">
-                      Джерело: дані моделі (шлях). Час — вручну.
-                    </p>
-                  )}
+                  ) && <p className="model-source">дані моделі · час вручну</p>}
                 </th>
                 {experiment.fields.map((f) => {
                   const row = answers.experiments?.[experiment.id]?.[i] ?? {};

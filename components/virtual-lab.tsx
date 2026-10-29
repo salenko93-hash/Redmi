@@ -34,7 +34,7 @@ import type { Experiment } from "@/lib/types";
 import { rotationGeometry, type RotationView } from "@/lib/rotation-view";
 import { rampMaterials } from "@/lib/ramp";
 import { pendulumGeometry } from "@/lib/pendulum-view";
-import { RampScene } from "./ramp-scene";
+import { RampViewport } from "./ramp-viewport";
 import { RotationScene } from "./rotation-scene";
 import { PendulumScene } from "./pendulum-scene";
 import { BalanceScene } from "./balance-scene";
@@ -80,26 +80,37 @@ function Scene({
 }) {
   const id = useId().replace(/:/g, "");
   const v = r.values;
+  if (n === 1)
+    return (
+      <RampViewport
+        distance={p.distance}
+        angle={p.angle}
+        diameter={p.diameter}
+        material={p.material}
+        airResistance={p.airResistance ?? 0}
+        phase={phase}
+        id={id}
+        label={`Віртуальний прилад лабораторної роботи 1. ${phase === 1 ? r.message : "Дослід у процесі підготовки або виконання."}`}
+      />
+    );
   const sceneHeight =
-    n === 1
-      ? 410
-      : n === 2
-        ? 460
-        : n === 3
-          ? 500
-          : n === 4
-            ? 450
-            : n === 5
-              ? densitySceneHeight(experiment)
-              : n === 6
-                ? ELASTIC_SCENE_HEIGHT
-                : n === 7
-                  ? FRICTION_SCENE_HEIGHT
-                  : n === 8
-                    ? PRESSURE_SCENE_HEIGHT
-                    : n === 9
-                      ? HYDRO_SCENE_HEIGHT
-                      : FLOATING_SCENE_HEIGHT;
+    n === 2
+      ? 460
+      : n === 3
+        ? 500
+        : n === 4
+          ? 450
+          : n === 5
+            ? densitySceneHeight(experiment)
+            : n === 6
+              ? ELASTIC_SCENE_HEIGHT
+              : n === 7
+                ? FRICTION_SCENE_HEIGHT
+                : n === 8
+                  ? PRESSURE_SCENE_HEIGHT
+                  : n === 9
+                    ? HYDRO_SCENE_HEIGHT
+                    : FLOATING_SCENE_HEIGHT;
   return (
     <svg
       className="simulation-scene"
@@ -114,17 +125,6 @@ function Scene({
       </defs>
       <rect width="600" height={sceneHeight} rx="16" fill="#f2f7ed" />
       <rect width="600" height={sceneHeight} fill={`url(#${id})`} />
-      {n === 1 && (
-        <RampScene
-          distance={p.distance}
-          angle={p.angle}
-          material={p.material}
-          airResistance={p.airResistance ?? 0}
-          diameter={p.diameter}
-          phase={phase}
-          id={id}
-        />
-      )}
       {n === 2 && (
         <RotationScene
           radius={p.radius}
@@ -360,10 +360,7 @@ export function VirtualLab({
     <>
       <div className="virtual-transfer">
         {number === 1 && (
-          <p className="muted">
-            Переноситься лише шлях. Час виміряйте секундоміром і введіть
-            самостійно.
-          </p>
+          <p className="muted">Переноситься лише шлях. Час введіть вручну.</p>
         )}
         {allowTransfer && (
           <label>

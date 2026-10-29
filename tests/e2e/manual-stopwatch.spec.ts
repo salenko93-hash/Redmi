@@ -9,7 +9,7 @@ test("stopwatch alone controls the ramp; the bottom table is editable in expande
 }, testInfo) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.setViewportSize({ width: 1920, height: 900 });
   expect(
     (
       await page.request.post("/api/auth/login", {
@@ -158,9 +158,43 @@ test("stopwatch alone controls the ramp; the bottom table is editable in expande
   await expect(row.locator("input").nth(0)).toHaveValue("2");
   await expect(row.locator("input").nth(1)).toHaveValue("2,57");
   await expect(row.locator("input").nth(2)).toHaveValue("");
+  for (const index of [1, 2]) {
+    await dialog
+      .getByLabel("Рядок для Скочування кульки", { exact: true })
+      .selectOption(String(index));
+    await dialog
+      .getByRole("button", { name: "Перенести покази в таблицю", exact: true })
+      .click();
+    await dialog
+      .getByRole("button", { name: "Підтвердити перенесення", exact: true })
+      .click();
+  }
   await dialog.evaluate((el) => {
     el.scrollTop = 0;
   });
+  await expect
+    .poll(() =>
+      dialog.evaluate((el) => {
+        const rows = el.querySelectorAll(".experiment-row");
+        const stage = el
+          .querySelector(".virtual-stage")!
+          .getBoundingClientRect();
+        const bench = el
+          .querySelector('[data-instrument="bench"]')!
+          .getBoundingClientRect();
+        const ruler = el
+          .querySelector('[data-instrument="ruler"]')!
+          .getBoundingClientRect();
+        return (
+          rows.length === 3 &&
+          rows[2].getBoundingClientRect().bottom <=
+            el.getBoundingClientRect().bottom - 8 &&
+          bench.width >= stage.width * 0.9 &&
+          ruler.bottom < bench.top
+        );
+      }),
+    )
+    .toBe(true);
   await dialog.screenshot({
     path: testInfo.outputPath("stopwatch-controls-bottom-table-desktop.png"),
   });
