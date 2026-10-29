@@ -2,6 +2,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { SimulationControl } from "./simulation-control";
+import { ManualStopwatch, useManualStopwatch } from "./manual-stopwatch";
 import type { LearningAction } from "@/lib/learning-progress";
 import {
   FlaskConical,
@@ -206,6 +207,7 @@ export function VirtualLab({
   onLearningAction?: (event: LearningAction) => void;
 }) {
   const setup = simulationSetup(number, experiment.id);
+  const stopwatch = useManualStopwatch();
   const [parameters, setParameters] = useState<Parameters>(() => ({
     ...initialParameters(number, experiment.id),
     ...lastRecord?.parameters,
@@ -340,7 +342,7 @@ export function VirtualLab({
           />
         </div>
         <section
-          className="virtual-control-panel"
+          className={`virtual-control-panel${number === 1 ? " ramp-control-panel" : ""}`}
           aria-label="Параметри досліду"
         >
           <div
@@ -406,139 +408,159 @@ export function VirtualLab({
               {expanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
               {expanded ? "Згорнути" : "Розгорнути"}
             </button>
+            {number === 1 && <ManualStopwatch clock={stopwatch} />}
           </div>
-          {number === 2 && (
+          <div className="virtual-settings">
+            {number === 2 && (
+              <div
+                className="rotation-view-controls"
+                role="group"
+                aria-label="Вигляд установки"
+              >
+                <button
+                  type="button"
+                  className={`button ${rotationView === "perspective" ? "primary" : "secondary"}`}
+                  aria-pressed={rotationView === "perspective"}
+                  onClick={() => setRotationView("perspective")}
+                >
+                  Об’ємний вигляд
+                </button>
+                <button
+                  type="button"
+                  className={`button ${rotationView === "top" ? "primary" : "secondary"}`}
+                  aria-pressed={rotationView === "top"}
+                  onClick={() => setRotationView("top")}
+                >
+                  Вигляд зверху
+                </button>
+              </div>
+            )}
+            <h4>Параметри досліду</h4>
             <div
-              className="rotation-view-controls"
-              role="group"
-              aria-label="Вигляд установки"
+              className={`virtual-controls${number === 1 ? " ramp-controls" : ""}`}
             >
-              <button
-                type="button"
-                className={`button ${rotationView === "perspective" ? "primary" : "secondary"}`}
-                aria-pressed={rotationView === "perspective"}
-                onClick={() => setRotationView("perspective")}
-              >
-                Об’ємний вигляд
-              </button>
-              <button
-                type="button"
-                className={`button ${rotationView === "top" ? "primary" : "secondary"}`}
-                aria-pressed={rotationView === "top"}
-                onClick={() => setRotationView("top")}
-              >
-                Вигляд зверху
-              </button>
-            </div>
-          )}
-          <h4>Параметри досліду</h4>
-          <div
-            className={`virtual-controls${number === 1 ? " ramp-controls" : ""}`}
-          >
-            {setup.controls
-              .filter((c) => number !== 4 || c.key === "object")
-              .map((c) => (
-                <SimulationControl
-                  key={c.key}
-                  label={c.label}
-                  value={parameters[c.key]}
-                  min={c.min}
-                  max={
-                    number === 10 && c.key === "sand"
-                      ? floatingSandCapacity(parameters.volume)
-                      : c.max
-                  }
-                  step={c.step}
-                  unit={c.unit}
-                  options={c.options}
-                  disabled={running}
-                  onChange={(value) => adjust(c.key, value)}
-                />
-              ))}
-            {number === 4 && (
-              <div className="weight-set">
-                {weights.map((w) => (
-                  <div key={w.key}>
-                    <span>{w.label}</span>
-                    <button
-                      type="button"
-                      disabled={running || !parameters[w.key]}
-                      aria-label={`Забрати ${w.label}`}
-                      onClick={() => adjust(w.key, parameters[w.key] - 1)}
-                    >
-                      −
-                    </button>
-                    <strong>{parameters[w.key]}</strong>
-                    <button
-                      type="button"
-                      disabled={running || parameters[w.key] >= 10}
-                      aria-label={`Додати ${w.label}`}
-                      onClick={() => adjust(w.key, parameters[w.key] + 1)}
-                    >
-                      +
-                    </button>
-                  </div>
+              {setup.controls
+                .filter((c) => number !== 4 || c.key === "object")
+                .map((c) => (
+                  <SimulationControl
+                    key={c.key}
+                    label={c.label}
+                    value={parameters[c.key]}
+                    min={c.min}
+                    max={
+                      number === 10 && c.key === "sand"
+                        ? floatingSandCapacity(parameters.volume)
+                        : c.max
+                    }
+                    step={c.step}
+                    unit={c.unit}
+                    options={c.options}
+                    disabled={running}
+                    onChange={(value) => adjust(c.key, value)}
+                  />
                 ))}
-              </div>
-            )}
-          </div>
-          <div className="virtual-transfer">
-            {allowTransfer && (
-              <label>
-                Рядок таблиці
-                <select
-                  aria-label={`Рядок для ${experiment.title}`}
-                  value={row}
-                  onChange={(e) => {
-                    setRow(Number(e.target.value));
-                    setRecorded(false);
-                    setReplace(false);
-                  }}
-                >
-                  {experiment.rows.map((r, i) => (
-                    <option key={i} value={i}>
-                      {r}
-                    </option>
+              {number === 4 && (
+                <div className="weight-set">
+                  {weights.map((w) => (
+                    <div key={w.key}>
+                      <span>{w.label}</span>
+                      <button
+                        type="button"
+                        disabled={running || !parameters[w.key]}
+                        aria-label={`Забрати ${w.label}`}
+                        onClick={() => adjust(w.key, parameters[w.key] - 1)}
+                      >
+                        −
+                      </button>
+                      <strong>{parameters[w.key]}</strong>
+                      <button
+                        type="button"
+                        disabled={running || parameters[w.key] >= 10}
+                        aria-label={`Додати ${w.label}`}
+                        onClick={() => adjust(w.key, parameters[w.key] + 1)}
+                      >
+                        +
+                      </button>
+                    </div>
                   ))}
-                </select>
-              </label>
-            )}
-            <button
-              type="button"
-              className="button secondary"
-              disabled={
-                !allowTransfer || phase !== 1 || !result.canRecord || recorded
-              }
-              onClick={() => setReplace(true)}
-            >
-              {recorded ? <Check size={16} /> : <ArrowDownToLine size={16} />}{" "}
-              {recorded ? "Покази перенесено" : "Перенести покази в таблицю"}
-            </button>
-          </div>
-          {replace && (
-            <div className="notice">
-              <p>
-                Перенести покази в «{experiment.rows[row]}»? Поточні вимірювання
-                цього рядка буде замінено, а попередні розрахунки очищено.
-              </p>
-              <div className="button-row">
-                <button
-                  type="button"
-                  className="button primary"
-                  onClick={record}
-                >
-                  Підтвердити перенесення
-                </button>
-                <button
-                  type="button"
-                  className="button secondary"
-                  onClick={() => setReplace(false)}
-                >
-                  Скасувати
-                </button>
-              </div>
+                </div>
+              )}
             </div>
-          )}
+            <div className="virtual-transfer">
+              {number === 1 && (
+                <p className="muted">
+                  Переноситься лише шлях. Час виміряйте секундоміром і введіть
+                  самостійно.
+                </p>
+              )}
+              {allowTransfer && (
+                <label>
+                  Рядок таблиці
+                  <select
+                    aria-label={`Рядок для ${experiment.title}`}
+                    value={row}
+                    onChange={(e) => {
+                      setRow(Number(e.target.value));
+                      setRecorded(false);
+                      setReplace(false);
+                    }}
+                  >
+                    {experiment.rows.map((r, i) => (
+                      <option key={i} value={i}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              <button
+                type="button"
+                className="button secondary"
+                disabled={
+                  !allowTransfer || phase !== 1 || !result.canRecord || recorded
+                }
+                onClick={() => setReplace(true)}
+              >
+                {recorded ? <Check size={16} /> : <ArrowDownToLine size={16} />}{" "}
+                {recorded ? "Покази перенесено" : "Перенести покази в таблицю"}
+              </button>
+            </div>
+            {replace && (
+              <div className="notice">
+                <p>
+                  {number === 1 ? (
+                    <>
+                      Перенести шлях у «{experiment.rows[row]}»? Введений вами
+                      час залишиться без змін. Попередні розрахунки буде
+                      очищено.
+                    </>
+                  ) : (
+                    <>
+                      Перенести покази в «{experiment.rows[row]}»? Поточні
+                      вимірювання цього рядка буде замінено, а попередні
+                      розрахунки очищено.
+                    </>
+                  )}
+                </p>
+                <div className="button-row">
+                  <button
+                    type="button"
+                    className="button primary"
+                    onClick={record}
+                  >
+                    Підтвердити перенесення
+                  </button>
+                  <button
+                    type="button"
+                    className="button secondary"
+                    onClick={() => setReplace(false)}
+                  >
+                    Скасувати
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </section>
       </div>
       {number === 5 && (
@@ -805,7 +827,9 @@ export function VirtualLab({
                 : number === 1 || number === 3
                   ? "Відтворення 1×: рух і відлік використовують фізичний час моделі. "
                   : "Анімацію може бути прискорено. Покази часу нижче — фізичний час моделі, а не тривалість анімації. "}
-          Усі дані синтетичні; випадкова похибка не додається.
+          {number === 1
+            ? "Рух змодельовано. Ручне вимірювання залежить від реакції учня; модельний час — довідковий."
+            : "Усі дані синтетичні; випадкова похибка не додається."}
         </p>
         {phase === 1 &&
           number !== 5 &&

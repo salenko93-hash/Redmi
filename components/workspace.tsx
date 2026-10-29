@@ -176,6 +176,10 @@ export function Workspace({
     }));
     // New readings invalidate previous calculations and material identification in this row.
     rows[record.rowIndex] = { ...record.readings };
+    // The ramp's model time remains provenance, never a pupil's manual measurement.
+    if (number === 1)
+      rows[record.rowIndex].t =
+        current.experiments?.[e.id]?.[record.rowIndex]?.t ?? "";
     const simulationRecords = [
       ...(current.simulationRecords ?? []).filter(
         (r) =>
@@ -592,6 +596,8 @@ export function Workspace({
                       ) && (
                         <p className="model-source">
                           Джерело: віртуальна лабораторія · дані моделі.
+                          {number === 1 &&
+                            " Час виміряйте вручну; модельний час не переноситься."}
                           Розрахунки виконайте самостійно.
                         </p>
                       )}

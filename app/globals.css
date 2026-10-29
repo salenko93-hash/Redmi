@@ -4685,9 +4685,27 @@ td {
 .virtual-control-panel .ramp-controls .virtual-control > label {
   min-height: 36px;
 }
+.ramp-control-panel {
+  display: flex;
+  flex-direction: column;
+}
+.ramp-control-panel > .virtual-toolbar {
+  position: static;
+  flex: 0 0 auto;
+}
+.ramp-control-panel > .virtual-settings {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #bfceaf transparent;
+  padding-right: 3px;
+}
 @container (min-width: 660px) {
   .virtual-control-panel {
     max-height: max(var(--scene-limit), 480px);
+  }
+  .ramp-control-panel {
+    overflow: hidden;
   }
 }
 .virtual-control-panel .virtual-transfer {

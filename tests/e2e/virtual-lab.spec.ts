@@ -271,6 +271,9 @@ test("virtual readings persist, clear stale calculations, enforce mode and survi
       .click();
     await expect(instrument.locator(".virtual-results")).toBeVisible();
     const row = page.locator(".experiment-row").nth(i);
+    // A pupil enters the measured duration; transferring the path must keep it.
+    const measuredTime = `${1 + i},37`;
+    if (i !== 1) await row.locator("input").nth(1).fill(measuredTime);
     await row.locator("input").nth(2).fill("999");
     await instrument
       .getByRole("button", { name: "Перенести покази в таблицю", exact: true })
@@ -279,6 +282,10 @@ test("virtual readings persist, clear stale calculations, enforce mode and survi
       .getByRole("button", { name: "Підтвердити перенесення", exact: true })
       .click();
     await expect(row.locator("input").nth(2)).toHaveValue("");
+    if (i === 1) {
+      await expect(row.locator("input").nth(1)).toHaveValue("");
+      await row.locator("input").nth(1).fill(measuredTime);
+    } else await expect(row.locator("input").nth(1)).toHaveValue(measuredTime);
     await expect(row.locator(".model-source")).toContainText("дані моделі");
     const distance = Number(
         (await row.locator("input").nth(0).inputValue()).replace(",", "."),
