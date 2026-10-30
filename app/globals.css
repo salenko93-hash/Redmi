@@ -1346,6 +1346,33 @@ td {
   line-height: 1.6;
   margin-top: 10px;
 }
+.work-aside .panel .lab-speed-formula {
+  margin: 14px 0;
+  padding: 14px 10px;
+  border-radius: 10px;
+  background: var(--sage);
+  color: var(--ink);
+  text-align: center;
+  font-size: 27px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.lab-formula-units {
+  margin: 0 0 14px;
+  font-size: 13px;
+}
+.lab-formula-units > div {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 8px;
+  margin: 8px 0;
+}
+.lab-formula-units dt {
+  font-weight: 700;
+}
+.lab-formula-units dd {
+  margin: 0;
+}
 .work-aside p {
   font-size: 10px;
 }

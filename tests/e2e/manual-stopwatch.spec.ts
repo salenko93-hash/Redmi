@@ -181,6 +181,38 @@ test("stopwatch alone controls the ramp; the bottom table is editable in expande
     .getByRole("button", { name: "2 Експеримент", exact: true })
     .click();
   const lab = page.locator(".virtual-lab").first();
+  await expect(
+    lab.getByRole("region", { name: "Властивості кульки", exact: true }),
+  ).toHaveCount(0);
+  const formula = page.getByRole("region", {
+    name: "Формула середньої швидкості",
+    exact: true,
+  });
+  await expect(formula).toContainText("шлях, м");
+  await expect(formula).toContainText("час, с");
+  await expect(page.locator(".work-aside")).not.toContainText("ВАШ МАРШРУТ");
+  expect(
+    await formula
+      .locator(".lab-speed-formula")
+      .evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
+  ).toBeGreaterThanOrEqual(25);
+  const normalTable = lab.getByRole("region", {
+    name: "Таблиця дослідів",
+    exact: true,
+  });
+  await expect(normalTable).toBeVisible();
+  expect(
+    await normalTable.evaluate((el) => {
+      const parent = el.parentElement!;
+      return (
+        parent.classList.contains("experiment-data-panel") &&
+        el.previousElementSibling?.classList.contains("virtual-transfer") &&
+        el.previousElementSibling?.previousElementSibling?.classList.contains(
+          "experiment-settings-panel",
+        )
+      );
+    }),
+  ).toBe(true);
   const settings = lab.getByRole("region", {
     name: "Параметри досліду",
     exact: true,

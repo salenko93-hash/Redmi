@@ -42,7 +42,7 @@ for (const touch of [false, true]) {
         exact: true,
       });
       const diameter = instrument.getByLabel("Діаметр кульки", { exact: true });
-      const mass = instrument.getByLabel("Маса кульки", { exact: true });
+      const mass = ball;
       const massInGrams = async () =>
         Number(await mass.getAttribute("data-mass-grams"));
       await expect(diameter).toHaveValue("20");
@@ -303,12 +303,8 @@ for (const touch of [false, true]) {
       }
       await material.selectOption("0");
       const steelAir = await measure();
-      const clock = instrument.getByLabel("Час скочування", { exact: true });
-      await expect(clock).toHaveText(
-        steelAir.toFixed(3).replace(".", ",") + " с",
-      );
       await material.selectOption("1");
-      await expect(clock).toHaveText("0,000 с");
+      await expect(instrument.getByRole("timer")).toHaveText("0,00");
       const plasticAir = await measure();
       expect(plasticAir).toBeGreaterThan(steelAir);
       await conditions.selectOption("0");

@@ -33,7 +33,6 @@ import {
 } from "@/lib/simulation";
 import type { Experiment } from "@/lib/types";
 import { rotationGeometry, type RotationView } from "@/lib/rotation-view";
-import { rampMaterials } from "@/lib/ramp";
 import { pendulumGeometry } from "@/lib/pendulum-view";
 import { RampViewport } from "./ramp-viewport";
 import { RotationScene } from "./rotation-scene";
@@ -254,6 +253,7 @@ export function VirtualLab({
     });
   }, [timed, phase, experiment.id, parameters]);
   const [expanded, setExpanded] = useState(false);
+  const [labOpen, setLabOpen] = useState(true);
   const expandButton = useRef<HTMLButtonElement>(null);
   const wasExpanded = useRef(false);
   useEffect(() => {
@@ -680,13 +680,17 @@ export function VirtualLab({
           {settings}
         </section>
         {transfer}
-        {expanded && measurements}
+        {(expanded || (number === 1 && labOpen)) && measurements}
       </div>
     </div>
   );
   return (
     <>
-      <details className="virtual-lab no-print" open>
+      <details
+        className="virtual-lab no-print"
+        open={labOpen}
+        onToggle={(event) => setLabOpen(event.currentTarget.open)}
+      >
         <summary>
           <FlaskConical size={20} />
           <span>Віртуальна лабораторія</span>
@@ -789,61 +793,6 @@ export function VirtualLab({
                 дугової координати збільшена окремо. Розмір кульки схематичний,
                 зовнішній розмір змінних тягарців сталий. Відтворення 1×, без
                 затухання; модель малих кутів.
-              </p>
-            </section>
-          )}
-          {number === 1 && (
-            <section
-              className="ramp-ball-summary"
-              aria-label="Властивості кульки"
-            >
-              <div>
-                <strong>{rampMaterials[parameters.material].name}</strong>
-                <p>Суцільна однорідна кулька</p>
-              </div>
-              <div className="ramp-time-readout">
-                <span>
-                  {parameters.airResistance === 1
-                    ? "У повітрі · модель v2"
-                    : "Ідеальні умови · модель v1"}
-                </span>
-                <label>
-                  Час моделі{" "}
-                  <output aria-label="Час скочування" aria-live="off">
-                    {(result.values.t * phase).toFixed(3).replace(".", ",")} с
-                  </output>
-                </label>
-              </div>
-              <dl>
-                <div>
-                  <dt>Діаметр</dt>
-                  <dd>{parameters.diameter} мм</dd>
-                </div>
-                <div>
-                  <dt>Маса кульки</dt>
-                  <dd>
-                    <output
-                      aria-label="Маса кульки"
-                      data-mass-grams={result.values.mass * 1000}
-                    >
-                      {(result.values.mass * 1000).toLocaleString("uk-UA", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}{" "}
-                      г
-                    </output>
-                  </dd>
-                </div>
-                <div>
-                  <dt>Густина матеріалу</dt>
-                  <dd>{result.values.density.toLocaleString("uk-UA")} кг/м³</dd>
-                </div>
-              </dl>
-              <p>
-                m = ρ·π·d³/6. Подвоєння діаметра збільшує масу у 8 разів.
-                {parameters.airResistance === 1
-                  ? " Опір повітря сильніше впливає на легшу пластмасову кульку: вона котиться дещо повільніше за сталеву такого самого діаметра. На короткому жолобі різниця невелика. Це модель лише опору повітря, а не всіх властивостей реального жолоба."
-                  : " В ідеальних умовах обидві суцільні кульки мають однаковий час кочення за сталих шляху й нахилу."}
               </p>
             </section>
           )}
@@ -962,7 +911,7 @@ export function VirtualLab({
           </details>
         </div>
       </details>
-      {!expanded && measurements && (
+      {!expanded && measurements && (number !== 1 || !labOpen) && (
         <div className="measurements-below">{measurements}</div>
       )}
     </>

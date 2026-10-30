@@ -340,6 +340,7 @@ export function RampViewport({
               data-instrument="ball"
               data-material={material}
               data-diameter-mm={diameter}
+              data-mass-grams={ball.mass * 1000}
               cx={v.ballX}
               cy={v.ballY}
               r={v.radius}

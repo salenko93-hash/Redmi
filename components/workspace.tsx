@@ -962,38 +962,75 @@ export function Workspace({
             <LearningJournal journal={learning} />
           )}
           <div className="panel">
-            <span className="eyebrow">ВАШ МАРШРУТ</span>
-            <h3>{steps[step]}</h3>
-            <p className="muted">
-              {preview && !initial
-                ? "Навчальний шаблон · тільки перегляд."
-                : sandbox
-                  ? "Пробне проходження · без збереження."
-                  : experimentMode === "SIMULATION"
-                    ? "Режим: віртуальний експеримент (модель)."
-                    : experimentMode === "DATA"
-                      ? "Режим: аналіз наданих даних."
-                      : "Режим: реальний експеримент."}
-            </p>
-            <p className="muted">
-              {feedbackMode === "PRACTICE"
-                ? "Підказки до обчислень увімкнено."
-                : "Самостійна робота: перевірка обчислень відкриється після оцінювання."}
-            </p>
-            <details className="stage-reference" open>
-              <summary>Формули та одиниці</summary>
-              <p>{content.theory}</p>
-            </details>
-            <p className="muted">
-              {
-                [
-                  "Прочитайте умови та запишіть власний прогноз.",
-                  "Змінюйте одну величину за раз. Перевіряйте одиниці вимірювання.",
-                  "Рисунки розміщено біля відповідних запитань. Пояснюйте відповідь.",
-                  "Порівняйте результати з прогнозом і поясніть джерела похибок.",
-                ][step]
-              }
-            </p>
+            {number === 1 ? (
+              <section aria-label="Формула середньої швидкості">
+                <h3>Середня швидкість</h3>
+                <p
+                  className="lab-speed-formula"
+                  aria-label="Середня швидкість дорівнює шляху, поділеному на час"
+                >
+                  <var>
+                    v<sub>сер</sub>
+                  </var>{" "}
+                  = <var>l</var> / <var>t</var>
+                </p>
+                <dl className="lab-formula-units">
+                  <div>
+                    <dt>l</dt>
+                    <dd>шлях, м</dd>
+                  </div>
+                  <div>
+                    <dt>t</dt>
+                    <dd>час, с</dd>
+                  </div>
+                  <div>
+                    <dt>
+                      v<sub>сер</sub>
+                    </dt>
+                    <dd>середня швидкість, м/с</dd>
+                  </div>
+                </dl>
+                <p className="muted">
+                  Для кожного досліду поділи шлях на виміряний час. Перевір
+                  одиниці й запиши результат у таблицю.
+                </p>
+              </section>
+            ) : (
+              <>
+                <span className="eyebrow">ВАШ МАРШРУТ</span>
+                <h3>{steps[step]}</h3>
+                <p className="muted">
+                  {preview && !initial
+                    ? "Навчальний шаблон · тільки перегляд."
+                    : sandbox
+                      ? "Пробне проходження · без збереження."
+                      : experimentMode === "SIMULATION"
+                        ? "Режим: віртуальний експеримент (модель)."
+                        : experimentMode === "DATA"
+                          ? "Режим: аналіз наданих даних."
+                          : "Режим: реальний експеримент."}
+                </p>
+                <p className="muted">
+                  {feedbackMode === "PRACTICE"
+                    ? "Підказки до обчислень увімкнено."
+                    : "Самостійна робота: перевірка обчислень відкриється після оцінювання."}
+                </p>
+                <details className="stage-reference" open>
+                  <summary>Формули та одиниці</summary>
+                  <p>{content.theory}</p>
+                </details>
+                <p className="muted">
+                  {
+                    [
+                      "Прочитайте умови та запишіть власний прогноз.",
+                      "Змінюйте одну величину за раз. Перевіряйте одиниці вимірювання.",
+                      "Рисунки розміщено біля відповідних запитань. Пояснюйте відповідь.",
+                      "Порівняйте результати з прогнозом і поясніть джерела похибок.",
+                    ][step]
+                  }
+                </p>
+              </>
+            )}
             <a
               className="button secondary wide"
               target="_blank"
