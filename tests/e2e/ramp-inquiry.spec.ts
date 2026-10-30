@@ -61,7 +61,7 @@ test("the inquiry version preserves classic work, saves reasoning, exports it, a
         name: "Відкрити попередній базовий варіант",
         exact: true,
       }),
-    ).toHaveAttribute("href", `/library/${classic.id}`);
+    ).toHaveCount(0);
     await page.goto(`/library/${classic.id}`);
     await expect(
       page.getByRole("region", { name: "Мій план перевірки", exact: true }),

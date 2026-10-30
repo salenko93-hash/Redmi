@@ -1,3 +1,4 @@
+import { classicLabId } from "../helpers/classic-lab";
 import { test, expect } from "@playwright/test";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -41,10 +42,7 @@ test("real database workflow: roles, class join, save, conflict, submit, review,
     (m) => m[1],
   );
   // Preserve the original submission workflow on its immutable classic version.
-  const detail = await (await teacher.get(`/library/${ids[0]}`)).text();
-  ids[0] = detail.match(
-    /href="\/library\/([a-z0-9]+)"[^>]*>Відкрити попередній базовий варіант/,
-  )![1];
+  ids[0] = await classicLabId();
 
   expect(ids.length).toBeGreaterThanOrEqual(10);
   const aRes = await post(teacher, "/api/assignments", {
@@ -270,8 +268,27 @@ test("desktop dashboard, all templates and teacher editor render", async ({
     .locator(".lab-card")
     .evaluateAll((nodes) => nodes.map((n) => (n as HTMLAnchorElement).href));
   expect(links).toHaveLength(10);
-  for (const href of links) {
+  for (const [index, href] of links.entries()) {
     await page.goto(href);
+    await expect(
+      page.getByText("Редагувати навчальний текст · створити нову версію", {
+        exact: true,
+      }),
+    ).toHaveCount(index === 0 ? 0 : 1);
+    if (index === 0) {
+      await expect(
+        page.getByRole("link", {
+          name: "Відкрити попередній базовий варіант",
+          exact: true,
+        }),
+      ).toHaveCount(0);
+      await expect(
+        page.getByText(
+          "Ця версія додає план перевірки, аналіз доказів і перегляд прогнозу.",
+          { exact: false },
+        ),
+      ).toHaveCount(0);
+    }
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await page
       .getByRole("button", { name: "2 Експеримент", exact: true })

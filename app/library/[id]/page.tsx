@@ -6,7 +6,6 @@ import { Shell } from "@/components/shell";
 import { LibraryWorkspace } from "@/components/library-workspace";
 import { TemplateEditor } from "@/components/template-editor";
 import type { LabContent } from "@/lib/types";
-import { isRampInquiry } from "@/lib/ramp-inquiry";
 export default async function Lab({
   params,
 }: {
@@ -19,12 +18,6 @@ export default async function Lab({
   });
   if (!lab || (lab.authorId && lab.authorId !== u.id)) notFound();
   const content = lab.content as unknown as LabContent;
-  const classic = isRampInquiry(content)
-    ? await db.labVersion.findFirst({
-        where: { number: 1, version: 1, authorId: null },
-        select: { id: true },
-      })
-    : null;
   return (
     <Shell title="Бібліотека досліджень">
       <Link href="/library" className="back-link">
@@ -45,16 +38,8 @@ export default async function Lab({
           {u.role === "TEACHER" ? "Призначити класу" : "Мої класи"} →
         </Link>
       </div>
-      {u.role === "TEACHER" && (
+      {u.role === "TEACHER" && lab.number !== 1 && (
         <TemplateEditor id={lab.id} title={lab.title} content={content} />
-      )}
-      {classic && (
-        <p className="no-print">
-          Ця версія додає план перевірки, аналіз доказів і перегляд прогнозу.{" "}
-          <Link href={`/library/${classic.id}`}>
-            Відкрити попередній базовий варіант
-          </Link>
-        </p>
       )}
       <LibraryWorkspace
         title={lab.title}
