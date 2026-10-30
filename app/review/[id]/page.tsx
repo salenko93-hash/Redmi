@@ -1,3 +1,4 @@
+import { inquiryRubric, isRampInquiry } from "@/lib/ramp-inquiry";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
@@ -68,8 +69,16 @@ export default async function Review({
         status={s.status}
         initialRubric={s.rubric}
         initialFeedback={s.feedback}
+        criteria={isRampInquiry(content) ? inquiryRubric : undefined}
         fields={[
           { key: "prediction", label: "Прогноз" },
+          ...(isRampInquiry(content)
+            ? [
+                { key: "inquiry-plan", label: "План перевірки" },
+                { key: "inquiry-evidence", label: "Докази та перевірка" },
+                { key: "inquiry-reflection", label: "Перегляд прогнозу" },
+              ]
+            : []),
           ...content.experiments.map((e) => ({ key: e.id, label: e.title })),
           ...content.questions.map((_, i) => ({
             key: "question-" + i,

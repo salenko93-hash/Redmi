@@ -8,6 +8,7 @@ export function ReviewForm({
   initialRubric,
   initialFeedback,
   fields,
+  criteria,
 }: {
   id: string;
   revision: number;
@@ -15,6 +16,7 @@ export function ReviewForm({
   initialRubric: unknown;
   initialFeedback: string | null;
   fields: { key: string; label: string }[];
+  criteria?: { label: string; hint: string }[];
 }) {
   const [rubric, setRubric] = useState<number[]>(
       Array.isArray(initialRubric) ? initialRubric : [0, 0, 0, 0],
@@ -25,7 +27,7 @@ export function ReviewForm({
     [comment, setComment] = useState(""),
     [field, setField] = useState(fields[0]?.key ?? "conclusion");
   const router = useRouter();
-  const labels = [
+  const labels = criteria?.map((c) => c.label) ?? [
     "Вимірювання й методика",
     "Обчислення та одиниці",
     "Аналіз, графіки, схеми",
@@ -56,6 +58,28 @@ export function ReviewForm({
         Оцінювання{" "}
         <span className="grade">{rubric.reduce((a, b) => a + b, 0)}/12</span>
       </h2>
+      {criteria && (
+        <details>
+          <summary>Орієнтири для оцінювання обґрунтування</summary>
+          <p>
+            Оцініть роботу за доказами. Перегляд початкового прогнозу після
+            перевірки може свідчити про якісний аналіз; початковий неправильний
+            прогноз сам по собі не знижує оцінку.
+          </p>
+          <ul>
+            {criteria.map((c) => (
+              <li key={c.label}>
+                <strong>{c.label}.</strong> {c.hint}
+              </li>
+            ))}
+          </ul>
+          <p>
+            Для кожного критерію: 0 — доказів поки немає; 1 — окремі елементи; 2
+            — переважно обґрунтовано, є прогалини; 3 — послідовне пояснення з
+            доречними доказами. Зміст пояснень оцінює вчитель.
+          </p>
+        </details>
+      )}
       {labels.map((label, i) => (
         <label className="rubric-row" key={label}>
           {label}

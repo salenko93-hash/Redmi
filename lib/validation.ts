@@ -1,6 +1,31 @@
 import { z } from "zod";
 const short = z.string().max(10000);
+const inquiryPlanSchema = z.object({
+  change: short,
+  constants: short,
+  measure: short,
+  challenge: short,
+});
 export const answersSchema = z.object({
+  rampInquiry: z
+    .object({
+      plan: inquiryPlanSchema,
+      snapshot: z
+        .object({ prediction: short, plan: inquiryPlanSchema })
+        .optional(),
+      evidence: z.object({
+        comparison: short,
+        uncertainty: short,
+        verification: short,
+      }),
+      repeats: z.object({
+        distance: z.string().max(1000),
+        times: z.array(z.string().max(1000)).length(3),
+        summary: short,
+      }),
+      reflection: z.object({ revision: short, nextTest: short }),
+    })
+    .optional(),
   simulationRecords: z
     .array(
       z.object({

@@ -40,6 +40,12 @@ test("real database workflow: roles, class join, save, conflict, submit, review,
   const ids = [...html.matchAll(/href="\/library\/([a-z0-9]+)"/g)].map(
     (m) => m[1],
   );
+  // Preserve the original submission workflow on its immutable classic version.
+  const detail = await (await teacher.get(`/library/${ids[0]}`)).text();
+  ids[0] = detail.match(
+    /href="\/library\/([a-z0-9]+)"[^>]*>Відкрити попередній базовий варіант/,
+  )![1];
+
   expect(ids.length).toBeGreaterThanOrEqual(10);
   const aRes = await post(teacher, "/api/assignments", {
     classroomId: c.id,

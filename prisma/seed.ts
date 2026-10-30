@@ -4,6 +4,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import { hash } from "bcryptjs";
 import { labs } from "../lib/labs";
+import { inquiryContent } from "../lib/ramp-inquiry";
 const db = new PrismaClient({
   adapter: new PrismaPg(databaseConfig()),
 });
@@ -19,6 +20,30 @@ async function main() {
         content: JSON.parse(JSON.stringify(lab.content)),
       },
     });
+  await db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${1})`;
+    const existing = await tx.labVersion.findFirst({
+      where: {
+        number: 1,
+        authorId: null,
+        content: { path: ["inquiry"], equals: "ramp-v1" },
+      },
+    });
+    if (!existing) {
+      const latest = await tx.labVersion.findFirst({
+        where: { number: 1 },
+        orderBy: { version: "desc" },
+      });
+      await tx.labVersion.create({
+        data: {
+          number: 1,
+          version: (latest?.version ?? 1) + 1,
+          title: "Середня швидкість руху · дослідження з доказами",
+          content: JSON.parse(JSON.stringify(inquiryContent(labs[0].content))),
+        },
+      });
+    }
+  });
   if (process.argv.includes("--demo")) {
     if (process.env.NODE_ENV === "production")
       throw new Error("Demo seed is forbidden in production");

@@ -23,6 +23,7 @@ export type Experiment = {
   graph?: { x: string; y: string };
 };
 export type LabContent = {
+  inquiry?: "ramp-v1";
   purpose: string;
   equipment: string[];
   theory: string;
@@ -35,6 +36,7 @@ export type LabContent = {
   image?: string;
 };
 export type Answers = {
+  rampInquiry?: RampInquiryAnswers;
   simulationRecords?: SimulationRecord[];
   prediction?: string;
   experiments?: Record<string, Record<string, string>[]>;
@@ -50,6 +52,18 @@ export type Answers = {
   }[];
   help?: boolean;
   source?: string;
+};
+export type RampInquiryAnswers = {
+  plan: {
+    change: string;
+    constants: string;
+    measure: string;
+    challenge: string;
+  };
+  snapshot?: { prediction: string; plan: RampInquiryAnswers["plan"] };
+  evidence: { comparison: string; uncertainty: string; verification: string };
+  repeats: { distance: string; times: string[]; summary: string };
+  reflection: { revision: string; nextTest: string };
 };
 export type LabDefinition = {
   number: number;

@@ -207,7 +207,11 @@ test("virtual readings persist, clear stale calculations, enforce mode and survi
   ).json();
   await student.post("/api/classes/join", { headers, data: { code: c.code } });
   const html = await (await teacher.get("/library")).text();
-  const template = [...html.matchAll(/href="\/library\/([a-z0-9]+)"/g)][0][1];
+  const latest = [...html.matchAll(/href="\/library\/([a-z0-9]+)"/g)][0][1];
+  const detail = await (await teacher.get(`/library/${latest}`)).text();
+  const template = detail.match(
+    /href="\/library\/([a-z0-9]+)"[^>]*>Відкрити попередній базовий варіант/,
+  )![1];
   const a = await (
     await teacher.post("/api/assignments", {
       headers,

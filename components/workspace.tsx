@@ -1,5 +1,7 @@
 "use client";
 import { rampCreativeInstruction } from "@/lib/lab-one-material";
+import { RampInquiry } from "./ramp-inquiry";
+import { inquiryConclusions, isRampInquiry } from "@/lib/ramp-inquiry";
 import { useLearningJournal } from "./use-learning-journal";
 import { LearningJournal } from "./learning-journal";
 import { ReportActions } from "./report-actions";
@@ -104,6 +106,8 @@ export function Workspace({
       ? initial.answers
       : emptyAnswers(content)) as Answers,
   );
+  const inquiry = number === 1 && isRampInquiry(content);
+  const finalQuestions = inquiry ? inquiryConclusions : conclusionLabels;
   const [step, setStep] = useState(0),
     [state, setState] = useState(
       archived
@@ -480,6 +484,16 @@ export function Workspace({
             <section className="panel work-section">
               <div className="eyebrow">01 / ПІДГОТОВКА</div>
               <h2>Спочатку — запитання</h2>
+              {inquiry && (
+                <div className="method-notes">
+                  <strong>Проблемне запитання</strong>
+                  <p>{content.prediction}</p>
+                  <p>
+                    Три шляхи — три умови. Висновок потрібно підкріпити власними
+                    вимірюваннями й поясненням.
+                  </p>
+                </div>
+              )}
               {materialHref && (
                 <a
                   href={materialHref}
@@ -534,7 +548,12 @@ export function Workspace({
                 </ul>
               </div>
               <label className="question-label">
-                Мій прогноз<span>{content.prediction}</span>
+                Мій прогноз
+                <span>
+                  {inquiry
+                    ? "Передбач результат і поясни, чому ти так думаєш."
+                    : content.prediction}
+                </span>
                 <textarea
                   rows={4}
                   placeholder="Я припускаю, що… тому що…"
@@ -546,6 +565,17 @@ export function Workspace({
                 />
               </label>
               {comments("prediction")}
+              {inquiry && (
+                <>
+                  <RampInquiry
+                    stage="plan"
+                    answers={answers}
+                    readOnly={readOnly}
+                    onChange={change}
+                  />
+                  {comments("inquiry-plan")}
+                </>
+              )}
               {experimentMode === "DATA" && (
                 <label>
                   Джерело даних
@@ -606,6 +636,17 @@ export function Workspace({
                     })
                   }
                 />
+                {inquiry && (
+                  <>
+                    <RampInquiry
+                      stage="evidence"
+                      answers={answers}
+                      readOnly={readOnly}
+                      onChange={change}
+                    />
+                    {comments("inquiry-evidence")}
+                  </>
+                )}
                 {(answers.simulationRecords ?? [])
                   .filter((r) => r.experimentId === e.id)
                   .map((r) => (
@@ -754,7 +795,7 @@ export function Workspace({
             <section className="panel work-section">
               <div className="eyebrow">04 / ВИСНОВОК</div>
               <h2>Що вдалося з’ясувати?</h2>
-              {conclusionLabels.map((q, i) => (
+              {finalQuestions.map((q, i) => (
                 <label className="question-label" key={q}>
                   {q}
                   <textarea
@@ -762,7 +803,7 @@ export function Workspace({
                     disabled={readOnly}
                     value={answers.conclusion?.[i] ?? ""}
                     onChange={(e) => {
-                      const conclusion = conclusionLabels.map(
+                      const conclusion = finalQuestions.map(
                         (_, j) => answers.conclusion?.[j] ?? "",
                       );
                       conclusion[i] = e.target.value;
@@ -772,6 +813,17 @@ export function Workspace({
                 </label>
               ))}
               {comments("conclusion")}
+              {inquiry && (
+                <>
+                  <RampInquiry
+                    stage="reflection"
+                    answers={answers}
+                    readOnly={readOnly}
+                    onChange={change}
+                  />
+                  {comments("inquiry-reflection")}
+                </>
+              )}
               <details className="creative">
                 <summary>✦ Творче завдання · необов’язково</summary>
                 <p>

@@ -1,4 +1,9 @@
 import type { Answers, Experiment, Field, LabContent } from "./types";
+import {
+  emptyRampInquiry,
+  isRampInquiry,
+  rampInquiryGaps,
+} from "./ramp-inquiry";
 export function number(value: unknown): number | null {
   if (typeof value !== "string" && typeof value !== "number") return null;
   const clean = String(value).trim().replace(/\s/g, "").replace(",", ".");
@@ -75,6 +80,7 @@ export function fieldFeedback(
 }
 export function emptyAnswers(content: LabContent): Answers {
   return {
+    ...(isRampInquiry(content) ? { rampInquiry: emptyRampInquiry() } : {}),
     prediction: "",
     experiments: Object.fromEntries(
       content.experiments.map((e) => [
@@ -98,6 +104,25 @@ export function emptyAnswers(content: LabContent): Answers {
 }
 export function completeness(content: LabContent, a: Answers): string[] {
   const errors: string[] = [];
+  if (isRampInquiry(content)) {
+    errors.push(...rampInquiryGaps(a));
+    const repeats = a.rampInquiry?.repeats;
+    if (
+      repeats &&
+      [repeats.distance, ...repeats.times, repeats.summary].some((x) =>
+        x.trim(),
+      )
+    ) {
+      if (number(repeats.distance) === null || number(repeats.distance)! <= 0)
+        errors.push("Повторна перевірка: введіть додатний шлях у метрах.");
+      repeats.times.forEach((t, i) => {
+        if (number(t) === null || number(t)! <= 0)
+          errors.push(
+            `Повторна перевірка ${i + 1}: введіть додатний час у секундах.`,
+          );
+      });
+    }
+  }
   if (!a.prediction?.trim()) errors.push("Запишіть прогноз.");
   for (const e of content.experiments)
     for (let i = 0; i < e.rows.length; i++)
@@ -156,8 +181,12 @@ export function progress(content: LabContent, a: Answers) {
     ) +
     content.questions.length +
     4 +
+    (isRampInquiry(content) ? 10 : 0) +
     (content.diagram ? 3 : 0);
-  return Math.round((100 * (total - completeness(content, a).length)) / total);
+  return Math.max(
+    0,
+    Math.round((100 * (total - completeness(content, a).length)) / total),
+  );
 }
 export function axisField(e: Experiment, key: string) {
   const f = e.fields.find((x) => x.key === key);

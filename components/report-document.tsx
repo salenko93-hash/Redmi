@@ -1,4 +1,6 @@
 "use client";
+import { RampInquiryReport } from "./ramp-inquiry-report";
+import { inquiryConclusions, isRampInquiry } from "@/lib/ramp-inquiry";
 import { usesManualTiming } from "@/lib/experiment-timing";
 import type { ReportData } from "@/lib/report-types";
 import {
@@ -28,6 +30,7 @@ const value = (text?: string | null) => (text?.trim() ? text : "—");
 /** A complete static report, independent of the current worksheet step or textarea height. */
 export function ReportDocument({ data }: { data: ReportData }) {
   const { meta, number, content, answers } = data;
+  const inquiry = number === 1 && isRampInquiry(content);
   const comments = (field: string) =>
     data.comments
       .filter((c) => c.field === field)
@@ -95,6 +98,12 @@ export function ReportDocument({ data }: { data: ReportData }) {
         <p>{content.prediction}</p>
         <p className="report-answer">{value(answers.prediction)}</p>
         {comments("prediction")}
+        {inquiry && (
+          <>
+            <RampInquiryReport stage="plan" answers={answers} />
+            {comments("inquiry-plan")}
+          </>
+        )}
         {data.experimentMode === "DATA" && (
           <>
             <h3>Джерело даних</h3>
@@ -148,6 +157,12 @@ export function ReportDocument({ data }: { data: ReportData }) {
                 axes={answers.graphAxes?.[experiment.id]}
                 readOnly
               />
+            )}
+            {inquiry && (
+              <>
+                <RampInquiryReport stage="evidence" answers={answers} />
+                {comments("inquiry-evidence")}
+              </>
             )}
             {(answers.simulationRecords ?? [])
               .filter((record) => record.experimentId === experiment.id)
@@ -270,13 +285,19 @@ export function ReportDocument({ data }: { data: ReportData }) {
       </section>
       <section>
         <h2>4. Висновок</h2>
-        {conclusionLabels.map((label, i) => (
+        {(inquiry ? inquiryConclusions : conclusionLabels).map((label, i) => (
           <div key={label}>
             <h3>{label}</h3>
             <p className="report-answer">{value(answers.conclusion?.[i])}</p>
           </div>
         ))}
         {comments("conclusion")}
+        {inquiry && (
+          <>
+            <RampInquiryReport stage="reflection" answers={answers} />
+            {comments("inquiry-reflection")}
+          </>
+        )}
         <h3>Творче завдання · необов’язково</h3>
         <p>
           {number === 1
