@@ -76,7 +76,13 @@ export const inquiryRubric = [
   },
 ];
 export const isRampInquiry = (content: LabContent) =>
-  content.inquiry === "ramp-v1";
+  content.inquiry === "ramp-v1" || content.inquiry === "ramp-v2";
+export const compactConclusions = [
+  "Твердження: яку відповідь дають мої досліди?",
+  "Дані та порівняння з етапу «Експеримент»",
+  "Пояснення і прогноз: чому дані підтримують висновок? Чи уточнюю свою думку?",
+  "Межі й наступна перевірка: що впливає на точність і що перевірю далі?",
+];
 export function emptyRampInquiry(): RampInquiryAnswers {
   return {
     plan: { change: "", constants: "", measure: "", challenge: "" },
@@ -85,18 +91,20 @@ export function emptyRampInquiry(): RampInquiryAnswers {
     reflection: { revision: "", nextTest: "" },
   };
 }
-export function rampInquiryGaps(a: Answers) {
+export function rampInquiryGaps(a: Answers, compact = false) {
   const v = a.rampInquiry;
   const gaps: string[] = [];
-  for (const field of inquiryPlan)
+  for (const field of compact ? inquiryPlan.slice(0, 1) : inquiryPlan)
     if (!v?.plan[field.key]?.trim()) gaps.push(field.label);
-  for (const field of inquiryEvidence)
+  for (const field of compact ? [] : inquiryEvidence)
     if (!v?.evidence[field.key]?.trim()) gaps.push(field.label);
-  for (const field of inquiryReflection)
+  for (const field of compact ? [] : inquiryReflection)
     if (!v?.reflection[field.key]?.trim()) gaps.push(field.label);
   if (
     !v?.snapshot?.prediction.trim() ||
-    inquiryPlan.some((f) => !v.snapshot?.plan[f.key]?.trim())
+    (compact ? inquiryPlan.slice(0, 1) : inquiryPlan).some(
+      (f) => !v.snapshot?.plan[f.key]?.trim(),
+    )
   )
     gaps.push("Зафіксуйте початковий прогноз і план перевірки.");
   return gaps;

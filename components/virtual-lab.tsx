@@ -206,6 +206,7 @@ export function VirtualLab({
   lastRecord,
   onLearningAction,
   measurements,
+  observedReadings = false,
 }: {
   number: number;
   experiment: Experiment;
@@ -214,6 +215,7 @@ export function VirtualLab({
   lastRecord?: SimulationRecord;
   onLearningAction?: (event: LearningAction) => void;
   measurements?: ReactNode;
+  observedReadings?: boolean;
 }) {
   const setup = simulationSetup(number, experiment.id);
   const timed = usesManualTiming(number);
@@ -224,6 +226,7 @@ export function VirtualLab({
     ...(number === 1 && lastRecord
       ? { airResistance: lastRecord.parameters.airResistance ?? 0 }
       : {}),
+    ...(number === 9 && observedReadings ? { measurementMode: 1 } : {}),
   }));
   const [rotationView, setRotationView] = useState<RotationView>("perspective");
   const [elasticStart, setElasticStart] = useState(0);
@@ -663,7 +666,15 @@ export function VirtualLab({
         />
       )}
       {number === 9 && (
-        <HydroReadouts readings={result.readings} phase={phase} />
+        <HydroReadouts
+          readings={result.readings}
+          phase={phase}
+          reference={
+            result.modelVersion === 3
+              ? { P1: result.values.P1, P2: result.values.P2 }
+              : undefined
+          }
+        />
       )}
       {number === 10 && (
         <FloatingReadouts

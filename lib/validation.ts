@@ -7,6 +7,25 @@ const inquiryPlanSchema = z.object({
   challenge: short,
 });
 export const answersSchema = z.object({
+  methodNotes: z
+    .record(z.string().max(100), short)
+    .refine((v) => Object.keys(v).length <= 60)
+    .optional(),
+  repeatMeasurements: z
+    .record(
+      z.string().max(80),
+      z
+        .array(
+          z.object({
+            path: z.string().max(1000).optional(),
+            values: z.array(z.string().max(1000)).length(3),
+            note: short,
+          }),
+        )
+        .max(30),
+    )
+    .refine((v) => Object.keys(v).length <= 30)
+    .optional(),
   rampInquiry: z
     .object({
       plan: inquiryPlanSchema,
@@ -28,15 +47,20 @@ export const answersSchema = z.object({
     .optional(),
   simulationRecords: z
     .array(
-      z.object({
-        modelVersion: z.union([z.literal(1), z.literal(2)]),
-        labNumber: z.number().int().min(1).max(10),
-        experimentId: z.string().max(80),
-        rowIndex: z.number().int().min(0).max(29),
-        parameters: z.record(z.string().max(50), z.number().finite()),
-        readings: z.record(z.string().max(80), z.string().max(1000)),
-        recordedAt: z.iso.datetime(),
-      }),
+      z
+        .object({
+          modelVersion: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+          labNumber: z.number().int().min(1).max(10),
+          experimentId: z.string().max(80),
+          rowIndex: z.number().int().min(0).max(29),
+          parameters: z.record(z.string().max(50), z.number().finite()),
+          readings: z.record(z.string().max(80), z.string().max(1000)),
+          recordedAt: z.iso.datetime(),
+        })
+        .refine(
+          (v) => v.modelVersion !== 3 || v.labNumber === 9,
+          "Модель v3 призначена для відліку динамометра в роботі №9.",
+        ),
     )
     .max(60)
     .optional(),

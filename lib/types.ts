@@ -23,7 +23,8 @@ export type Experiment = {
   graph?: { x: string; y: string };
 };
 export type LabContent = {
-  inquiry?: "ramp-v1";
+  inquiry?: "ramp-v1" | "ramp-v2";
+  methodology?: { version: "2026-11"; lab: number };
   purpose: string;
   equipment: string[];
   theory: string;
@@ -36,6 +37,11 @@ export type LabContent = {
   image?: string;
 };
 export type Answers = {
+  methodNotes?: Record<string, string>;
+  repeatMeasurements?: Record<
+    string,
+    { path?: string; values: string[]; note: string }[]
+  >;
   rampInquiry?: RampInquiryAnswers;
   simulationRecords?: SimulationRecord[];
   prediction?: string;

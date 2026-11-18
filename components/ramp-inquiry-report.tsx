@@ -9,18 +9,30 @@ import {
 export function RampInquiryReport({
   stage,
   answers,
+  compact = false,
 }: {
   stage: "plan" | "evidence" | "reflection";
   answers: Answers;
+  compact?: boolean;
 }) {
   const v = answers.rampInquiry ?? emptyRampInquiry();
+  const planFields = compact
+    ? [{ key: "change" as const, label: "Мій короткий план" }]
+    : inquiryPlan;
   const fields =
     stage === "plan"
-      ? inquiryPlan
+      ? planFields
       : stage === "evidence"
-        ? inquiryEvidence
-        : inquiryReflection;
-  const values: Record<string, string> = v[stage];
+        ? compact
+          ? [{ key: "comparison", label: "Дані та порівняння" }]
+          : inquiryEvidence
+        : compact
+          ? []
+          : inquiryReflection;
+  const values: Record<string, string> =
+    compact && stage === "evidence"
+      ? { comparison: answers.conclusion?.[1] ?? "" }
+      : v[stage];
   const value = (text?: string) => text?.trim() || "—";
   return (
     <section>
@@ -38,7 +50,7 @@ export function RampInquiryReport({
           {v.snapshot && (
             <>
               <h4>План під час фіксації прогнозу</h4>
-              {inquiryPlan.map((f) => (
+              {planFields.map((f) => (
                 <div key={f.key}>
                   <strong>{f.label}</strong>
                   <p className="report-answer">

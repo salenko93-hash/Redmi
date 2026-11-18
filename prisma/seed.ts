@@ -5,6 +5,7 @@ import { PrismaClient } from "@prisma/client";
 import { hash } from "bcryptjs";
 import { labs } from "../lib/labs";
 import { inquiryContent } from "../lib/ramp-inquiry";
+import { revisedContent } from "../lib/methodology-content";
 const db = new PrismaClient({
   adapter: new PrismaPg(databaseConfig()),
 });
@@ -44,6 +45,35 @@ async function main() {
       });
     }
   });
+  for (const number of [1, 9, 10]) {
+    const lab = labs.find((l) => l.number === number)!;
+    await db.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(${number})`;
+      const existing = await tx.labVersion.findFirst({
+        where: {
+          number,
+          authorId: null,
+          content: { path: ["methodology", "version"], equals: "2026-11" },
+        },
+      });
+      if (existing) return;
+      const latest = await tx.labVersion.findFirst({
+        where: { number },
+        orderBy: { version: "desc" },
+      });
+      await tx.labVersion.create({
+        data: {
+          number,
+          version: (latest?.version ?? 1) + 1,
+          title:
+            number === 1
+              ? "Середня швидкість руху · дослідження з доказами"
+              : lab.title,
+          content: JSON.parse(JSON.stringify(revisedContent(lab))),
+        },
+      });
+    });
+  }
   if (process.argv.includes("--demo")) {
     if (process.env.NODE_ENV === "production")
       throw new Error("Demo seed is forbidden in production");
@@ -99,6 +129,8 @@ async function main() {
       "Демонстраційний клас створено. Облікові записи описано в README.",
     );
   }
-  console.log("10 шаблонів готові.");
+  console.log(
+    "10 базових шаблонів і нові методичні версії №1, №9, №10 готові. Попередні роботи збережено.",
+  );
 }
 main().finally(() => db.$disconnect());

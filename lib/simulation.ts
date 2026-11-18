@@ -4,7 +4,8 @@ import { rampBallProperties, rampMaterials, rampMotion } from "./ramp";
 /** Deterministic educational models. SI inside each model; displayed units match the worksheet. */
 // Unchanged models keep v1. Air resistance on the ramp is explicitly versioned as v2.
 export const MODEL_VERSION = 1 as const;
-export function simulationModelVersion(n: number, p: Parameters): 1 | 2 {
+export function simulationModelVersion(n: number, p: Parameters): 1 | 2 | 3 {
+  if (n === 9 && p.measurementMode === 1) return 3;
   return n === 1 && p.airResistance === 1 ? 2 : MODEL_VERSION;
 }
 export const G = 10; // Same classroom approximation as the worksheets.
@@ -25,7 +26,7 @@ export type SimulationSetup = {
   instruction: string;
 };
 export type SimulationResult = {
-  modelVersion: 1 | 2;
+  modelVersion: 1 | 2 | 3;
   readings: Record<string, string>;
   duration: number;
   canRecord: boolean;
@@ -33,7 +34,7 @@ export type SimulationResult = {
   values: Record<string, number>;
 };
 export type SimulationRecord = {
-  modelVersion: 1 | 2;
+  modelVersion: 1 | 2 | 3;
   labNumber: number;
   experimentId: string;
   rowIndex: number;
@@ -278,7 +279,18 @@ export const initialParameters = (n: number, e: string): Parameters =>
   );
 export function validateParameters(n: number, e: string, p: Parameters) {
   const controls = simulationSetup(n, e).controls;
-  if (Object.keys(p).some((k) => !controls.some((c) => c.key === k)))
+  if (
+    Object.hasOwn(p, "measurementMode") &&
+    (n !== 9 || p.measurementMode !== 1)
+  )
+    return false;
+  if (
+    Object.keys(p).some(
+      (k) =>
+        !(n === 9 && k === "measurementMode") &&
+        !controls.some((c) => c.key === k),
+    )
+  )
     return false;
   const legacyRamp =
     n === 1 && !Object.hasOwn(p, "material") && !Object.hasOwn(p, "diameter");
@@ -477,8 +489,14 @@ export function simulate(
         P2 = P1 - 1000 * V * G;
       readings = {
         object: `Зразок ${["A", "B", "C"][p.sample]}`,
-        P1: fmt(P1),
-        P2: fmt(P2),
+        P1:
+          p.measurementMode === 1
+            ? (Math.round((P1 + 1e-10) / 0.2) * 0.2).toFixed(1)
+            : fmt(P1),
+        P2:
+          p.measurementMode === 1
+            ? (Math.round((P2 + 1e-10) / 0.2) * 0.2).toFixed(1)
+            : fmt(P2),
       };
       values = { P1, P2, V: p.volume };
       break;

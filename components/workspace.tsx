@@ -1,7 +1,12 @@
 "use client";
 import { rampCreativeInstruction } from "@/lib/lab-one-material";
 import { RampInquiry } from "./ramp-inquiry";
-import { inquiryConclusions, isRampInquiry } from "@/lib/ramp-inquiry";
+import {
+  compactConclusions,
+  inquiryConclusions,
+  isRampInquiry,
+} from "@/lib/ramp-inquiry";
+import { MethodReview } from "./method-review";
 import { useLearningJournal } from "./use-learning-journal";
 import { LearningJournal } from "./learning-journal";
 import { ReportActions } from "./report-actions";
@@ -107,7 +112,12 @@ export function Workspace({
       : emptyAnswers(content)) as Answers,
   );
   const inquiry = number === 1 && isRampInquiry(content);
-  const finalQuestions = inquiry ? inquiryConclusions : conclusionLabels;
+  const compactInquiry = content.inquiry === "ramp-v2";
+  const finalQuestions = compactInquiry
+    ? compactConclusions
+    : inquiry
+      ? inquiryConclusions
+      : conclusionLabels;
   const [step, setStep] = useState(0),
     [state, setState] = useState(
       archived
@@ -569,6 +579,7 @@ export function Workspace({
                 <>
                   <RampInquiry
                     stage="plan"
+                    compact={compactInquiry}
                     answers={answers}
                     readOnly={readOnly}
                     onChange={change}
@@ -604,6 +615,7 @@ export function Workspace({
                 </ol>
                 <VirtualLab
                   number={number}
+                  observedReadings={content.methodology?.lab === 9}
                   experiment={e}
                   allowTransfer={!readOnly && experimentMode === "SIMULATION"}
                   onRecord={recordSimulation}
@@ -614,14 +626,23 @@ export function Workspace({
                     ?.filter((r) => r.experimentId === e.id)
                     .at(-1)}
                   measurements={
-                    <ExperimentMeasurements
-                      number={number}
-                      experiment={e}
-                      answers={answers}
-                      readOnly={readOnly}
-                      feedbackMode={feedbackMode}
-                      onChange={change}
-                    />
+                    <>
+                      <ExperimentMeasurements
+                        number={number}
+                        experiment={e}
+                        answers={answers}
+                        readOnly={readOnly}
+                        feedbackMode={feedbackMode}
+                        onChange={change}
+                      />
+                      <MethodReview
+                        content={content}
+                        experiment={e}
+                        answers={answers}
+                        readOnly={readOnly}
+                        onChange={change}
+                      />
+                    </>
                   }
                 />
                 <ExperimentGraph
@@ -640,6 +661,7 @@ export function Workspace({
                   <>
                     <RampInquiry
                       stage="evidence"
+                      compact={compactInquiry}
                       answers={answers}
                       readOnly={readOnly}
                       onChange={change}
@@ -795,28 +817,48 @@ export function Workspace({
             <section className="panel work-section">
               <div className="eyebrow">04 / ВИСНОВОК</div>
               <h2>Що вдалося з’ясувати?</h2>
-              {finalQuestions.map((q, i) => (
-                <label className="question-label" key={q}>
-                  {q}
-                  <textarea
-                    rows={3}
-                    disabled={readOnly}
-                    value={answers.conclusion?.[i] ?? ""}
-                    onChange={(e) => {
-                      const conclusion = finalQuestions.map(
-                        (_, j) => answers.conclusion?.[j] ?? "",
-                      );
-                      conclusion[i] = e.target.value;
-                      change({ ...answers, conclusion });
-                    }}
-                  />
-                </label>
-              ))}
+              {finalQuestions.map((q, i) =>
+                compactInquiry && i === 1 ? (
+                  <div className="question-label" key={q}>
+                    <strong>{q}</strong>
+                    <p className="report-answer">
+                      {answers.conclusion?.[1] ||
+                        "Запишіть дані та порівняння на етапі «Експеримент»."}
+                    </p>
+                    {!readOnly && (
+                      <button
+                        type="button"
+                        className="button secondary no-print"
+                        onClick={() => setStep(1)}
+                      >
+                        До порівняння даних
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <label className="question-label" key={q}>
+                    {q}
+                    <textarea
+                      rows={3}
+                      disabled={readOnly}
+                      value={answers.conclusion?.[i] ?? ""}
+                      onChange={(e) => {
+                        const conclusion = finalQuestions.map(
+                          (_, j) => answers.conclusion?.[j] ?? "",
+                        );
+                        conclusion[i] = e.target.value;
+                        change({ ...answers, conclusion });
+                      }}
+                    />
+                  </label>
+                ),
+              )}
               {comments("conclusion")}
               {inquiry && (
                 <>
                   <RampInquiry
                     stage="reflection"
+                    compact={compactInquiry}
                     answers={answers}
                     readOnly={readOnly}
                     onChange={change}

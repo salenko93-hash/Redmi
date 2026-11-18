@@ -14,20 +14,44 @@ export function RampInquiry({
   answers,
   readOnly,
   onChange,
+  compact = false,
 }: {
   stage: "plan" | "evidence" | "reflection";
   answers: Answers;
   readOnly: boolean;
   onChange: (answers: Answers) => void;
+  compact?: boolean;
 }) {
   const v = answers.rampInquiry ?? emptyRampInquiry();
+  const planFields = compact
+    ? [
+        {
+          key: "change" as const,
+          label: "Мій короткий план",
+          hint: "Одним записом: що змінюю, що залишаю сталим, як вимірюю та який результат змусить переглянути прогноз.",
+        },
+      ]
+    : inquiryPlan;
   const definitions =
     stage === "plan"
-      ? inquiryPlan
+      ? planFields
       : stage === "evidence"
-        ? inquiryEvidence
-        : inquiryReflection;
-  const values: Record<string, string> = v[stage];
+        ? compact
+          ? [
+              {
+                key: "comparison",
+                label: "Дані та порівняння",
+                hint: "Порівняй два рядки з числами й одиницями. Цей запис увійде до висновку — повторно вводити його не потрібно.",
+              },
+            ]
+          : inquiryEvidence
+        : compact
+          ? []
+          : inquiryReflection;
+  const values: Record<string, string> =
+    compact && stage === "evidence"
+      ? { comparison: answers.conclusion?.[1] ?? "" }
+      : v[stage];
   const title =
     stage === "plan"
       ? "Мій план перевірки"
@@ -54,7 +78,7 @@ export function RampInquiry({
             <details>
               <summary>План під час фіксації прогнозу</summary>
               <dl>
-                {inquiryPlan.map((f) => (
+                {planFields.map((f) => (
                   <div key={f.key}>
                     <dt>{f.label}</dt>
                     <dd>{v.snapshot!.plan[f.key]}</dd>
@@ -77,13 +101,22 @@ export function RampInquiry({
               aria-label={`${title}: ${f.label}`}
               value={values[f.key] ?? ""}
               onChange={(e) =>
-                onChange({
-                  ...answers,
-                  rampInquiry: {
-                    ...v,
-                    [stage]: { ...v[stage], [f.key]: e.target.value },
-                  },
-                })
+                compact && stage === "evidence"
+                  ? onChange({
+                      ...answers,
+                      conclusion: Array.from({ length: 4 }, (_, i) =>
+                        i === 1
+                          ? e.target.value
+                          : (answers.conclusion?.[i] ?? ""),
+                      ),
+                    })
+                  : onChange({
+                      ...answers,
+                      rampInquiry: {
+                        ...v,
+                        [stage]: { ...v[stage], [f.key]: e.target.value },
+                      },
+                    })
               }
             />
           </label>
@@ -108,7 +141,7 @@ export function RampInquiry({
                 disabled={
                   readOnly ||
                   !answers.prediction?.trim() ||
-                  inquiryPlan.some((f) => !v.plan[f.key].trim())
+                  planFields.some((f) => !v.plan[f.key].trim())
                 }
                 onClick={() =>
                   onChange({
@@ -126,14 +159,16 @@ export function RampInquiry({
                 Зафіксувати прогноз і план
               </button>
               <small>
-                Спочатку заповни прогноз і чотири короткі пункти плану. Фіксація
-                зберігає їх для порівняння з висновком.
+                {compact
+                  ? "Спочатку заповни прогноз і короткий план."
+                  : "Спочатку заповни прогноз і чотири короткі пункти плану."}{" "}
+                Фіксація зберігає їх для порівняння з висновком.
               </small>
             </>
           )}
         </div>
       )}
-      {stage === "evidence" && (
+      {stage === "evidence" && !compact && (
         <details className={styles.repeats}>
           <summary>Повторна перевірка часу · за можливості</summary>
           <p>

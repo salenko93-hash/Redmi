@@ -1,6 +1,11 @@
 "use client";
 import { RampInquiryReport } from "./ramp-inquiry-report";
-import { inquiryConclusions, isRampInquiry } from "@/lib/ramp-inquiry";
+import {
+  compactConclusions,
+  inquiryConclusions,
+  isRampInquiry,
+} from "@/lib/ramp-inquiry";
+import { MethodReviewReport } from "./method-review-report";
 import { usesManualTiming } from "@/lib/experiment-timing";
 import type { ReportData } from "@/lib/report-types";
 import {
@@ -100,7 +105,11 @@ export function ReportDocument({ data }: { data: ReportData }) {
         {comments("prediction")}
         {inquiry && (
           <>
-            <RampInquiryReport stage="plan" answers={answers} />
+            <RampInquiryReport
+              stage="plan"
+              answers={answers}
+              compact={content.inquiry === "ramp-v2"}
+            />
             {comments("inquiry-plan")}
           </>
         )}
@@ -150,6 +159,11 @@ export function ReportDocument({ data }: { data: ReportData }) {
                 ))}
               </tbody>
             </table>
+            <MethodReviewReport
+              content={content}
+              experiment={experiment}
+              answers={answers}
+            />
             {experiment.graph && (
               <ExperimentGraph
                 experiment={experiment}
@@ -160,7 +174,11 @@ export function ReportDocument({ data }: { data: ReportData }) {
             )}
             {inquiry && (
               <>
-                <RampInquiryReport stage="evidence" answers={answers} />
+                <RampInquiryReport
+                  stage="evidence"
+                  answers={answers}
+                  compact={content.inquiry === "ramp-v2"}
+                />
                 {comments("inquiry-evidence")}
               </>
             )}
@@ -285,7 +303,12 @@ export function ReportDocument({ data }: { data: ReportData }) {
       </section>
       <section>
         <h2>4. Висновок</h2>
-        {(inquiry ? inquiryConclusions : conclusionLabels).map((label, i) => (
+        {(content.inquiry === "ramp-v2"
+          ? compactConclusions
+          : inquiry
+            ? inquiryConclusions
+            : conclusionLabels
+        ).map((label, i) => (
           <div key={label}>
             <h3>{label}</h3>
             <p className="report-answer">{value(answers.conclusion?.[i])}</p>
@@ -294,7 +317,11 @@ export function ReportDocument({ data }: { data: ReportData }) {
         {comments("conclusion")}
         {inquiry && (
           <>
-            <RampInquiryReport stage="reflection" answers={answers} />
+            <RampInquiryReport
+              stage="reflection"
+              answers={answers}
+              compact={content.inquiry === "ramp-v2"}
+            />
             {comments("inquiry-reflection")}
           </>
         )}

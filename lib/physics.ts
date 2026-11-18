@@ -1,17 +1,12 @@
 import type { Answers, Experiment, Field, LabContent } from "./types";
+import { number } from "./measurement-number";
+export { number } from "./measurement-number";
+import { methodGaps } from "./methodology";
 import {
   emptyRampInquiry,
   isRampInquiry,
   rampInquiryGaps,
 } from "./ramp-inquiry";
-export function number(value: unknown): number | null {
-  if (typeof value !== "string" && typeof value !== "number") return null;
-  const clean = String(value).trim().replace(/\s/g, "").replace(",", ".");
-  if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(clean))
-    return null;
-  const n = Number(clean);
-  return Number.isFinite(n) ? n : null;
-}
 export function expected(
   field: Field,
   row: Record<string, string>,
@@ -105,7 +100,7 @@ export function emptyAnswers(content: LabContent): Answers {
 export function completeness(content: LabContent, a: Answers): string[] {
   const errors: string[] = [];
   if (isRampInquiry(content)) {
-    errors.push(...rampInquiryGaps(a));
+    errors.push(...rampInquiryGaps(a, content.inquiry === "ramp-v2"));
     const repeats = a.rampInquiry?.repeats;
     if (
       repeats &&
@@ -124,6 +119,7 @@ export function completeness(content: LabContent, a: Answers): string[] {
     }
   }
   if (!a.prediction?.trim()) errors.push("Запишіть прогноз.");
+  errors.push(...methodGaps(content, a));
   for (const e of content.experiments)
     for (let i = 0; i < e.rows.length; i++)
       for (const f of e.fields) {
@@ -181,7 +177,8 @@ export function progress(content: LabContent, a: Answers) {
     ) +
     content.questions.length +
     4 +
-    (isRampInquiry(content) ? 10 : 0) +
+    (content.methodology?.lab === 9 ? 2 : 0) +
+    (isRampInquiry(content) ? (content.inquiry === "ramp-v2" ? 2 : 10) : 0) +
     (content.diagram ? 3 : 0);
   return Math.max(
     0,

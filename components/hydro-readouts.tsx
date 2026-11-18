@@ -1,9 +1,11 @@
 export function HydroReadouts({
   readings,
   phase,
+  reference,
 }: {
   readings: Record<string, string>;
   phase: number;
+  reference?: { P1: number; P2: number };
 }) {
   const ready = phase === 1;
   return (
@@ -12,6 +14,9 @@ export function HydroReadouts({
       aria-label="Покази приладів"
     >
       {ready && <h4>Покази приладів</h4>}
+      {reference && (
+        <p>Відлік до найближчої поділки 0,2 Н · межа округлення ±0,1 Н.</p>
+      )}
       <dl>
         {[
           ["object", "Невідомий зразок", ""],
@@ -39,6 +44,19 @@ export function HydroReadouts({
           : "Підніми посудину запуском досліду. Під час занурення показ зменшується; кінцевий відлік знімай після повного занурення."}{" "}
         Цифри моделі не визначають точність реального динамометра.
       </p>
+      {reference && ready && (
+        <details>
+          <summary>Еталон моделі · окрема довідка</summary>
+          <p>
+            P₁ = {String(Number(reference.P1.toFixed(5))).replace(".", ",")} Н;
+            P₂ = {String(Number(reference.P2.toFixed(5))).replace(".", ",")} Н.
+          </p>
+          <p>
+            Це розрахунок за припущеннями моделі. У таблицю переноситься відлік
+            за шкалою; точний розрахунок не є незалежним вимірюванням.
+          </p>
+        </details>
+      )}
     </section>
   );
 }
